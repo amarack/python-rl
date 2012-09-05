@@ -164,7 +164,11 @@ class sarsa_agent(Agent):
 
 		delta = (reward + self.sarsa_gamma * Q_sprime_aprime - Q_sa)
 
-		print delta
+		prod = numpy.zeros((len(lastState), len(lastState)))
+		for i in range(len(lastState)):
+			for j in range(len(lastState)):
+				prod[i,j] = lastState[i]*lastState[j]
+		print delta**2 * numpy.dot(lastState, numpy.dot(numpy.linalg.pinv(prod), lastState))
 		if not self.policyFrozen:
 			self.value_function[:,lastAction] += self.sarsa_stepsize * delta * lastState
 
