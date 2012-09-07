@@ -33,7 +33,7 @@ from rlglue.types import Observation
 from rlglue.utils import TaskSpecVRLGLUE3
 from random import Random
 import expreplay
-
+import fourier
 
 # This is a very simple Sarsa agent for discrete-action, discrete-state
 # environments.  It uses epsilon-greedy exploration.
@@ -60,6 +60,7 @@ class sarsa_agent(Agent):
 		else:
 			self.expSaver = None
 
+		self.basis = None
 		self.randGenerator=Random()
 		self.lastAction=Action()
 		self.lastObservation=Observation()
@@ -87,8 +88,10 @@ class sarsa_agent(Agent):
 			assert not TaskSpec.isSpecial(TaskSpec.getIntActions()[0][0]), " expecting min action to be a number not a special value"
 			assert not TaskSpec.isSpecial(TaskSpec.getIntActions()[0][1]), " expecting max action to be a number not a special value"
 			self.numActions=TaskSpec.getIntActions()[0][1]+1;
+
 			
-			self.value_function=numpy.zeros((self.numStates, self.numActions))
+			self.basis = fourier.FourierBasis(self.numStates, 3, TaskSpec.getDoubleObservations())
+			self.value_function=numpy.zeros((self.basis.numTerms, self.numActions))
 
 		else:
 			print "Task Spec could not be parsed: "+taskSpecString;
@@ -102,7 +105,7 @@ class sarsa_agent(Agent):
 		if not self.exploringFrozen and self.randGenerator.random()<self.sarsa_epsilon:
 			return self.randGenerator.randint(0,self.numActions-1)
                 
-		return numpy.dot(self.value_function.T, state).argmax()
+		return numpy.dot(self.value_function.T, self.basis.computeFeatures(state)).argmax()
 	
 	def agent_start(self,observation):
 		theState=numpy.array(observation.doubleArray)
@@ -131,14 +134,14 @@ class sarsa_agent(Agent):
 
 		newIntAction=self.egreedy(newState)
 
-		Q_sa=numpy.dot(self.value_function[:,lastAction], lastState)
-		Q_sprime_aprime=numpy.dot(self.value_function[:,newIntAction], newState)
+		Q_sa=numpy.dot(self.value_function[:,lastAction], self.basis.computeFeatures(lastState))
+		Q_sprime_aprime=numpy.dot(self.value_function[:,newIntAction], self.basis.computeFeatures(newState))
 
 		delta = (reward + self.sarsa_gamma * Q_sprime_aprime - Q_sa)
 
 
 		if not self.policyFrozen:
-			self.value_function[:,lastAction] += self.sarsa_stepsize * delta * lastState
+			self.value_function[:,lastAction] += self.sarsa_stepsize * delta * self.basis.computeFeatures(lastState)
 
 		returnAction=Action()
 		returnAction.intArray=[newIntAction]
@@ -159,18 +162,19 @@ class sarsa_agent(Agent):
 
 		newIntAction=action.intArray[0]
 
-		Q_sa=numpy.dot(self.value_function[:,lastAction], lastState)
-		Q_sprime_aprime=numpy.dot(self.value_function[:,newIntAction], newState)
+		Q_sa=numpy.dot(self.value_function[:,lastAction], self.basis.computeFeatures(lastState))
+		Q_sprime_aprime=numpy.dot(self.value_function[:,newIntAction], self.basis.computeFeatures(newState))
 
 		delta = (reward + self.sarsa_gamma * Q_sprime_aprime - Q_sa)
 
-		prod = numpy.zeros((len(lastState), len(lastState)))
-		for i in range(len(lastState)):
-			for j in range(len(lastState)):
-				prod[i,j] = lastState[i]*lastState[j]
-		print delta**2 * numpy.dot(lastState, numpy.dot(numpy.linalg.pinv(prod), lastState))
+		lastStateBasis = self.basis.computeFeatures(lastState)
+		prod = numpy.zeros((len(lastStateBasis), len(lastStateBasis)))
+		for i in range(len(lastStateBasis)):
+			for j in range(len(lastStateBasis)):
+				prod[i,j] = lastStateBasis[i]*lastStateBasis[j]
+		print delta**2 * numpy.dot(lastStateBasis, numpy.dot(numpy.linalg.pinv(prod), lastStateBasis))
 		if not self.policyFrozen:
-			self.value_function[:,lastAction] += self.sarsa_stepsize * delta * lastState
+			self.value_function[:,lastAction] += self.sarsa_stepsize * delta * lastStateBasis
 
 		returnAction=Action()
 		returnAction.intArray=[newIntAction]
@@ -185,12 +189,12 @@ class sarsa_agent(Agent):
 		lastState=self.lastObservation.doubleArray
 		lastAction=self.lastAction.intArray[0]
 
-		Q_sa=numpy.dot(self.value_function[:,lastAction], lastState)
+		Q_sa=numpy.dot(self.value_function[:,lastAction], self.basis.computeFeatures(lastState))
 
 		delta = (reward - Q_sa)
 
 		if not self.policyFrozen:
-			self.value_function[:,lastAction] += self.sarsa_stepsize * delta * lastState
+			self.value_function[:,lastAction] += self.sarsa_stepsize * delta * self.basis.computeFeatures(lastState)
 			if self.expSaver is not None:
 				self.expSaver.endEpisode(reward)
 		
