@@ -1,24 +1,3 @@
-# 
-# Copyright (C) 2008, Brian Tanner
-# 
-#http://rl-glue-ext.googlecode.com/
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-#  $Revision: 1011 $
-#  $Date: 2009-02-11 22:29:54 -0700 (Wed, 11 Feb 2009) $
-#  $Author: brian@tannerpages.com $
-#  $HeadURL: http://rl-library.googlecode.com/svn/trunk/projects/packages/examples/mines-sarsa-python/sample_sarsa_agent.py $
 
 import random
 import sys
@@ -35,28 +14,16 @@ from random import Random
 import expreplay
 import fourier
 
-# This is a very simple Sarsa agent for discrete-action, discrete-state
-# environments.  It uses epsilon-greedy exploration.
+# This is an implementation of the Temporal Difference with Correction (TDC) algorithm, 
+# for off-policy reinforcement learning.
 # 
-# We've made a decision to store the previous action and observation in 
-# their raw form, as structures.  This code could be simplified and you
-# could store them just as ints.
 
-
-# TO USE THIS Agent [order doesn't matter]
-# NOTE: I'm assuming the Python codec is installed an is in your Python path
-#   -  Start the rl_glue executable socket server on your computer
-#   -  Run the SampleMinesEnvironment and SampleExperiment from this or a
-#   different codec (Matlab, Python, Java, C, Lisp should all be fine)
-#   -  Start this agent like:
-#   $> python sample_sarsa_agent.py
-
-class sarsa_agent(Agent):
+class tdc_agent(Agent):
 
 	def __init__(self, filename=None):
 		# Experience saver object:
 		if filename is not None:
-			self.expSaver = expreplay.experience_saver(filename)
+			self.expSaver = expreplay.experience_saver("tdc_saver.pickle")
 		else:
 			self.expSaver = None
 
@@ -64,8 +31,9 @@ class sarsa_agent(Agent):
 		self.randGenerator=Random()
 		self.lastAction=Action()
 		self.lastObservation=Observation()
-		self.sarsa_stepsize = 0.1
-		self.sarsa_epsilon = 1.0
+		self.sarsa_stepsize = 0.05
+		self.meta_stepsize = 0.05
+		self.sarsa_epsilon = 0.1
 		self.sarsa_gamma = 1.0
 		self.numStates = 0
 		self.numActions = 0
@@ -92,6 +60,7 @@ class sarsa_agent(Agent):
 			
 			self.basis = fourier.FourierBasis(self.numStates, 3, TaskSpec.getDoubleObservations())
 			self.value_function=numpy.zeros((self.basis.numTerms, self.numActions))
+			self.w_function = numpy.zeros((self.basis.numTerms, self.numActions))
 
 		else:
 			print "Task Spec could not be parsed: "+taskSpecString;
@@ -142,7 +111,14 @@ class sarsa_agent(Agent):
 
 
 		if not self.policyFrozen:
-			self.value_function[:,lastAction] += self.sarsa_stepsize * delta * self.basis.computeFeatures(lastState)
+			update = delta * self.basis.computeFeatures(lastState) - \
+			    self.sarsa_gamma * self.basis.computeFeatures(newState) * numpy.dot(self.basis.computeFeatures(lastState), self.w_function[:,lastAction])
+
+			self.value_function[:,lastAction] += self.sarsa_stepsize * update
+
+			self.w_function[:,lastAction] += self.meta_stepsize * \
+			    (delta - numpy.dot(self.basis.computeFeatures(lastState), self.w_function[:,lastAction])) * self.basis.computeFeatures(lastState)
+
 
 		returnAction=Action()
 		returnAction.intArray=[newIntAction]
@@ -175,7 +151,16 @@ class sarsa_agent(Agent):
 			for j in range(len(lastStateBasis)):
 				prod[i,j] = lastStateBasis[i]*lastStateBasis[j]
 		print delta**2 * numpy.dot(lastStateBasis, numpy.dot(numpy.linalg.pinv(prod), lastStateBasis))
+
 		if not self.policyFrozen:
+			update = delta * lastStateBasis - \
+			    self.sarsa_gamma * self.basis.computeFeatures(newState) * numpy.dot(lastStateBasis, self.w_function[:,lastAction])
+
+			self.value_function[:,lastAction] += self.sarsa_stepsize * update
+
+			self.w_function[:,lastAction] += self.meta_stepsize * \
+			    (delta - numpy.dot(lastStateBasis, self.w_function[:,lastAction])) * lastStateBasis
+
 			self.value_function[:,lastAction] += self.sarsa_stepsize * delta * lastStateBasis
 
 		returnAction=Action()
@@ -196,7 +181,13 @@ class sarsa_agent(Agent):
 		delta = (reward - Q_sa)
 
 		if not self.policyFrozen:
-			self.value_function[:,lastAction] += self.sarsa_stepsize * delta * self.basis.computeFeatures(lastState)
+			update = delta * self.basis.computeFeatures(lastState)
+			self.value_function[:,lastAction] += self.sarsa_stepsize * update
+
+			self.w_function[:,lastAction] += self.meta_stepsize * \
+			    (delta - numpy.dot(self.basis.computeFeatures(lastState), self.w_function[:,lastAction])) * self.basis.computeFeatures(lastState)
+
+
 			if self.expSaver is not None:
 				self.expSaver.endEpisode(reward)
 		
@@ -275,4 +266,4 @@ class sarsa_agent(Agent):
 
 
 if __name__=="__main__":
-	AgentLoader.loadAgent(sarsa_agent(filename="random_saver.pickle"))
+	AgentLoader.loadAgent(sarsa_agent(filename="sarsa_saver.pickle"))
