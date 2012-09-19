@@ -64,13 +64,15 @@ class sarsa_agent(Agent):
 		self.randGenerator=Random()
 		self.lastAction=Action()
 		self.lastObservation=Observation()
-		self.sarsa_stepsize = 0.1
-		self.sarsa_epsilon = 1.0
-		self.sarsa_gamma = 1.0
+		self.sarsa_stepsize = 0.001
+		self.sarsa_epsilon = 0.01
+		self.sarsa_gamma = 0.99
 		self.numStates = 0
 		self.numActions = 0
 		self.value_function = None
-	
+
+		self.tookRandom = False
+
 		self.policyFrozen=False
 		self.exploringFrozen=False
 	
@@ -103,8 +105,10 @@ class sarsa_agent(Agent):
 		maxIndex=0
 		a=1
 		if not self.exploringFrozen and self.randGenerator.random()<self.sarsa_epsilon:
+			self.tookRandom = True
 			return self.randGenerator.randint(0,self.numActions-1)
-                
+
+                self.tookRandom = False
 		return numpy.dot(self.value_function.T, self.basis.computeFeatures(state)).argmax()
 	
 	def agent_start(self,observation):
@@ -132,15 +136,20 @@ class sarsa_agent(Agent):
 		newState=numpy.array(observation.doubleArray)
 		lastState=numpy.array(self.lastObservation.doubleArray)
 		lastAction=self.lastAction.intArray[0]
-
+		lastWasRand = self.tookRandom
 		newIntAction=self.egreedy(newState)
 
 		Q_sa=numpy.dot(self.value_function[:,lastAction], self.basis.computeFeatures(lastState))
 		Q_sprime_aprime=numpy.dot(self.value_function[:,newIntAction], self.basis.computeFeatures(newState))
 
 		delta = (reward + self.sarsa_gamma * Q_sprime_aprime - Q_sa)
-
-
+#		if not lastWasRand and not self.tookRandom:
+		print "MSBE:", delta**2
+		print "Q:", Q_sa
+		if delta**2 > 10.0:
+			print "DEBUG:", lastState, lastAction, observation.doubleArray, newIntAction, reward, Q_sa, Q_sprime_aprime
+#		if lastState[0] == -1.2:
+#			print "DEBUG2:", lastState, lastAction, observation.doubleArray, newIntAction, reward, Q_sa, Q_sprime_aprime
 		if not self.policyFrozen:
 			self.value_function[:,lastAction] += self.sarsa_stepsize * delta * self.basis.computeFeatures(lastState)
 
@@ -194,7 +203,7 @@ class sarsa_agent(Agent):
 		Q_sa=numpy.dot(self.value_function[:,lastAction], self.basis.computeFeatures(lastState))
 
 		delta = (reward - Q_sa)
-
+		print "Done."
 		if not self.policyFrozen:
 			self.value_function[:,lastAction] += self.sarsa_stepsize * delta * self.basis.computeFeatures(lastState)
 			if self.expSaver is not None:
@@ -275,4 +284,4 @@ class sarsa_agent(Agent):
 
 
 if __name__=="__main__":
-	AgentLoader.loadAgent(sarsa_agent(filename="random_saver.pickle"))
+	AgentLoader.loadAgent(sarsa_agent(filename="sarsa_saver.pickle"))

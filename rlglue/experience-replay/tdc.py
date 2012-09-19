@@ -23,7 +23,7 @@ class tdc_agent(Agent):
 	def __init__(self, filename=None):
 		# Experience saver object:
 		if filename is not None:
-			self.expSaver = expreplay.experience_saver("tdc_saver.pickle")
+			self.expSaver = expreplay.experience_saver(filename)
 		else:
 			self.expSaver = None
 
@@ -31,10 +31,10 @@ class tdc_agent(Agent):
 		self.randGenerator=Random()
 		self.lastAction=Action()
 		self.lastObservation=Observation()
-		self.sarsa_stepsize = 0.05
-		self.meta_stepsize = 0.05
-		self.sarsa_epsilon = 0.1
-		self.sarsa_gamma = 1.0
+		self.sarsa_stepsize = 0.001
+		self.meta_stepsize = 0.0001
+		self.sarsa_epsilon = 0.01
+		self.sarsa_gamma = 0.999
 		self.numStates = 0
 		self.numActions = 0
 		self.value_function = None
@@ -108,6 +108,17 @@ class tdc_agent(Agent):
 		Q_sprime_aprime=numpy.dot(self.value_function[:,newIntAction], self.basis.computeFeatures(newState))
 
 		delta = (reward + self.sarsa_gamma * Q_sprime_aprime - Q_sa)
+		lastStateBasis = self.basis.computeFeatures(lastState)
+		prod = numpy.zeros((len(lastStateBasis), len(lastStateBasis)))
+		for i in range(len(lastStateBasis)):
+			for j in range(len(lastStateBasis)):
+				prod[i,j] = lastStateBasis[i]*lastStateBasis[j]
+#		print delta**2 * numpy.dot(lastStateBasis, numpy.dot(numpy.linalg.pinv(prod), lastStateBasis))
+		print "MSBE:", delta**2
+
+		# 
+#		print delta**2 * numpy.dot(lastStateBasis, numpy.dot(numpy.linalg.pinv(prod), lastStateBasis))
+		print "MSPBE:", numpy.dot(delta * lastStateBasis, self.w_function[:,lastAction])
 
 
 		if not self.policyFrozen:
@@ -150,7 +161,13 @@ class tdc_agent(Agent):
 		for i in range(len(lastStateBasis)):
 			for j in range(len(lastStateBasis)):
 				prod[i,j] = lastStateBasis[i]*lastStateBasis[j]
-		print delta**2 * numpy.dot(lastStateBasis, numpy.dot(numpy.linalg.pinv(prod), lastStateBasis))
+
+		# MSBE, computed as sum over state distribution, prob of state times squared bellman error
+		print "MSBE:", delta**2
+
+		# 
+#		print delta**2 * numpy.dot(lastStateBasis, numpy.dot(numpy.linalg.pinv(prod), lastStateBasis))
+		print "MSPBE:", numpy.dot(delta * lastStateBasis, self.w_function[:,lastAction])
 
 		if not self.policyFrozen:
 			update = delta * lastStateBasis - \
@@ -266,4 +283,4 @@ class tdc_agent(Agent):
 
 
 if __name__=="__main__":
-	AgentLoader.loadAgent(sarsa_agent(filename="sarsa_saver.pickle"))
+	AgentLoader.loadAgent(tdc_agent(filename="tdc_saver.pickle"))
