@@ -39,6 +39,7 @@ class LocalGlue:
 		self.reward_return = 0.0
 		self.step_count = 0
 		self.episode_count = 0
+		self.exitStatus = 0
 
 	def RL_init(self):
 		taskSpecResponse = self.env.env_init()
@@ -54,6 +55,7 @@ class LocalGlue:
 		self.step_count = 1
 		self.episode_count += 1
 		self.prevact = None
+		self.exitStatus = 0
 		obs = self.env.env_start()
 		action = self.agent.agent_start(obs)
 		obsact = Observation_action()
@@ -69,6 +71,7 @@ class LocalGlue:
 		rot = self.env.env_step(self.prevact)
 		roat = Reward_observation_action_terminal()
 		roat.terminal = rot.terminal
+		self.exitStatus = rot.terminal
 
 		if rot.terminal == 1:
 			self.agent.agent_end(rot.r)
@@ -107,13 +110,12 @@ class LocalGlue:
 		return self.episode_count
 
 	def RL_episode(self, num_steps):
-		exitStatus = 0
 		self.RL_start()
-		while exitStatus != 1:
+		while self.exitStatus != 1:
 			# If num_steps is zero (or less) then treat as unlimited
 			if (num_steps > 0) and self.step_count >= num_steps:
 				break
 			roat = self.RL_step()
-			exitStatus = roat.terminal
-		return exitStatus
+			self.exitStatus = roat.terminal
+		return self.exitStatus
 
