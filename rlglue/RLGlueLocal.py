@@ -1,8 +1,6 @@
 # 
-# Copyright (C) 2007, Mark Lee
+# Copyright (C) 2013, Will Dabney
 # 
-#http://rl-glue-ext.googlecode.com/
-#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -16,13 +14,10 @@
 # limitations under the License.
 #
 #
-#  $Revision: 473 $
-#  $Date: 2009-01-29 20:50:12 -0700 (Thu, 29 Jan 2009) $
-#  $Author: brian@tannerpages.com $
-#  $HeadURL: http://rl-glue-ext.googlecode.com/svn/trunk/projects/codecs/Python/src/rlglue/RLGlue.py $
+#  $Revision: 1 $
+#  $Date: 2013-01-24 $
+#  $Author: Will Dabney (amarack) $
 
-import sys
-import os
 from rlglue.agent.Agent import Agent
 from rlglue.environment.Environment import Environment
 
@@ -33,7 +28,9 @@ from rlglue.types import Observation_action
 from rlglue.types import Reward_observation_action_terminal
 from rlglue.types import Reward_observation_terminal
 
-
+# This class provides a seemless way of running python RLGlue experiments locally without 
+# the use of sockets/network. I have no idea why this was not included in the python codec, 
+# but I really need this functionality. Maybe it will help you as well.
 class LocalGlue:
 	def __init__(self,theEnvironment,theAgent):
 		self.env = theEnvironment
@@ -113,6 +110,7 @@ class LocalGlue:
 		exitStatus = 0
 		self.RL_start()
 		while exitStatus != 1:
+			# If num_steps is zero (or less) then treat as unlimited
 			if (num_steps > 0) and self.step_count >= num_steps:
 				break
 			roat = self.RL_step()
