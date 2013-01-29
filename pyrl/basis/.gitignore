@@ -1,4 +1,6 @@
 */*.py[co]
+*/*.o
+*/*.so
 
 # Packages
 *.egg
