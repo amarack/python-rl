@@ -40,7 +40,7 @@ class sarsa_lambda(Agent):
 				self.use_ass = True
 			elif alpha == "autostep":
 				self.use_autostep = True
-				self.lmbda = 0.0
+				self.lmbda = 0.0 # Autostep cannot be used with eligibility traces (in current form)
 				self.mu = self.params.setdefault('autostep_mu', 1.0e-2)
 				self.tau = self.params.setdefault('autostep_tau', 1.0e4)
 			else:
