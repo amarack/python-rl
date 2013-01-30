@@ -27,20 +27,6 @@ from rlglue.types import Observation
 from random import Random
 
 
-#ds = UnsupervisedDataSet(6)
-#ds.addSample([0, 1] * 3)
-#ds.addSample([1, 0] * 3)
-
-#cfg = RbmGibbsTrainerConfig()
-#cfg.maxIter = 3
-
-#rbm = Rbm.fromDims(6, 1)
-#trainer = RbmBernoulliTrainer(rbm, ds, cfg)
-#print rbm.params, rbm.biasParams
-#for _ in xrange(50):
-#    trainer.train()
-
-
 class skeleton_agent(Agent):
 	randGenerator=Random()
 	lastAction=Action()
