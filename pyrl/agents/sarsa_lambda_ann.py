@@ -38,7 +38,6 @@ class sarsa_lambda_ann(Agent):
 		self.params = params
 		self.softmax = softmax
 		self.alpha = float(alpha)
-		
 
 	def agent_init(self,taskSpec):
 		# Parse the task specification and set up the weights and such
@@ -56,7 +55,7 @@ class sarsa_lambda_ann(Agent):
 			self.numActions=TaskSpec.getIntActions()[0][1]+1;
 
 			# Set up the function approximation
-			self.net = nl.net.newff(TaskSpec.getDoubleObservations(), [self.params.setdefault('num_hidden', 10), self.numActions])
+			self.net = nl.net.newff(TaskSpec.getDoubleObservations(), [self.params.setdefault('num_hidden', 10), self.numActions],[nl.net.trans.TanSig(), nl.net.trans.PureLin()])
 			self.traces = copy.deepcopy(map(lambda x: x.np, self.net.layers))
 			self.clearTraces()
 		else:
@@ -128,13 +127,11 @@ class sarsa_lambda_ann(Agent):
 		self.decayTraces()
 		self.update(lastState, lastAction, newState, newIntAction, reward)
 
-		returnAction=Action()
-		returnAction.intArray=[newIntAction]
+		returnAction = Action()
+		returnAction.intArray = [newIntAction]
 		
-		self.lastAction=copy.deepcopy(returnAction)
-		self.lastObservation=copy.deepcopy(observation)
-
-
+		self.lastAction = copy.deepcopy(returnAction)
+		self.lastObservation = copy.deepcopy(observation)
 		return returnAction
 
 	def update(self, x_t, a_t, x_tp, a_tp, reward):
@@ -147,12 +144,14 @@ class sarsa_lambda_ann(Agent):
 
 		grad = nl.tool.ff_grad_step(self.net, Q_t, deltaQ)
 		self.updateTraces(grad, delta)
-		
+
 		# Update the weights 
 		for layer in range(len(self.traces)):
 			self.net.layers[layer].np['b'] -= self.alpha * delta * self.traces[layer]['b']
 			self.net.layers[layer].np['w'] -= self.alpha * delta * self.traces[layer]['w']
 
+		#newQ = self.net.sim([x_t]).flatten()
+		#print Q_t[a_t], deltaQ[a_t], newQ[a_t]
 	
 	def agent_end(self,reward):
 		lastState = self.lastObservation.doubleArray
