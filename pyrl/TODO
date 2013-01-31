@@ -5,13 +5,21 @@ TODO for pyRL project
 Implement Environments (in Python) or Convert C/C++ into Module:
 ------------------------------
 
-Multiroom Continuous Noisy Gridworld
-Windy Gridworld
 Acrobot
 Cart Pole with different styles: RLGlue (easier), Realistic (much harder), swingup vs balance
 Mountain Car
 Pinball
 Tetris
+Fuel World (from TEXPLORE paper)
+Dart Throwing (from Bruno Castro da Silva's paper on parameterized skills)
+Taxi
+Partially Observable Taxi
+RockSample 
+Tiger
+Simulated-Simplified Red Room (GDK/S.K.'s work, similar to a more functional continuous playroom)
+N-DOF Reaching and Reaching through viapoint
+Ball in Cup simulation
+
 
 Implement Agents (in Python) or Convert C/C++ into Module:
 ------------------------------
