@@ -1,4 +1,4 @@
-pyrl
+pyRL
 =========
 
 I could rant all day long about the fact that most of the time Reinforcement Learning code 
