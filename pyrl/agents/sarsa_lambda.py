@@ -129,7 +129,6 @@ class sarsa_lambda(Agent):
 		
 	def agent_start(self,observation):
 		theState = numpy.array(observation.doubleArray)
-
 		thisIntAction=self.getAction(theState)
 		returnAction=Action()
 		returnAction.intArray=[thisIntAction]

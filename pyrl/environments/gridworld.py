@@ -59,7 +59,7 @@ class Gridworld(Environment):
 	def env_start(self):
 		self.reset()
 		returnObs = Observation()
-		returnObs.doubleArray=self.pos.tolist()
+		returnObs.doubleArray = self.pos.tolist()
 		return returnObs
 		
 	def isAtGoal(self):
