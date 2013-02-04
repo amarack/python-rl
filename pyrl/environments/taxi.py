@@ -76,7 +76,8 @@ class Taxi(Environment):
 		random.shuffle(self.lm_list)
 		self.pass_loc = self.lm_list.pop()
 		self.pass_dest = random.choice(self.lm_list)
-		
+		print self.pass_loc, self.pass_dest
+
 	def makeObservation(self):
 		returnObs = Observation()
 		returnObs.doubleArray = self.pos.tolist() + [self.fuel]
