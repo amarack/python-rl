@@ -59,10 +59,14 @@ class Taxi(Environment):
 		
 	def makeTaskSpec(self):
 		ts = TaskSpecRLGlue.TaskSpec(discount_factor=1.0, reward_range=(-20.0, 20.0))
-		ts.addDiscreteAction((0, 6)) # N,S,E,W,Pickup,Dropoff,Refuel
+		if self.fuel_loc is not None:
+			ts.addDiscreteAction((0, 6)) # N,S,E,W,Pickup,Dropoff,Refuel
+		else:
+			ts.addDiscreteAction((0, 5)) # N,S,E,W,Pickup,Dropoff
 		ts.addContinuousObservation((0.0, self.size[0])) # x
 		ts.addContinuousObservation((0.0, self.size[1])) # y
-		ts.addContinuousObservation((-1.0, 12.0)) # Fuel level
+		if self.fuel_loc is not None:
+			ts.addContinuousObservation((-1.0, 12.0)) # Fuel level
 		ts.addDiscreteObservation((-1, len(self.landmarks))) # Passenger location
 		ts.addDiscreteObservation((0, len(self.landmarks))) # Passenger destination		
 		ts.setEpisodic()
@@ -76,11 +80,12 @@ class Taxi(Environment):
 		random.shuffle(self.lm_list)
 		self.pass_loc = self.lm_list.pop()
 		self.pass_dest = random.choice(self.lm_list)
-		print self.pass_loc, self.pass_dest
 
 	def makeObservation(self):
 		returnObs = Observation()
-		returnObs.doubleArray = self.pos.tolist() + [self.fuel]
+		returnObs.doubleArray = self.pos.tolist()
+		if self.fuel_loc is not None:
+			returnObs.doubleArray += [self.fuel]
 		returnObs.intArray = [self.pass_loc, self.pass_dest]
 		return returnObs
 		
@@ -100,6 +105,7 @@ class Taxi(Environment):
 
 	def takeAction(self, intAction):
 		reward = -1.0
+		self.fuel -= 1
 		prev_pos = self.pos.copy()
 		sign = 0
 		if intAction == 0:
@@ -117,13 +123,13 @@ class Taxi(Environment):
 				self.pass_loc = -1
 			else:
 				reward = -10.0
-		elif intAction == 4: # Drop off
+		elif intAction == 5: # Drop off
 			if self.pass_loc == -1 and self.atPoint(self.landmarks[self.pass_dest]):
 				self.pass_loc = self.pass_dest
 				reward = 20.0
 			else:
 				reward = -10.0
-		elif intAction == 4: # Refuel
+		elif self.fuel_loc is not None and intAction == 4: # Refuel
 			if self.atPoint(self.fuel_loc):
 				self.fuel = 12.0
 		
@@ -138,6 +144,7 @@ class Taxi(Environment):
 		if numpy.random.random() < self.fickleness:
 			self.pass_dest = random.choice(self.lm_list)
 
+		print self.pos, self.pass_loc, self.pass_dest, intAction, self.isAtGoal(), reward, self.fuel
 		return reward
 		
 	def hitsWall(self, old_pos, new_pos, sign):
@@ -151,7 +158,7 @@ class Taxi(Environment):
 		
 		theReward = self.takeAction(intAction)
 
-		if self.isAtGoal() or self.fuel < 0:
+		if self.isAtGoal() or (self.fuel_loc is not None and self.fuel) < 0:
 			episodeOver = 1
 
 		theObs = self.makeObservation()
@@ -184,7 +191,8 @@ if __name__=="__main__":
 	parser = argparse.ArgumentParser(description='Run 2D Noisy Continuous Gridworld environment in network mode.')
 	addTaxiArgs(parser)
 	args = parser.parse_args()
+	fuelloc = None if args.fuel_loc[0] < 0 else args.fuel_loc
 	walls = numpy.array(args.wall) if args.wall is not None else None
 	landmarks = numpy.array(args.landmark) if args.landmark is not None else None
-	EnvironmentLoader.loadEnvironment(Taxi(args.size_x, args.size_y, walls=walls, landmarks=landmarks, fuel_loc=args.fuel_loc, fickleness=args.fickleness, noise=args.noise, fudge=args.fudge))
+	EnvironmentLoader.loadEnvironment(Taxi(args.size_x, args.size_y, walls=walls, landmarks=landmarks, fuel_loc=fuelloc, fickleness=args.fickleness, noise=args.noise, fudge=args.fudge))
 

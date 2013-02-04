@@ -106,7 +106,7 @@ class qlearning_agent(sarsa_lambda.sarsa_lambda):
 if __name__=="__main__":
 	import argparse
 	parser = argparse.ArgumentParser(description='Run Q-Lambda, q-learning with eligibility traces, agent in network mode with linear function approximation.')
-	addLinearTDArgs(parser)
+	sarsa_lambda.addLinearTDArgs(parser)
 	args = parser.parse_args()
 	params = {}
 	params['autostep_mu'] = args.autostep_mu
