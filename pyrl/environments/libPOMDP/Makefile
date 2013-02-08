@@ -14,6 +14,8 @@ OBJECTS = $(SOURCES:.c=.o)
 PREFIX = $(DESTDIR)/usr/local
 BINDIR = $(PREFIX)/bin
 
+all: $(TARGET)
+
 lex.o:		lex.c
 		$(CC) $(CFLAGS) -c lex.c -o lex.o
 
@@ -28,8 +30,6 @@ bison.c:	parser.y
 		bison -d -v parser.y
 		cp parser.tab.c bison.c
 		cmp -s parser.tab.h tok.h || cp parser.tab.h tok.h
-
-all: $(TARGET)
 
 $(OBJECTS): $(SOURCES) $(HEADERS)
 	$(CC) $(CFLAGS) $(PYTHON_INC_DIR) $(NUMPY_INC) -c $(SOURCES)

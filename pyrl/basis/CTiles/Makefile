@@ -18,3 +18,6 @@ tiles.o: tiles.cpp
 
 tiles.so: tiles.o tilesInt.o
 	c++ -Wl,-F. -Wl,-F. -bundle $(PYTHON_BUILD_FLAGS) tiles.o tilesInt.o -o tiles.so
+
+clean:
+	rm *.so *.o
