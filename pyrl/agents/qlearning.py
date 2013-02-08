@@ -22,8 +22,8 @@ class qlearning_agent(sarsa_lambda.sarsa_lambda):
 
 	
 	def agent_step(self,reward, observation):
-		newState = numpy.array(observation.doubleArray.tolist())
-		lastState = numpy.array(self.lastObservation.doubleArray.tolist())
+		newState = numpy.array(list(observation.doubleArray))
+		lastState = numpy.array(list(self.lastObservation.doubleArray))
 		lastAction = self.lastAction.intArray[0]
 
 		newDiscState = self.getDiscState(observation.intArray)
@@ -82,7 +82,7 @@ class qlearning_agent(sarsa_lambda.sarsa_lambda):
 		self.weights += self.step_sizes * self.alpha * delta * self.traces
 	
 	def agent_end(self,reward):
-		lastState = numpy.array(self.lastObservation.doubleArray.tolist())
+		lastState = numpy.array(list(self.lastObservation.doubleArray))
 		lastAction = self.lastAction.intArray[0]
 
 		lastDiscState = self.getDiscState(self.lastObservation.intArray)

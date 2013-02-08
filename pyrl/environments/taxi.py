@@ -144,7 +144,6 @@ class Taxi(Environment):
 		if numpy.random.random() < self.fickleness:
 			self.pass_dest = random.choice(self.lm_list)
 
-		print self.pos, self.pass_loc, self.pass_dest, intAction, self.isAtGoal(), reward, self.fuel
 		return reward
 		
 	def hitsWall(self, old_pos, new_pos, sign):

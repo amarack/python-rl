@@ -140,11 +140,11 @@ class sarsa_lambda(Agent):
 			return 0
 
 	def agent_start(self,observation):
-		theState = numpy.array(observation.doubleArray.tolist())
+		theState = numpy.array(list(observation.doubleArray))
 		thisIntAction=self.getAction(theState, self.getDiscState(observation.intArray))
 		returnAction=Action()
 		returnAction.intArray=[thisIntAction]
-		print self.getDiscState(observation.intArray)
+
 		# Clear traces
 		self.traces[:] = 0.0
 
@@ -154,8 +154,8 @@ class sarsa_lambda(Agent):
 		return returnAction
 	
 	def agent_step(self,reward, observation):
-		newState = numpy.array(observation.doubleArray.tolist())
-		lastState = numpy.array(self.lastObservation.doubleArray.tolist())
+		newState = numpy.array(list(observation.doubleArray))
+		lastState = numpy.array(list(self.lastObservation.doubleArray))
 		lastAction = self.lastAction.intArray[0]
 
 		newDiscState = self.getDiscState(observation.intArray)
@@ -222,7 +222,7 @@ class sarsa_lambda(Agent):
 		self.weights += self.step_sizes * self.alpha * delta * self.traces
 
 	def agent_end(self,reward):
-		lastState = numpy.array(self.lastObservation.doubleArray.tolist())
+		lastState = numpy.array(list(self.lastObservation.doubleArray))
 		lastAction = self.lastAction.intArray[0]
 
 		lastDiscState = self.getDiscState(self.lastObservation.intArray)
