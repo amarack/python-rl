@@ -17,6 +17,7 @@ static PyMethodDef libPOMDPMethods[] = {
   {"getNumActions", C_getNumActions, METH_VARARGS,"Get the number of actions."},
   {"getNumStates", C_getNumStates, METH_VARARGS,"Get the number of states"},
   {"getDiscount", C_getDiscount, METH_VARARGS,"Get the discount factor."},
+  {"getRewardRange", C_getRewardRange, METH_VARARGS,"Get reward range: min, max."},
   {"loadfile", loadFile, METH_VARARGS,"Load POMDP/MDP from a file..."},
   {NULL, NULL, 0, NULL}
 };
@@ -38,6 +39,14 @@ static PyObject *C_readMDP(PyObject *self, PyObject *args) {
   printf("Input filename string: %s\n", filename);
   res = readMDP(filename);
   return Py_BuildValue("i", res);
+}
+
+static PyObject *C_getRewardRange(PyObject *self, PyObject *args) {
+  if (P == NULL) {
+    return NULL;
+  }
+
+  return Py_BuildValue("dd", gMinReward, gMaxReward);
 }
 
 static PyObject *C_getDiscount(PyObject *self, PyObject *args) {

@@ -2,16 +2,18 @@
 
 #include "Python.h" // Must be the first header?
 #include "arrayobject.h" // for numpy arrays
-#include "imm-reward.h"
 
 #include <stdlib.h>
 #include "mdp.h"
+#include "imm-reward.h"
 
 static PyObject *C_readMDP(PyObject *self, PyObject *args);
+/* list by action of sparse matrix of shape: gNumStates x gNumStates */
 static PyObject* getSparseTransitionMatrix(PyObject *self, PyObject *args);
+/* list by action of sparse matrix of shape: gNumStates x gNumObservations */
 static PyObject* getSparseObsMatrix(PyObject *self, PyObject *args);
 
-
+static PyObject *C_getRewardRange(PyObject *self, PyObject *args);
 static PyObject *C_getReward(PyObject *self, PyObject *args);
 static PyObject *C_transformBelief(PyObject *self, PyObject *args);
 static PyObject *C_getInitialBelief(PyObject *self, PyObject *args);

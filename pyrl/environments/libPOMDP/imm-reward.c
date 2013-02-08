@@ -111,6 +111,11 @@ Imm_Reward_List gCurImmRewardNode = NULL;
 /* This is the actual list of immediate reward lines */
 Imm_Reward_List gImmRewardList = NULL;
 
+
+double gMinReward = 1.0e15;
+double gMaxReward = -1.0e15;
+
+
 /**********************************************************************/
 void 
 destroyImmRewards() {
@@ -253,6 +258,12 @@ enterImmReward( int cur_state, int next_state, int obs,
 /* cur_state is ignored for a POMDP, and obs is ignored for an MDP */
 
   assert( gCurImmRewardNode != NULL );
+
+  /* Update min and max reward */
+  if (value < gMinReward)
+    gMinReward = value;
+  if (value > gMaxReward)
+    gMaxReward = value;
 
   switch( gCurImmRewardNode->type ) {
   case ir_value:

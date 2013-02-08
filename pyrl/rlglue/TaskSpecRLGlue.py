@@ -61,7 +61,7 @@ class TaskSpec:
             self.addAction(dRange, repeat, "DOUBLES")
 
         def addDiscreteAction(self, dRange, repeat=1):
-            self.addAction(dRange, repeat, "INTS")
+            self.addAction(map(int, dRange), repeat, "INTS")
 
         def addObservation(self, dRange, repeat=1, type="INTS"):
             rept = "" if repeat<= 1 else str(repeat) + " "
@@ -71,7 +71,7 @@ class TaskSpec:
             self.addObservation(dRange, repeat, "DOUBLES")
 
         def addDiscreteObservation(self, dRange, repeat=1):
-            self.addObservation(dRange, repeat, "INTS")
+            self.addObservation(map(int, dRange), repeat, "INTS")
 
         def setActionCharLimit(self, charLimit):
             self.actions["CHARCOUNT"] = [str(charLimit)]
