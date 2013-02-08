@@ -41,8 +41,8 @@ class Gridworld(Environment):
 	def makeTaskSpec(self):
 		ts = TaskSpecRLGlue.TaskSpec(discount_factor=1.0, reward_range=(-1.0, 0.0))
 		ts.addDiscreteAction((0, 3))
-		ts.addContinuousObservation((0.0, self.size[0]))
-		ts.addContinuousObservation((0.0, self.size[1]))
+		ts.addContinuousObservation((0.0, self.size[0]-1))
+		ts.addContinuousObservation((0.0, self.size[1]-1))
 		ts.setEpisodic()
 		ts.setExtra(self.domain_name)
 		return ts.toTaskSpec()

@@ -47,7 +47,7 @@ class POMDPEnvironment(Environment):
 	def makeTaskSpec(self):
 		ts = TaskSpecRLGlue.TaskSpec(discount_factor=libpomdp.getDiscount(), reward_range=libpomdp.getRewardRange())
 		ts.addDiscreteAction((0.0, libpomdp.getNumActions()-1))
-		ts.addDiscreteObservation((0.0, libpomdp.getNumObservations()))
+		ts.addDiscreteObservation((0.0, libpomdp.getNumObservations()-1))
 		ts.setContinuing() # The POMDP spec is not set up to have episodes
 		ts.setExtra(self.domain_name)
 		return ts.toTaskSpec()

@@ -44,8 +44,8 @@ class FuelWorld(gridworld.Gridworld):
 	def makeTaskSpec(self):
 		ts = TaskSpecRLGlue.TaskSpec(discount_factor=1.0, reward_range=(-400.0, 0.0))
 		ts.addDiscreteAction((0, 7))
-		ts.addContinuousObservation((0.0, self.size[0]))
-		ts.addContinuousObservation((0.0, self.size[1]))
+		ts.addContinuousObservation((0.0, self.size[0]-1))
+		ts.addContinuousObservation((0.0, self.size[1]-1))
 		ts.addContinuousObservation((-1.0, 60.0)) # Fuel range as per FuelRooms.cc
 		ts.setEpisodic()
 		ts.setExtra(self.domain_name)

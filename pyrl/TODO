@@ -11,10 +11,7 @@ Mountain Car
 Pinball
 Tetris
 Dart Throwing (from Bruno Castro da Silva's paper on parameterized skills)
-Taxi
 Partially Observable Taxi
-RockSample 
-Tiger
 Simulated-Simplified Red Room (GDK/S.K.'s work, similar to a more functional continuous playroom)
 N-DOF Reaching and Reaching through viapoint
 Ball in Cup simulation
@@ -25,6 +22,7 @@ Implement Agents (in Python) or Convert C/C++ into Module:
 
 Implement "save_trajectory filename numsteps" message support into base class of existing agents
 
+Any simple POMDP solver (needed to fully test generic_pomdp domain code)
 LSPI
 Rmax
 SLF-Rmax

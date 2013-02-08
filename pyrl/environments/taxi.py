@@ -63,12 +63,12 @@ class Taxi(Environment):
 			ts.addDiscreteAction((0, 6)) # N,S,E,W,Pickup,Dropoff,Refuel
 		else:
 			ts.addDiscreteAction((0, 5)) # N,S,E,W,Pickup,Dropoff
-		ts.addContinuousObservation((0.0, self.size[0])) # x
-		ts.addContinuousObservation((0.0, self.size[1])) # y
+		ts.addContinuousObservation((0.0, self.size[0]-1)) # x
+		ts.addContinuousObservation((0.0, self.size[1]-1)) # y
 		if self.fuel_loc is not None:
 			ts.addContinuousObservation((-1.0, 12.0)) # Fuel level
-		ts.addDiscreteObservation((-1, len(self.landmarks))) # Passenger location
-		ts.addDiscreteObservation((0, len(self.landmarks))) # Passenger destination		
+		ts.addDiscreteObservation((-1, len(self.landmarks)-1)) # Passenger location
+		ts.addDiscreteObservation((0, len(self.landmarks)-1)) # Passenger destination		
 		ts.setEpisodic()
 		ts.setExtra(self.domain_name)
 		return ts.toTaskSpec()
