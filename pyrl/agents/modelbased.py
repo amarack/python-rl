@@ -60,7 +60,10 @@ class ModelBasedAgent(Agent):
 
 
 	def getAction(self, state, discState):
-		return self.planner.getAction((discState, state))
+		s = numpy.zeros((len(state) + 1,))
+		s[0] = discState
+		s[1:] = state
+		return self.planner.getAction(s)
 		
 	def getDiscState(self, state):
 		if self.numDiscStates > 1:
@@ -91,7 +94,14 @@ class ModelBasedAgent(Agent):
 		newDiscState = self.getDiscState(observation.intArray)
 		lastDiscState = self.getDiscState(self.lastObservation.intArray)
 
-		self.planner.updateExperience((lastDiscState, lastState), (newDiscState, newState), reward)
+		phi_t = numpy.zeros((self.numStates+1,))
+		phi_tp = numpy.zeros((self.numStates+1,))
+		phi_t[0] = lastDiscState
+		phi_t[1:] = lastState
+		phi_tp[0] = newDiscState
+		phi_tp[1:] = newState
+
+		self.planner.updateExperience(phi_t, phi_tp, reward)
 
 		newIntAction = self.getAction(newState, newDiscState)
 		returnAction=Action()
@@ -105,7 +115,11 @@ class ModelBasedAgent(Agent):
 		lastState = numpy.array(list(self.lastObservation.doubleArray))
 		lastAction = self.lastAction.intArray[0]
 		lastDiscState = self.getDiscState(self.lastObservation.intArray)
-		self.planner.updateExperience((lastDiscState, lastState), None, reward)
+
+		phi_t = numpy.zeros((self.numStates+1,))
+		phi_t[0] = lastDiscState
+		phi_t[1:] = lastState
+		self.planner.updateExperience(phi_t, None, reward)
 
 	def agent_cleanup(self):
 		pass
