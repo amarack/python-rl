@@ -2,15 +2,16 @@ import numpy
 
 class ModelLearner:
 
-	def __init__(self, numDiscStates, contFeatureRanges, numActions, params={}):
+	def __init__(self, numDiscStates, contFeatureRanges, numActions, rewardRange, params={}):
 		self.numDiscStates = numDiscStates
 		self.numContStates = len(contFeatureRanges)
 		self.feature_ranges = numpy.array(contFeatureRanges)
 		self.numActions = numActions
+		self.reward_range = rewardRange
 		self.params = params
 
         
-        def updateExperience(self, lastState, newState, reward):
+        def updateExperience(self, lastState, action, newState, reward):
 		return False
 	
         def getStateSpace(self):
@@ -24,8 +25,11 @@ class ModelLearner:
 	def predict(self, state, action):
 		pass
 
+	def predictSet(self, states):
+		pass
 
 
-
+	def isKnown(self, state, action):
+		return False
 
 

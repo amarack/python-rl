@@ -4,9 +4,10 @@ class Planner:
 
 	def __init__(self, model, params={}):
 		self.model = model
+		self.params = params
 
-        def updateExperience(self, lastState, newState, reward):
-		if self.model.updateExperience(lastState, newState, reward):
+        def updateExperience(self, lastState, action, newState, reward):
+		if self.model.updateExperience(lastState, action, newState, reward):
 			self.updatePlan()
 
         def updatePlan(self):

@@ -32,6 +32,7 @@ class FittedQIteration(Planner):
 		self.gamma = self.params.setdefault('gamma', 0.999)
 		fa_name = self.params.setdefault('basis', 'trivial')
 		self.ranges, self.actions = model.getStateSpace()
+		self.has_plan = False
 
 		# Set up basis
 		if fa_name == 'fourier':
@@ -66,10 +67,13 @@ class FittedQIteration(Planner):
 		return stateaction.flatten()
 
 	def getAction(self, state):
-		return self.learner.predict([self.getStateAction(state, a) for a in range(self.actions)]).argmax()
+		if self.has_plan:
+			return self.learner.predict([self.getStateAction(state, a) for a in range(self.actions)]).argmax()
+		else:
+			return self.randGenerator.randint(0, self.actions-1)
 		
         def updatePlan(self):
-		samples = self.model.sampleStateAction(self.params.setdefault('support_size', 1000))
+		samples = self.model.sampleStateActions(self.params.setdefault('support_size', 1000))
 		# Fitted Q-Iteration
 		# predict r + gamma * max Q(s', a') for each s,a
 		# for each action, tuple containing for each sample: s', reward, terminates
@@ -89,12 +93,12 @@ class FittedQIteration(Planner):
 		R = numpy.array(R)
 		gammas = numpy.array(gammas)
 		targets = []
-
+		print Xp[0:5,:]
 		for iter in range(10):
 			Qprimes = self.learner.predict(Xp).max(1)
 			targets = R + gammas*Qprimes
 			self.learner.fit(X, targets)
-
+		self.has_plan = True
 		
 
 if __name__=="__main__":

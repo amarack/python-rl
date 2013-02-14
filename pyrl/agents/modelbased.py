@@ -14,8 +14,8 @@ import copy
 #import pyrl.basis.rbf as rbf
 #import pyrl.basis.tilecode as tilecode
 
-from pyrl.agents.models.model import ModelLearner
-from pyrl.agents.planners.planner import Planner
+from pyrl.agents.models import batch_model
+from pyrl.agents.planners import fitted_qiteration
 
 class ModelBasedAgent(Agent):
 
@@ -48,8 +48,7 @@ class ModelBasedAgent(Agent):
 			assert not TaskSpec.isSpecial(TaskSpec.getIntActions()[0][1]), " expecting max action to be a number not a special value"
 			self.numActions=TaskSpec.getIntActions()[0][1]+1;
 			
-			self.model_params["reward_range"] = TaskSpec.getRewardRange()
-			self.model = self.model_class(self.numDiscStates, self.numStates, self.numActions, self.model_params)
+			self.model = self.model_class(self.numDiscStates, TaskSpec.getDoubleObservations(), self.numActions, TaskSpec.getRewardRange()[0], self.model_params)
 			self.planner = self.planner_class(self.model, self.planner_params)
 			
 		else:
@@ -63,7 +62,8 @@ class ModelBasedAgent(Agent):
 		s = numpy.zeros((len(state) + 1,))
 		s[0] = discState
 		s[1:] = state
-		return self.planner.getAction(s)
+		a = self.planner.getAction(s)
+		return a
 		
 	def getDiscState(self, state):
 		if self.numDiscStates > 1:
@@ -101,7 +101,7 @@ class ModelBasedAgent(Agent):
 		phi_tp[0] = newDiscState
 		phi_tp[1:] = newState
 
-		self.planner.updateExperience(phi_t, phi_tp, reward)
+		self.planner.updateExperience(phi_t, lastAction, phi_tp, reward)
 
 		newIntAction = self.getAction(newState, newDiscState)
 		returnAction=Action()
@@ -135,4 +135,4 @@ if __name__=="__main__":
 	args = parser.parse_args()
 	model_params = {}
 	planner_params = {}
-	AgentLoader.loadAgent(ModelBasedAgent(ModelLearner, Planner, model_params, planner_params))
+	AgentLoader.loadAgent(ModelBasedAgent(batch_model.BatchModel, fitted_qiteration.FittedQIteration, model_params, planner_params))
