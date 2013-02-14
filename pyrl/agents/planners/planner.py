@@ -3,14 +3,17 @@
 class Planner:
 
 	def __init__(self, model, params={}):
-            self.model = model
+		self.model = model
 
         def updateExperience(self, lastState, newState, reward):
-            if self.model.updateExperience(lastState, newState, reward):
-                self.updatePlan()
+		if self.model.updateExperience(lastState, newState, reward):
+			self.updatePlan()
 
         def updatePlan(self):
-            pass
+		pass
+	
+	def getAction(self, state):
+		pass
 
         
 

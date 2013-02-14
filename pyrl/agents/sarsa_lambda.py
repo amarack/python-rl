@@ -80,8 +80,8 @@ class sarsa_lambda(Agent):
 							  TaskSpec.getDoubleObservations())
 				self.weights = numpy.zeros((self.numDiscStates, self.params.setdefault('num_functions', self.numStates), self.numActions))
 			elif fa_name == 'tile':
-				self.basis = tilecode.TileCodingBasis(self.params.setdefault('num_tiles'), 
-								      self.params.setdefault('num_weights'))
+				self.basis = tilecode.TileCodingBasis(self.params.setdefault('num_tiles', 100), 
+								      self.params.setdefault('num_weights', 2048))
 				self.weights = numpy.zeros((self.numDiscStates, self.params.setdefault('num_weights'), self.numActions))
 			else:
 				self.basis = None
@@ -259,8 +259,8 @@ def addLinearTDArgs(parser):
 	parser.add_argument("--fourier_order", type=int, default=3, help="Order for Fourier basis")
 	parser.add_argument("--rbf_num", type=int, default=10, help="Number of radial basis functions to use.")
 	parser.add_argument("--rbf_beta", type=float, default=1.0, help="Beta parameter for radial basis functions.")
-	parser.add_argument("--tiles_num", type=int, help="Number of tilings to use with Tile Coding.")
-	parser.add_argument("--tiles_size", type=int, help="Memory size, number of weights, to use with Tile Coding.")
+	parser.add_argument("--tiles_num", type=int, default=100, help="Number of tilings to use with Tile Coding.")
+	parser.add_argument("--tiles_size", type=int, default=2048, help="Memory size, number of weights, to use with Tile Coding.")
 
 if __name__=="__main__":
 	import argparse
