@@ -35,13 +35,17 @@ class BatchModel(ModelLearner):
 		self.params.setdefault('known_threshold', 100)
 		if method == "knn":
 			# [reward_regressor, regressor for termination, classifier for disc states, regressor for each cont state]
-			self.model = [[neighbors.KNeighborsRegressor(self.params['known_threshold'], weights='distance'), 
-				      neighbors.KNeighborsClassifier(self.params['known_threshold'], weights='distance'), 
-				      neighbors.KNeighborsClassifier(self.params['known_threshold'], weights='distance')] + \
-				      [neighbors.KNeighborsRegressor(self.params['known_threshold'], weights='distance') for i in range(self.numContStates)] \
+			self.model = [[neighbors.KNeighborsRegressor(self.params['known_threshold'], weights=self.gaussianDist), 
+				      neighbors.KNeighborsClassifier(self.params['known_threshold'], weights=self.gaussianDist), 
+				      neighbors.KNeighborsClassifier(self.params['known_threshold'], weights=self.gaussianDist)] + \
+				      [neighbors.KNeighborsRegressor(self.params['known_threshold'], weights=self.gaussianDist) for i in range(self.numContStates)] \
 					      for k in range(self.numActions)]
 		else:
 			self.model = None
+
+
+	def gaussianDist(self, dist):
+		return numpy.exp(-(dist/self.params['b'])**2)
 
 	def isKnown(self, state, action):
 		if not self.has_fit[action]:
@@ -78,8 +82,7 @@ class BatchModel(ModelLearner):
 				# update for action model a
 				indices = numpy.where(self.terminates[:self.exp_index[a],a] == 0)
 				# Reward model
-				self.model[a][0].fit(self.experiences[:self.exp_index[a],a], self.rewards[indices[0],a])
-				print self.model[a][0].predict(self.experiences[:self.exp_index[a],a])
+				self.model[a][0].fit(self.experiences[:self.exp_index[a],a], self.rewards[:self.exp_index[a],a])
 				# Termination model
 				self.model[a][1].fit(self.experiences[:self.exp_index[a],a], self.terminates[:self.exp_index[a],a])
 				# Discrete model
@@ -88,9 +91,6 @@ class BatchModel(ModelLearner):
 				for i in range(self.numContStates):
 					self.model[a][i+3].fit(self.experiences[indices[0],a], self.transitions[indices[0],a,i+1])
 				self.has_fit[a] = True
-				print self.model[a][0].predict(numpy.zeros((2,3)))
-				print self.model[a][0].predict(self.experiences[0:2,a])
-			print "done updating"
 			return True
 		else:
 			return False
@@ -110,9 +110,6 @@ class BatchModel(ModelLearner):
 		pred = []
 		known = self.areKnown(states)
 		for a in range(self.numActions):
-			print states[a]
-			print self.model[a][0].predict(states[a])
-			print "----"
 			predictions = numpy.array(map(lambda m: m.predict(states[a]), self.model[a])).T
 			pRewards = predictions[:,0]
 			pTerminate = predictions[:,1]

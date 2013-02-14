@@ -83,22 +83,25 @@ class FittedQIteration(Planner):
 		R = []
 		gammas = []
 		for a in range(self.actions):
-			Xp += map(lambda k: self.getStateAction(k, a), outcomes[a][0])
+			Xp += map(lambda k: [self.getStateAction(k, b) for b in range(self.actions)], outcomes[a][0])
 			X += map(lambda k: self.getStateAction(k, a), samples[a])
 			R += list(outcomes[a][1])
 			gammas += list((outcomes[a][2] == 0) * self.gamma)
 
 		Xp = numpy.array(Xp)
+		Xp = Xp.reshape(Xp.shape[0]*Xp.shape[1], Xp.shape[2])
 		X = numpy.array(X)
 		R = numpy.array(R)
 		gammas = numpy.array(gammas)
 		targets = []
-		print Xp[0:5,:]
 		for iter in range(10):
-			Qprimes = self.learner.predict(Xp).max(1)
-			targets = R + gammas*Qprimes
+			if self.has_plan:
+				Qprimes = self.learner.predict(Xp).reshape((X.shape[0], self.actions))
+				targets = R + gammas*Qprimes.max(1)
+			else:
+				targets = R
+				self.has_plan = True
 			self.learner.fit(X, targets)
-		self.has_plan = True
 		
 
 if __name__=="__main__":

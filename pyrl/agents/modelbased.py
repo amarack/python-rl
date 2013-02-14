@@ -119,7 +119,7 @@ class ModelBasedAgent(Agent):
 		phi_t = numpy.zeros((self.numStates+1,))
 		phi_t[0] = lastDiscState
 		phi_t[1:] = lastState
-		self.planner.updateExperience(phi_t, None, reward)
+		self.planner.updateExperience(phi_t, lastAction, None, reward)
 
 	def agent_cleanup(self):
 		pass
