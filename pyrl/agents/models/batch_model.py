@@ -22,21 +22,21 @@ class BatchModel(ModelLearner):
 	def __init__(self, numDiscStates, contStateRanges, numActions, rewardRange, params={}):
 		ModelLearner.__init__(self, numDiscStates, contStateRanges, numActions, rewardRange, params)
 		self.params.setdefault('relative', True)
-		self.params.setdefault('update_freq', 10)
-		self.params.setdefault('b', 1.0)
-		self.params.setdefault('m', 2)
-		self.experiences = numpy.zeros((params.setdefault('max_experiences', 1000), self.numActions, self.numContStates + 1))
+		self.params.setdefault('update_freq', 20)
+		self.params.setdefault('b', 2.0)
+		self.params.setdefault('m', 5)
+		self.experiences = numpy.zeros((params.setdefault('max_experiences', 5000), self.numActions, self.numContStates + 1))
 		self.transitions = numpy.zeros((params['max_experiences'], self.numActions, self.numContStates + 1))
 		self.terminates = numpy.zeros((params['max_experiences'],self.numActions))
 		self.rewards = numpy.zeros((params['max_experiences'], self.numActions))
 		self.exp_index = numpy.zeros((self.numActions,))
 		self.has_fit = numpy.array([False]*self.numActions)
 		method = params.setdefault('method', 'knn')
-		self.params.setdefault('known_threshold', 100)
+		self.params.setdefault('known_threshold', 200)
 		if method == "knn":
 			# [reward_regressor, regressor for termination, classifier for disc states, regressor for each cont state]
 			self.model = [[neighbors.KNeighborsRegressor(self.params['known_threshold'], weights=self.gaussianDist), 
-				      neighbors.KNeighborsClassifier(self.params['known_threshold'], weights=self.gaussianDist), 
+				      neighbors.KNeighborsRegressor(self.params['known_threshold'], weights=self.gaussianDist), 
 				      neighbors.KNeighborsClassifier(self.params['known_threshold'], weights=self.gaussianDist)] + \
 				      [neighbors.KNeighborsRegressor(self.params['known_threshold'], weights=self.gaussianDist) for i in range(self.numContStates)] \
 					      for k in range(self.numActions)]

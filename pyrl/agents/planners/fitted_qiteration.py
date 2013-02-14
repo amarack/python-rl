@@ -29,7 +29,8 @@ class FittedQIteration(Planner):
 		Planner.__init__(self, model, params)
 		self.randGenerator = Random()	
 		self.basis = None
-		self.gamma = self.params.setdefault('gamma', 0.999)
+		self.gamma = self.params.setdefault('gamma', 0.9)
+		self.params.setdefault('num_iterations', 2)
 		fa_name = self.params.setdefault('basis', 'trivial')
 		self.ranges, self.actions = model.getStateSpace()
 		self.has_plan = False
@@ -37,14 +38,14 @@ class FittedQIteration(Planner):
 		# Set up basis
 		if fa_name == 'fourier':
 			# number of dimensions, order, and then the dimension ranges
-			self.basis = fourier.FourierBasis(len(ranges),
+			self.basis = fourier.FourierBasis(len(self.ranges),
 							  self.params.setdefault('fourier_order', 3), 
-							  ranges)
+							  self.ranges)
 		elif fa_name == 'rbf':
-			self.basis = rbf.RBFBasis(len(ranges),
-						  self.params.setdefault('rbf_num_functions', len(ranges)), 
+			self.basis = rbf.RBFBasis(len(self.ranges),
+						  self.params.setdefault('rbf_num_functions', len(self.ranges)), 
 						  self.params.setdefault('rbf_beta', 1.0), 
-						  ranges)
+						  self.ranges)
 		elif fa_name == 'tile':
 			self.basis = tilecode.TileCodingBasis(self.params.setdefault('tile_numtiles', 100), 
 							      self.params.setdefault('tile_numweights', 2048))
@@ -61,7 +62,7 @@ class FittedQIteration(Planner):
 	def getStateAction(self, state, action):
 		if self.basis is not None:
 			state = self.basis.computeFeatures(state)
-		
+
 		stateaction = numpy.zeros((self.actions, len(state)))
 		stateaction[action,:] = state
 		return stateaction.flatten()
@@ -73,7 +74,7 @@ class FittedQIteration(Planner):
 			return self.randGenerator.randint(0, self.actions-1)
 		
         def updatePlan(self):
-		samples = self.model.sampleStateActions(self.params.setdefault('support_size', 1000))
+		samples = self.model.sampleStateActions(self.params.setdefault('support_size', 2000))
 		# Fitted Q-Iteration
 		# predict r + gamma * max Q(s', a') for each s,a
 		# for each action, tuple containing for each sample: s', reward, terminates
@@ -86,7 +87,7 @@ class FittedQIteration(Planner):
 			Xp += map(lambda k: [self.getStateAction(k, b) for b in range(self.actions)], outcomes[a][0])
 			X += map(lambda k: self.getStateAction(k, a), samples[a])
 			R += list(outcomes[a][1])
-			gammas += list((outcomes[a][2] == 0) * self.gamma)
+			gammas += list((1.0 - outcomes[a][2]) * self.gamma)
 
 		Xp = numpy.array(Xp)
 		Xp = Xp.reshape(Xp.shape[0]*Xp.shape[1], Xp.shape[2])
@@ -94,7 +95,7 @@ class FittedQIteration(Planner):
 		R = numpy.array(R)
 		gammas = numpy.array(gammas)
 		targets = []
-		for iter in range(10):
+		for iter in range(self.params['num_iterations']):
 			if self.has_plan:
 				Qprimes = self.learner.predict(Xp).reshape((X.shape[0], self.actions))
 				targets = R + gammas*Qprimes.max(1)
@@ -104,31 +105,3 @@ class FittedQIteration(Planner):
 			self.learner.fit(X, targets)
 		
 
-if __name__=="__main__":
-	import argparse
-	parser = argparse.ArgumentParser(description='Run SarsaLambda agent in network mode with linear function approximation.')
-	addLinearTDArgs(parser)
-	args = parser.parse_args()
-	params = {}
-	params['autostep_mu'] = args.autostep_mu
-	params['autostep_tau'] = args.autostep_tau
-	params['name'] = args.basis
-	params['order'] = args.fourier_order
-	params['num_functions'] = args.rbf_num
-	params['beta'] = args.rbf_beta
-	params['num_tiles'] = args.tiles_num
-	params['num_weights'] = args.tiles_size
-	alpha = args.stepsize
-
-	if args.adaptive_stepsize == "ass":
-		alpha = "ass"
-	elif args.adaptive_stepsize == "autostep":
-		alpha = "autostep"
-
-	epsilon = args.epsilon
-	softmax = False
-	if args.softmax is not None:
-		softmax = True
-		epsilon = args.softmax
-
-	AgentLoader.loadAgent(sarsa_lambda(epsilon, alpha, args.gamma, args.lmbda, params=params, softmax=softmax))

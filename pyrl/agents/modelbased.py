@@ -134,5 +134,5 @@ if __name__=="__main__":
 	parser.add_argument("--model", type=float, default=0.1, help="What model to use... not filled out yet")
 	args = parser.parse_args()
 	model_params = {}
-	planner_params = {}
+	planner_params = {}#{"basis": "fourier"}
 	AgentLoader.loadAgent(ModelBasedAgent(batch_model.BatchModel, fitted_qiteration.FittedQIteration, model_params, planner_params))

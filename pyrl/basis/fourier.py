@@ -10,7 +10,10 @@ class FourierBasis:
         self.multipliers = numpy.array([list(map(int,x)) for x in iter])
 
     def scale(self, value, pos):
-        return (value - self.ranges[pos,0]) / (self.ranges[pos,1] - self.ranges[pos,0])
+        if self.ranges[pos,0] == self.ranges[pos,1]:
+            return 0.0
+        else:
+            return (value - self.ranges[pos,0]) / (self.ranges[pos,1] - self.ranges[pos,0])
 
     def computeFeatures(self, features):
         basisFeatures = numpy.array([self.scale(features[i],i) for i in range(len(features))])
