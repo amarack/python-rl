@@ -29,8 +29,8 @@ class FittedQIteration(Planner):
 		Planner.__init__(self, model, params)
 		self.randGenerator = Random()	
 		self.basis = None
-		self.gamma = self.params.setdefault('gamma', 0.9)
-		self.params.setdefault('num_iterations', 2)
+		self.gamma = self.params.setdefault('gamma', 0.99)
+		self.params.setdefault('num_iterations', 30)
 		fa_name = self.params.setdefault('basis', 'trivial')
 		self.ranges, self.actions = model.getStateSpace()
 		self.has_plan = False
@@ -55,7 +55,8 @@ class FittedQIteration(Planner):
 		# Set up regressor
 		learn_name = self.params.setdefault('regressor', 'lstsqr')
 		if learn_name == 'lstsqr':
-			self.learner = linear_model.LinearRegression()
+			#self.learner = linear_model.LinearRegression()
+			self.learner = linear_model.Ridge (alpha = .2)
 		else:
 			self.learner = None
 		
@@ -67,14 +68,25 @@ class FittedQIteration(Planner):
 		stateaction[action,:] = state
 		return stateaction.flatten()
 
+	def predict(self, state, action):
+		if self.model.has_fit[action]:
+			return self.model.predict(state, action)
+		else:
+			return None
+	
+	def getValue(self, state):
+		if self.has_plan:
+			return self.learner.predict([self.getStateAction(state, a) for a in range(self.actions)])
+
 	def getAction(self, state):
 		if self.has_plan:
 			return self.learner.predict([self.getStateAction(state, a) for a in range(self.actions)]).argmax()
 		else:
 			return self.randGenerator.randint(0, self.actions-1)
 		
+	
         def updatePlan(self):
-		samples = self.model.sampleStateActions(self.params.setdefault('support_size', 2000))
+		samples = self.model.sampleStateActions(self.params.setdefault('support_size', 1000))
 		# Fitted Q-Iteration
 		# predict r + gamma * max Q(s', a') for each s,a
 		# for each action, tuple containing for each sample: s', reward, terminates
@@ -83,10 +95,15 @@ class FittedQIteration(Planner):
 		X = []
 		R = []
 		gammas = []
+		A = []
+		S = []
+			
 		for a in range(self.actions):
 			Xp += map(lambda k: [self.getStateAction(k, b) for b in range(self.actions)], outcomes[a][0])
 			X += map(lambda k: self.getStateAction(k, a), samples[a])
 			R += list(outcomes[a][1])
+			A += [a]*len(outcomes[a][1])
+			S += list(samples[a])
 			gammas += list((1.0 - outcomes[a][2]) * self.gamma)
 
 		Xp = numpy.array(Xp)
@@ -95,6 +112,7 @@ class FittedQIteration(Planner):
 		R = numpy.array(R)
 		gammas = numpy.array(gammas)
 		targets = []
+		self.has_plan = False
 		for iter in range(self.params['num_iterations']):
 			if self.has_plan:
 				Qprimes = self.learner.predict(Xp).reshape((X.shape[0], self.actions))
@@ -102,6 +120,7 @@ class FittedQIteration(Planner):
 			else:
 				targets = R
 				self.has_plan = True
+
 			self.learner.fit(X, targets)
-		
+
 

@@ -23,8 +23,8 @@ class BatchModel(ModelLearner):
 		ModelLearner.__init__(self, numDiscStates, contStateRanges, numActions, rewardRange, params)
 		self.params.setdefault('relative', True)
 		self.params.setdefault('update_freq', 20)
-		self.params.setdefault('b', 2.0)
-		self.params.setdefault('m', 5)
+		self.params.setdefault('b', 1.0)
+		self.params.setdefault('m', 2)
 		self.experiences = numpy.zeros((params.setdefault('max_experiences', 5000), self.numActions, self.numContStates + 1))
 		self.transitions = numpy.zeros((params['max_experiences'], self.numActions, self.numContStates + 1))
 		self.terminates = numpy.zeros((params['max_experiences'],self.numActions))
@@ -32,13 +32,13 @@ class BatchModel(ModelLearner):
 		self.exp_index = numpy.zeros((self.numActions,))
 		self.has_fit = numpy.array([False]*self.numActions)
 		method = params.setdefault('method', 'knn')
-		self.params.setdefault('known_threshold', 200)
+		self.params.setdefault('known_threshold', 100)
 		if method == "knn":
 			# [reward_regressor, regressor for termination, classifier for disc states, regressor for each cont state]
-			self.model = [[neighbors.KNeighborsRegressor(self.params['known_threshold'], weights=self.gaussianDist), 
-				      neighbors.KNeighborsRegressor(self.params['known_threshold'], weights=self.gaussianDist), 
-				      neighbors.KNeighborsClassifier(self.params['known_threshold'], weights=self.gaussianDist)] + \
-				      [neighbors.KNeighborsRegressor(self.params['known_threshold'], weights=self.gaussianDist) for i in range(self.numContStates)] \
+			self.model = [[neighbors.KNeighborsRegressor(self.params['known_threshold'], weights=self.gaussianDist, warn_on_equidistant=False), 
+				      neighbors.KNeighborsRegressor(self.params['known_threshold'], weights=self.gaussianDist, warn_on_equidistant=False), 
+				      neighbors.KNeighborsClassifier(self.params['known_threshold'], weights=self.gaussianDist, warn_on_equidistant=False)] + \
+				      [neighbors.KNeighborsRegressor(self.params['known_threshold'], weights=self.gaussianDist, warn_on_equidistant=False) for i in range(self.numContStates)] \
 					      for k in range(self.numActions)]
 		else:
 			self.model = None
@@ -67,7 +67,7 @@ class BatchModel(ModelLearner):
 			for a in range(self.numActions):
 				if self.has_fit[a]:
 					dist, ind = self.model[a][0].kneighbors(states[a])
-					n_sa = numpy.exp(-(dist/self.params['b'])**2).sum()
+					n_sa = numpy.exp(-(dist/self.params['b'])**2).sum(1)
 					known += [(n_sa >= self.params['m'])]
 				else:
 					known += [numpy.array([False]*len(states[a]))]
@@ -114,46 +114,40 @@ class BatchModel(ModelLearner):
 			pRewards = predictions[:,0]
 			pTerminate = predictions[:,1]
 			pState = predictions[:,2:]
-			pRewards[known[a]] = self.reward_range[1]
+			pRewards[numpy.invert(known[a])] = self.reward_range[1]
+
+			ranges = self.getStateSpace()[0]
 			if self.params['relative']:
-				pred += [(pState + states[a], pRewards, pTerminate)]
+				pred += [((pState + states[a]).clip(min=ranges[:,0], max=ranges[:,1]), pRewards, pTerminate)]
 			else:
-				pred += [(pState, pRewards, pTerminate)]
+				pred += [(pState.clip(min=ranges[:,0], max=ranges[:,1]), pRewards, pTerminate)]
 		return pred
 
 	def predict(self, state, action):
-		vState = numpy.zeros((self.numContStates + 1,))
-		vState[0] = state[0]
-		vState[1:] = state[1:]
-
 		pState = numpy.zeros((self.numContStates+1,))
-		predictions = map(lambda m: m.predict([vState]), self.model[action])
+		predictions = map(lambda m: m.predict([state]), self.model[action])
 		pReward, pTerminate = tuple(predictions[:2])
-		if not self.isKnown(vState, action):
+		if not self.isKnown(state, action):
 			pReward = self.reward_range[1]
 
 		pState[:] = predictions[2:]
-
+		ranges = self.getStateSpace()[0]
 		# return full_state, reward, terminate
 		if self.params['relative']:
-			return vState + pState, pReward, pTerminate
+			return (state + pState).clip(min=ranges[:,0], max=ranges[:,1]), pReward, pTerminate
 		else:
-			return pState, pReward, pTerminate
+			return pState.clip(min=ranges[:,0], max=ranges[:,1]), pReward, pTerminate
 
 
         def updateExperience(self, lastState, action, newState, reward):
 		index = self.exp_index[action] % self.params['max_experiences']
-		self.experiences[index,action, 0] = lastState[0]
-		self.experiences[index,action, 1:] = lastState[1]
+		self.experiences[index,action, :] = lastState
 		self.rewards[index, action] = reward
-
 		if newState is not None:
 			if self.params['relative']:
-				self.transitions[index, action, 0] = newState[0] - lastState[0]
-				self.transitions[index, action, 1:] = newState[1] - lastState[1]
+				self.transitions[index, action, :] = newState - lastState
 			else:
-				self.transitions[index, action, 0] = newState[0]
-				self.transitions[index, action, 1:] = newState[1]
+				self.transitions[index, action, :] = newState
 
 			self.terminates[index, action] = 0
 		else:
