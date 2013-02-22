@@ -30,6 +30,7 @@ class ModelBasedAgent(Agent):
 		self.planner = None
 		self.model_params = model_params
 		self.planner_params = planner_params
+		self.epsilon = 0.0
 
 	def agent_init(self,taskSpec):
 		# Parse the task specification and set up the weights and such
@@ -59,6 +60,9 @@ class ModelBasedAgent(Agent):
 
 
 	def getAction(self, state, discState):
+		if self.randGenerator.random() < self.epsilon:
+			return self.randGenerator.randint(0,self.numActions-1)
+
 		s = numpy.zeros((len(state) + 1,))
 		s[0] = discState
 		s[1:] = state
@@ -101,6 +105,17 @@ class ModelBasedAgent(Agent):
 		phi_tp[0] = newDiscState
 		phi_tp[1:] = newState
 
+		#pred_phi_tp, pred_reward, pred_term = self.planner.predict(phi_t, lastAction)
+		#if pred_phi_tp is not None:
+		#	tr,pred = newState - lastState, pred_phi_tp[1:] - lastState
+		#	print numpy.linalg.norm(tr - pred)
+
+		#v = self.planner.getValue(phi_t)
+		#if v is not None:
+		#	v = lastState.tolist() + [v]
+		#	print ','.join(map(str, v))
+		print ','.join(map(str, lastState))
+
 		self.planner.updateExperience(phi_t, lastAction, phi_tp, reward)
 
 		newIntAction = self.getAction(newState, newDiscState)
@@ -135,5 +150,5 @@ if __name__=="__main__":
 	parser.add_argument("--model", type=float, default=0.1, help="What model to use... not filled out yet")
 	args = parser.parse_args()
 	model_params = {}
-	planner_params = {}#{"basis": "fourier"}
+	planner_params = {"basis": "fourier"}
 	AgentLoader.loadAgent(ModelBasedAgent(batch_model.BatchModel, fitted_qiteration.FittedQIteration, model_params, planner_params))

@@ -23,51 +23,65 @@ class BatchModel(ModelLearner):
 		ModelLearner.__init__(self, numDiscStates, contStateRanges, numActions, rewardRange, params)
 		self.params.setdefault('relative', True)
 		self.params.setdefault('update_freq', 20)
-		self.params.setdefault('b', 1.0)
-		self.params.setdefault('m', 2)
-		self.experiences = numpy.zeros((params.setdefault('max_experiences', 5000), self.numActions, self.numContStates + 1))
+		self.params.setdefault('b', 2.0)
+		self.params.setdefault('known_threshold', 1)
+		self.params.setdefault('m', 0.95*self.params['known_threshold']) #0.99 is the best so far
+		self.experiences = numpy.zeros((params.setdefault('max_experiences', 700), self.numActions, self.numContStates + 1))
 		self.transitions = numpy.zeros((params['max_experiences'], self.numActions, self.numContStates + 1))
 		self.terminates = numpy.zeros((params['max_experiences'],self.numActions))
 		self.rewards = numpy.zeros((params['max_experiences'], self.numActions))
 		self.exp_index = numpy.zeros((self.numActions,))
 		self.has_fit = numpy.array([False]*self.numActions)
 		method = params.setdefault('method', 'knn')
-		self.params.setdefault('known_threshold', 100)
 		if method == "knn":
 			# [reward_regressor, regressor for termination, classifier for disc states, regressor for each cont state]
-			self.model = [[neighbors.KNeighborsRegressor(self.params['known_threshold'], weights=self.gaussianDist, warn_on_equidistant=False), 
-				      neighbors.KNeighborsRegressor(self.params['known_threshold'], weights=self.gaussianDist, warn_on_equidistant=False), 
-				      neighbors.KNeighborsClassifier(self.params['known_threshold'], weights=self.gaussianDist, warn_on_equidistant=False)] + \
-				      [neighbors.KNeighborsRegressor(self.params['known_threshold'], weights=self.gaussianDist, warn_on_equidistant=False) for i in range(self.numContStates)] \
+			al = 'auto'
+			self.model = [[neighbors.KNeighborsRegressor(self.params['known_threshold'], weights=self.gaussianDist, warn_on_equidistant=False, algorithm=al), 
+				      neighbors.KNeighborsRegressor(self.params['known_threshold'], weights=self.gaussianDist, warn_on_equidistant=False, algorithm=al), 
+				      neighbors.KNeighborsClassifier(self.params['known_threshold'], weights=self.gaussianDist, warn_on_equidistant=False, algorithm=al)] + \
+				      [neighbors.KNeighborsRegressor(self.params['known_threshold'], weights=self.gaussianDist, warn_on_equidistant=False, algorithm=al) for i in range(self.numContStates)] \
 					      for k in range(self.numActions)]
 		else:
 			self.model = None
 
 
+	# Scales/Normalizes the state features to be in the interval [0,1]
+	def normState(self, state):
+		#self.feature_ranges
+		return (numpy.array(state) - self.feature_ranges[:,0]) / self.feature_span
+
+	def denormState(self, state):
+		return numpy.array(state)*self.feature_span + self.feature_ranges[:,0]
+
 	def gaussianDist(self, dist):
-		return numpy.exp(-(dist/self.params['b'])**2)
+		return numpy.exp(-(dist/(self.params['b'])**2))
 
 	def isKnown(self, state, action):
 		if not self.has_fit[action]:
 			return False
 
+		state = self.normState(state)
 		method = self.params['method']
 		if method == 'knn':
 			dist, ind =self.model[action][0].kneighbors([state])
-			n_sa = numpy.exp(-(dist/self.params['b'])**2).sum()
+			n_sa = numpy.exp(-(dist/(self.params['b'])**2)).sum()
+#			return n_sa
 			return n_sa >= self.params['m']
 		else:
+#			return 1.0
 			return False
 
 	# list of list of states, first index is of action
 	def areKnown(self, states):
+		states = self.normState(states)
 		method = self.params['method']
 		if method == 'knn':
 			known = []
 			for a in range(self.numActions):
 				if self.has_fit[a]:
 					dist, ind = self.model[a][0].kneighbors(states[a])
-					n_sa = numpy.exp(-(dist/self.params['b'])**2).sum(1)
+					n_sa = numpy.exp(-(dist/(self.params['b'])**2)).sum(1)
+#					print n_sa
 					known += [(n_sa >= self.params['m'])]
 				else:
 					known += [numpy.array([False]*len(states[a]))]
@@ -97,10 +111,13 @@ class BatchModel(ModelLearner):
 
 	def sampleStateActions(self, num_requested):
 		sample = []
+		ranges = self.getStateSpace()[0]
 		for a in range(self.numActions):
-			slice = self.experiences[:self.exp_index[a],a,:].copy()
-			numpy.random.shuffle(slice)
-			sample += [slice[:num_requested,:]]
+			sample += [numpy.random.uniform(low=self.feature_ranges[:,0], high=self.feature_ranges[:,1], 
+							size=(num_requested,len(self.feature_ranges))).clip(min=self.feature_ranges[:,0], max=self.feature_ranges[:,1])]
+			#slice = self.experiences[:self.exp_index[a],a,:].copy()
+			#numpy.random.shuffle(slice)
+			#sample += [slice[:num_requested,:]]
 		return sample
 
 	# states should be a matrix formed from a list of lists
@@ -109,41 +126,62 @@ class BatchModel(ModelLearner):
 	def predictSet(self, states):
 		pred = []
 		known = self.areKnown(states)
+		states = self.normState(states)
 		for a in range(self.numActions):
 			predictions = numpy.array(map(lambda m: m.predict(states[a]), self.model[a])).T
 			pRewards = predictions[:,0]
 			pTerminate = predictions[:,1]
 			pState = predictions[:,2:]
 			pRewards[numpy.invert(known[a])] = self.reward_range[1]
-
+			pTerminate[numpy.invert(known[a])] = 1
 			ranges = self.getStateSpace()[0]
 			if self.params['relative']:
-				pred += [((pState + states[a]).clip(min=ranges[:,0], max=ranges[:,1]), pRewards, pTerminate)]
+				pred += [(self.denormState((pState + states[a]).clip(min=0, max=1)), pRewards, pTerminate)]
 			else:
-				pred += [(pState.clip(min=ranges[:,0], max=ranges[:,1]), pRewards, pTerminate)]
+				pred += [(self.denormState(pState.clip(min=0, max=1)), pRewards, pTerminate)]
 		return pred
 
 	def predict(self, state, action):
+		state = self.normState(state)
 		pState = numpy.zeros((self.numContStates+1,))
 		predictions = map(lambda m: m.predict([state]), self.model[action])
 		pReward, pTerminate = tuple(predictions[:2])
 		if not self.isKnown(state, action):
 			pReward = self.reward_range[1]
+			pTerminate = 1
 
 		pState[:] = predictions[2:]
 		ranges = self.getStateSpace()[0]
 		# return full_state, reward, terminate
 		if self.params['relative']:
-			return (state + pState).clip(min=ranges[:,0], max=ranges[:,1]), pReward, pTerminate
+			return self.denormState((state + pState).clip(min=0, max=1)), pReward, pTerminate
 		else:
-			return pState.clip(min=ranges[:,0], max=ranges[:,1]), pReward, pTerminate
+			return self.denormState(pState.clip(min=0, max=1)), pReward, pTerminate
 
 
         def updateExperience(self, lastState, action, newState, reward):
+		if self.exp_index[action] >= self.params['max_experiences']:
+			self.exp_index[action]+= 1
+			return self.exp_index.sum() % self.params['update_freq'] == 0
+
+#		if self.isKnown(lastState, action):
+#			pnew, prew, pterm = self.predict(lastState,action)
+#			#
+#			if ((newState is None and pterm > 0.5) or (newState is not None and numpy.linalg.norm(pnew - newState) < 0.0001)) and (prew - reward) < 0.00001:
+#				# known and well modeled
+#				if newState is not None:
+#					print "#,#,#,#,#", numpy.linalg.norm(pnew - newState), prew - reward, pterm, pnew, newState, action
+#				else:
+#					print "#,#,#,#,# Goal", pnew, prew-reward, pterm, action
+#				return False
+
+		lastState = self.normState(lastState)
+
 		index = self.exp_index[action] % self.params['max_experiences']
 		self.experiences[index,action, :] = lastState
 		self.rewards[index, action] = reward
 		if newState is not None:
+			newState = self.normState(newState)
 			if self.params['relative']:
 				self.transitions[index, action, :] = newState - lastState
 			else:
@@ -154,7 +192,7 @@ class BatchModel(ModelLearner):
 			self.transitions[index,action, 0] = 0
 			self.transitions[index,action, 1:] = 0
 			self.terminates[index, action] = 1
-
+			print "#=#=", lastState, action, self.exp_index[action]
 		self.exp_index[action] += 1
 		return self.updateModel()
 
