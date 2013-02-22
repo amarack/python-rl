@@ -10,6 +10,8 @@ import pyrl.basis.tilecode as tilecode
 from planner import Planner
 
 from sklearn import linear_model
+from sklearn.svm import SVR
+from sklearn import tree
 
 # Fun Idea: For any situation where we run batch methods on a fundamentally incremental 
 # problem, we should look at an exponential decay of the rate at which samples are included
@@ -17,22 +19,21 @@ from sklearn import linear_model
 
 # Fitted Q-Iteration is just like the Batch Modeler, 
 # we can apply any batch regression algorithm:
-#     Linear least squares with some basis function
-#     Regression Trees
-#     Random Forrests and other ensemble methods with trees
-#     SVMs
-#     kNN with KD-Trees etc.
+#+    Linear least squares with some basis function
+#+     Regression Trees
+#+     SVMs
 #     Gaussian Processes for Regression
 
 class FittedQIteration(Planner):
-	def __init__(self, gamma, model, iterations=200, params={}):
+	def __init__(self, gamma, model, params={}):
 		Planner.__init__(self, gamma, model, params)
 
 		self.randGenerator = Random()	
-		self.num_iterations = iterations
 		self.ranges, self.actions = model.getStateSpace()
 		self.has_plan = False
-		
+		self.params.setdefault('iterations', 200)
+		self.params.setdefault('support_size', 200)
+
 		# Set up basis
 		self.basis = None
 		fa_name = self.params.setdefault('basis', 'trivial')
@@ -52,10 +53,15 @@ class FittedQIteration(Planner):
 			self.basis = None
 
 		# Set up regressor
-		learn_name = self.params.setdefault('regressor', 'lstsqr')
-		if learn_name == 'lstsqr':
-			#self.learner = linear_model.LinearRegression()
-			self.learner = linear_model.Ridge (alpha = 0.5)
+		learn_name = self.params.setdefault('regressor', 'linreg')
+		if learn_name == 'linreg':
+			self.learner = linear_model.LinearRegression()
+		elif learn_name == 'ridge': 
+			self.learner = linear_model.Ridge(alpha = self.params.setdefault('l2', 0.5))
+		elif learn_name == 'tree':
+			self.learner = tree.DecisionTreeRegressor()
+		elif learn_name == 'svm':
+			self.learner = SVR()
 		else:
 			self.learner = None
 		
@@ -93,7 +99,7 @@ class FittedQIteration(Planner):
 		# for each action, tuple containing for each sample: s', reward, terminates
 		self.has_plan = False
 		prev_coef = None
-		samples = self.model.sampleStateActions(self.params.setdefault('support_size', 200))
+		samples = self.model.sampleStateActions(self.params['support_size'])
 		outcomes = self.model.predictSet(samples)
 		Xp = []
 		X = []
@@ -115,19 +121,22 @@ class FittedQIteration(Planner):
 			
 		error = 1.0
 		iter2 = 0
-		while error > 1.0e-2 and iter2 < self.num_iterations:
+		while error > 1.0e-2 and iter2 < self.params['iterations']:
 			if self.has_plan:
 				Qprimes = self.learner.predict(Xp).reshape((X.shape[0], self.actions))
-				Qprimes[numpy.where(Qprimes > 0)] = 0 ##??
 				targets = R + gammas*Qprimes.max(1)
 			else:
 				targets = R
 				self.has_plan = True
 
 			self.learner.fit(X, targets)
-				
-			if prev_coef is not None:
-				error = numpy.linalg.norm(prev_coef - self.learner.coef_)
-			prev_coef = self.learner.coef_.copy()
-			iter2 += 1
 
+			try:
+				if prev_coef is not None:
+					error = numpy.linalg.norm(prev_coef - self.learner.coef_)
+				prev_coef = self.learner.coef_.copy()
+			except:
+				pass
+
+			iter2 += 1
+			

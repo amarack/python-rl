@@ -152,5 +152,9 @@ if __name__=="__main__":
 	parser.add_argument("--model", type=float, default=0.1, help="What model to use... not filled out yet")
 	args = parser.parse_args()
 	model_params = {}
-	planner_params = {"basis": "fourier"}
+	#planner_params = {"basis": "fourier", "iterations": 200}
+	planner_params = {"basis": "fourier", "regressor": "ridge", "iterations": 200}
+	#planner_params = {"regressor": "tree", "iterations": 200}
+	#planner_params = {"regressor": "svm", "iterations": 200, "support_size": 50}
+
 	AgentLoader.loadAgent(ModelBasedAgent(args.gamma, batch_model.BatchModel, fitted_qiteration.FittedQIteration, model_params, planner_params))

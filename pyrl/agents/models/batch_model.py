@@ -21,25 +21,32 @@ from model import ModelLearner
 class BatchModel(ModelLearner):
 	def __init__(self, numDiscStates, contStateRanges, numActions, rewardRange, params={}):
 		ModelLearner.__init__(self, numDiscStates, contStateRanges, numActions, rewardRange, params)
+		# Set up parameter defaults
 		self.params.setdefault('relative', True)
 		self.params.setdefault('update_freq', 20)
 		self.params.setdefault('b', 2.0)
 		self.params.setdefault('known_threshold', 1)
-		self.params.setdefault('m', 0.95*self.params['known_threshold']) 
-		self.experiences = numpy.zeros((params.setdefault('max_experiences', 700), self.numActions, self.numContStates + 1))
+		self.params.setdefault('m', 0.95)
+		self.params.setdefault('max_experiences', 700)
+
+		# Initialize storage for training data
+		self.experiences = numpy.zeros((params['max_experiences'], self.numActions, self.numContStates + 1))
 		self.transitions = numpy.zeros((params['max_experiences'], self.numActions, self.numContStates + 1))
 		self.terminates = numpy.zeros((params['max_experiences'],self.numActions))
 		self.rewards = numpy.zeros((params['max_experiences'], self.numActions))
+
 		self.exp_index = numpy.zeros((self.numActions,))
 		self.has_fit = numpy.array([False]*self.numActions)
+
+		# Set up model learning algorithm
 		method = params.setdefault('method', 'knn')
 		if method == "knn":
 			# [reward_regressor, regressor for termination, classifier for disc states, regressor for each cont state]
-			al = 'auto'
-			self.model = [[neighbors.KNeighborsRegressor(self.params['known_threshold'], weights=self.gaussianDist, warn_on_equidistant=False, algorithm=al), 
-				      neighbors.KNeighborsRegressor(self.params['known_threshold'], weights=self.gaussianDist, warn_on_equidistant=False, algorithm=al), 
-				      neighbors.KNeighborsClassifier(self.params['known_threshold'], weights=self.gaussianDist, warn_on_equidistant=False, algorithm=al)] + \
-				      [neighbors.KNeighborsRegressor(self.params['known_threshold'], weights=self.gaussianDist, warn_on_equidistant=False, algorithm=al) for i in range(self.numContStates)] \
+			algo = 'auto'
+			self.model = [[neighbors.KNeighborsRegressor(self.params['known_threshold'], weights=self.gaussianDist, warn_on_equidistant=False, algorithm=algo), 
+				      neighbors.KNeighborsRegressor(self.params['known_threshold'], weights=self.gaussianDist, warn_on_equidistant=False, algorithm=algo), 
+				      neighbors.KNeighborsClassifier(self.params['known_threshold'], weights=self.gaussianDist, warn_on_equidistant=False, algorithm=algo)] + \
+				      [neighbors.KNeighborsRegressor(self.params['known_threshold'], weights=self.gaussianDist, warn_on_equidistant=False, algorithm=algo) for i in range(self.numContStates)] \
 					      for k in range(self.numActions)]
 		else:
 			self.model = None
