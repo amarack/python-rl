@@ -2,9 +2,10 @@
 
 class Planner:
 
-	def __init__(self, model, params={}):
+	def __init__(self, gamma, model, params={}):
 		self.model = model
 		self.params = params
+		self.gamma = gamma
 
         def updateExperience(self, lastState, action, newState, reward):
 		if self.model.updateExperience(lastState, action, newState, reward):

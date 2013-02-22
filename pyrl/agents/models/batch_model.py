@@ -25,7 +25,7 @@ class BatchModel(ModelLearner):
 		self.params.setdefault('update_freq', 20)
 		self.params.setdefault('b', 2.0)
 		self.params.setdefault('known_threshold', 1)
-		self.params.setdefault('m', 0.95*self.params['known_threshold']) #0.99 is the best so far
+		self.params.setdefault('m', 0.95*self.params['known_threshold']) 
 		self.experiences = numpy.zeros((params.setdefault('max_experiences', 700), self.numActions, self.numContStates + 1))
 		self.transitions = numpy.zeros((params['max_experiences'], self.numActions, self.numContStates + 1))
 		self.terminates = numpy.zeros((params['max_experiences'],self.numActions))
@@ -47,7 +47,6 @@ class BatchModel(ModelLearner):
 
 	# Scales/Normalizes the state features to be in the interval [0,1]
 	def normState(self, state):
-		#self.feature_ranges
 		return (numpy.array(state) - self.feature_ranges[:,0]) / self.feature_span
 
 	def denormState(self, state):
@@ -65,10 +64,8 @@ class BatchModel(ModelLearner):
 		if method == 'knn':
 			dist, ind =self.model[action][0].kneighbors([state])
 			n_sa = numpy.exp(-(dist/(self.params['b'])**2)).sum()
-#			return n_sa
 			return n_sa >= self.params['m']
 		else:
-#			return 1.0
 			return False
 
 	# list of list of states, first index is of action
@@ -81,7 +78,6 @@ class BatchModel(ModelLearner):
 				if self.has_fit[a]:
 					dist, ind = self.model[a][0].kneighbors(states[a])
 					n_sa = numpy.exp(-(dist/(self.params['b'])**2)).sum(1)
-#					print n_sa
 					known += [(n_sa >= self.params['m'])]
 				else:
 					known += [numpy.array([False]*len(states[a]))]
@@ -115,9 +111,6 @@ class BatchModel(ModelLearner):
 		for a in range(self.numActions):
 			sample += [numpy.random.uniform(low=self.feature_ranges[:,0], high=self.feature_ranges[:,1], 
 							size=(num_requested,len(self.feature_ranges))).clip(min=self.feature_ranges[:,0], max=self.feature_ranges[:,1])]
-			#slice = self.experiences[:self.exp_index[a],a,:].copy()
-			#numpy.random.shuffle(slice)
-			#sample += [slice[:num_requested,:]]
 		return sample
 
 	# states should be a matrix formed from a list of lists
@@ -164,17 +157,6 @@ class BatchModel(ModelLearner):
 			self.exp_index[action]+= 1
 			return self.exp_index.sum() % self.params['update_freq'] == 0
 
-#		if self.isKnown(lastState, action):
-#			pnew, prew, pterm = self.predict(lastState,action)
-#			#
-#			if ((newState is None and pterm > 0.5) or (newState is not None and numpy.linalg.norm(pnew - newState) < 0.0001)) and (prew - reward) < 0.00001:
-#				# known and well modeled
-#				if newState is not None:
-#					print "#,#,#,#,#", numpy.linalg.norm(pnew - newState), prew - reward, pterm, pnew, newState, action
-#				else:
-#					print "#,#,#,#,# Goal", pnew, prew-reward, pterm, action
-#				return False
-
 		lastState = self.normState(lastState)
 
 		index = self.exp_index[action] % self.params['max_experiences']
@@ -192,7 +174,7 @@ class BatchModel(ModelLearner):
 			self.transitions[index,action, 0] = 0
 			self.transitions[index,action, 1:] = 0
 			self.terminates[index, action] = 1
-			print "#=#=", lastState, action, self.exp_index[action]
+			
 		self.exp_index[action] += 1
 		return self.updateModel()
 

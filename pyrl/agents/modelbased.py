@@ -19,11 +19,12 @@ from pyrl.agents.planners import fitted_qiteration
 
 class ModelBasedAgent(Agent):
 
-	def __init__(self, model, planner, model_params={}, planner_params={}):
+	def __init__(self, gamma, model, planner, model_params={}, planner_params={}):
 		self.randGenerator = Random()	
 		self.lastAction=Action()
 		self.lastObservation=Observation()
-		
+
+		self.gamma = gamma
 		self.model_class = model
 		self.planner_class = planner
 		self.model = None
@@ -50,7 +51,7 @@ class ModelBasedAgent(Agent):
 			self.numActions=TaskSpec.getIntActions()[0][1]+1;
 			
 			self.model = self.model_class(self.numDiscStates, TaskSpec.getDoubleObservations(), self.numActions, TaskSpec.getRewardRange()[0], self.model_params)
-			self.planner = self.planner_class(self.model, self.planner_params)
+			self.planner = self.planner_class(self.gamma, self.model, params=self.planner_params)
 			
 		else:
 			print "Task Spec could not be parsed: "+taskSpecString;
@@ -147,8 +148,9 @@ class ModelBasedAgent(Agent):
 if __name__=="__main__":
 	import argparse
 	parser = argparse.ArgumentParser(description='Run ModelBasedAgent in network mode')
+	parser.add_argument("--gamma", type=float, default=0.99, help="Discount factor")
 	parser.add_argument("--model", type=float, default=0.1, help="What model to use... not filled out yet")
 	args = parser.parse_args()
 	model_params = {}
 	planner_params = {"basis": "fourier"}
-	AgentLoader.loadAgent(ModelBasedAgent(batch_model.BatchModel, fitted_qiteration.FittedQIteration, model_params, planner_params))
+	AgentLoader.loadAgent(ModelBasedAgent(args.gamma, batch_model.BatchModel, fitted_qiteration.FittedQIteration, model_params, planner_params))
