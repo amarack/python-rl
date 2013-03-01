@@ -151,9 +151,16 @@ if __name__=="__main__":
 	parser.add_argument("--gamma", type=float, default=0.99, help="Discount factor")
 	parser.add_argument("--model", type=float, default=0.1, help="What model to use... not filled out yet")
 	args = parser.parse_args()
-	model_params = {}
-	#planner_params = {"basis": "fourier", "iterations": 200}
+	
+	# Fitted Rmax configured for Mountain Car
+	#model_params = {"update_freq": 20, "b": 2.0, "known_threshold": 1, "m": 0.95, "max_experiences": 700}
 	planner_params = {"basis": "fourier", "regressor": "ridge", "iterations": 200}
+
+	# Random Forest model for Mountain Car
+        model_params = {"method": "randforest", "m": 0.99, "max_experiences": 800, "importance_weight": True}
+
+	#planner_params = {"basis": "fourier", "iterations": 200}
+	
 	#planner_params = {"regressor": "tree", "iterations": 200}
 	#planner_params = {"regressor": "svm", "iterations": 200, "support_size": 50}
 

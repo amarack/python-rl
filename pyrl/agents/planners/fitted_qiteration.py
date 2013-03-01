@@ -105,8 +105,10 @@ class FittedQIteration(Planner):
 		X = []
 		R = []
 		gammas = []
+		S = []
 
 		for a in range(self.actions):
+			S += list(samples[a])
 			Xp += map(lambda k: [self.getStateAction(k, b) for b in range(self.actions)], outcomes[a][0])
 			X += map(lambda k: self.getStateAction(k, a), samples[a])
 			R += list(outcomes[a][1])
@@ -139,4 +141,6 @@ class FittedQIteration(Planner):
 				pass
 
 			iter2 += 1
-			
+
+
+								
