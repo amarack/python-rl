@@ -93,54 +93,69 @@ class FittedQIteration(Planner):
 		
 	# This is really ugly, probably also using much more memory than needed
 	# TODO: clean it up
-        def updatePlan(self):
+        def updatePlan(self, retry_on_fail=True):
 		# Fitted Q-Iteration
 		# predict r + gamma * max Q(s', a') for each s,a
-		# for each action, tuple containing for each sample: s', reward, terminates
-		self.has_plan = False
-		prev_coef = None
-		samples = self.model.sampleStateActions(self.params['support_size'])
-		outcomes = self.model.predictSet(samples)
-		Xp = []
-		X = []
-		R = []
-		gammas = []
-		S = []
+		# for each action, tuple containing for each sample: s', reward, terminates		
+		for sample_iter in range(self.params.setdefault('resample', 1)):
+			self.has_plan = False
+			prev_coef = None
+			samples = self.model.sampleStateActions(self.params['support_size'])
+			outcomes = self.model.predictSet(samples)
+			kn = self.model.getKnown(samples)
+			Xp = []
+			X = []
+			R = []
+			gammas = []
+			S = []
+			K = []
+			A = []
+			for a in range(self.actions):
+				for out in zip(samples[a], outcomes[a][0]):
+					print "###", out[0], out[1], a
+				S += list(samples[a])
+				Xp += map(lambda k: [self.getStateAction(k, b) for b in range(self.actions)], outcomes[a][0])
+				X += map(lambda k: self.getStateAction(k, a), samples[a])
+				R += list(outcomes[a][1])
+				gammas += list((1.0 - outcomes[a][2]) * self.gamma)
+				K += list(kn[a])
+				A += [a for k in samples[a]]
+			Xp = numpy.array(Xp)
+			Xp = Xp.reshape(Xp.shape[0]*Xp.shape[1], Xp.shape[2])
+			X = numpy.array(X)
+			R = numpy.array(R)
+			gammas = numpy.array(gammas)
+			targets = []
+			S = numpy.array(S)
+			Qp = None
+			error = 1.0 
+			iter2 = 0 
+			threshold = 1.0e-4
+			while error > threshold and iter2 < self.params['iterations']:
+				if self.has_plan:
+					Qprimes = self.learner.predict(Xp).reshape((X.shape[0], self.actions))
+					targets = R + gammas*Qprimes.max(1)
+					Qp = Qprimes
+				else:
+					targets = R
+					self.has_plan = True
 
-		for a in range(self.actions):
-			S += list(samples[a])
-			Xp += map(lambda k: [self.getStateAction(k, b) for b in range(self.actions)], outcomes[a][0])
-			X += map(lambda k: self.getStateAction(k, a), samples[a])
-			R += list(outcomes[a][1])
-			gammas += list((1.0 - outcomes[a][2]) * self.gamma)
+				self.learner.fit(X, targets)
 
-		Xp = numpy.array(Xp)
-		Xp = Xp.reshape(Xp.shape[0]*Xp.shape[1], Xp.shape[2])
-		X = numpy.array(X)
-		R = numpy.array(R)
-		gammas = numpy.array(gammas)
-		targets = []
-			
-		error = 1.0
-		iter2 = 0
-		while error > 1.0e-2 and iter2 < self.params['iterations']:
-			if self.has_plan:
-				Qprimes = self.learner.predict(Xp).reshape((X.shape[0], self.actions))
-				targets = R + gammas*Qprimes.max(1)
-			else:
-				targets = R
-				self.has_plan = True
+				try:
+					if prev_coef is not None:
+						error = numpy.linalg.norm(prev_coef - self.learner.coef_)
+					prev_coef = self.learner.coef_.copy()
+				except:
+					pass
 
-			self.learner.fit(X, targets)
+				iter2 += 1
 
-			try:
-				if prev_coef is not None:
-					error = numpy.linalg.norm(prev_coef - self.learner.coef_)
-				prev_coef = self.learner.coef_.copy()
-			except:
-				pass
+			#print "#?", sample_iter, iter2, error, self.model.exp_index
 
-			iter2 += 1
-
-
-								
+			#import csv
+			#with open("dv.dat", "wb") as f:
+			#	csvw = csv.writer(f)
+			#	csvw.writerows(map(lambda k: list(k[0]) + [k[1], k[2], k[3], k[5], k[4]], zip(S, R, K, gammas, targets, A)))
+			if error <= threshold:
+				return

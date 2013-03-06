@@ -157,7 +157,15 @@ if __name__=="__main__":
 	planner_params = {"basis": "fourier", "regressor": "ridge", "iterations": 200}
 
 	# Random Forest model for Mountain Car
-        model_params = {"method": "randforest", "m": 0.99, "max_experiences": 800, "importance_weight": True}
+        #model_params = {"method": "randforest", "m": 0.99, "max_experiences": 800, "importance_weight": True}
+
+	# SVM for Mountain Car, sorta working, sorta not. But best I could get so far.
+        #model_params = {"method": "svm", "m": 0.95, "max_experiences": 500, "importance_weight": True}
+	#planner_params = {"basis": "fourier", "regressor": "ridge", "iterations": 500, "support_size": 50, "resample": 10}
+
+	# Gaussian Processes for Mountain Car
+	model_params = {"method": "gp", "m": 1.0e-4, "max_experiences": 300}
+	planner_params = {"basis": "fourier", "regressor": "ridge", "iterations": 1000, "support_size": 50, "resample": 15}
 
 	#planner_params = {"basis": "fourier", "iterations": 200}
 	
