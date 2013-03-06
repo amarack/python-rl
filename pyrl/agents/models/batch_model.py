@@ -51,7 +51,7 @@ class BatchModel(ModelLearner):
 		self.predConst = numpy.zeros((self.numActions, self.numContStates+3)).tolist()
 		self.sigma_threshold = numpy.zeros((self.numActions, self.numContStates))
 		if self.params['known_method'] == 'oneclass':
-			self.density_estimator = [OneClassSVM(nu=0.05, kernel="rbf", gamma=0.1) for a in range(self.numActions)]
+			self.density_estimator = [OneClassSVM(nu=0.01, kernel="rbf", gamma=0.1) for a in range(self.numActions)]
 
 		# Set up model learning algorithm
 		method = params.setdefault('method', 'knn')				
@@ -323,6 +323,9 @@ class BatchModel(ModelLearner):
 					self.density_estimator[a].fit(self.experiences[:self.exp_index[a],a])
 				self.has_fit[a] = True
 			#print "#()", ','.join(map(str, self.sigma_threshold.flatten()))
+			import cPickle
+			with open('dens.pickle', 'wb') as f:
+				cPickle.dump(self.density_estimator, f)
 			return True
 		else:
 			return False
