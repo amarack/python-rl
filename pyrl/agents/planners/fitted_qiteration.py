@@ -151,11 +151,11 @@ class FittedQIteration(Planner):
 
 				iter2 += 1
 
-			#print "#?", sample_iter, iter2, error, self.model.exp_index
+			print "#?", sample_iter, iter2, error, self.model.exp_index
 
-			#import csv
-			#with open("dv.dat", "wb") as f:
-			#	csvw = csv.writer(f)
-			#	csvw.writerows(map(lambda k: list(k[0]) + [k[1], k[2], k[3], k[5], k[4]], zip(S, R, K, gammas, targets, A)))
+			import csv
+			with open("dv.dat", "wb") as f:
+				csvw = csv.writer(f)
+				csvw.writerows(map(lambda k: list(k[0]) + [k[1], k[2], k[3], k[5], k[4]], zip(S, R, K, gammas, targets, A)))
 			if error <= threshold:
 				return

@@ -2,7 +2,7 @@
 import numpy
 from sklearn import neighbors
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.svm import SVR, SVC
+from sklearn.svm import SVR, SVC, OneClassSVM
 from sklearn.gaussian_process import GaussianProcess
 
 # Batch methods:
@@ -38,6 +38,7 @@ class BatchModel(ModelLearner):
 		self.params.setdefault('max_experiences', 700)
 		self.params.setdefault('importance_weight', False)
 		self.params.setdefault('known_method', 'nndist')
+		#self.params.setdefault('known_method', 'oneclass')
 
 		# Initialize storage for training data
 		self.experiences = numpy.zeros((params['max_experiences'], self.numActions, self.numContStates + 1))
@@ -49,6 +50,8 @@ class BatchModel(ModelLearner):
 		self.has_fit = numpy.array([False]*self.numActions)
 		self.predConst = numpy.zeros((self.numActions, self.numContStates+3)).tolist()
 		self.sigma_threshold = numpy.zeros((self.numActions, self.numContStates))
+		if self.params['known_method'] == 'oneclass':
+			self.density_estimator = [OneClassSVM(nu=0.05, kernel="rbf", gamma=0.1) for a in range(self.numActions)]
 
 		# Set up model learning algorithm
 		method = params.setdefault('method', 'knn')				
@@ -126,6 +129,12 @@ class BatchModel(ModelLearner):
 					return split_predictions >= self.params['m']
 				else:
 					return False
+			elif method == 'oneclass':
+				if self.has_fit[action]:
+					return (self.density_estimator[action].predict([state]) > 0).all()
+				else:
+					return False
+
 			else:
 				return False
 
@@ -175,6 +184,14 @@ class BatchModel(ModelLearner):
 						known += [numpy.array([False]*len(states[a]))]
 
 				return known
+			elif method == 'oneclass':
+				known = []
+				for a in range(self.numActions):
+					if self.has_fit[a]:
+						known += [self.density_estimator[a].predict(states[a]) > 0]
+					else:
+						known += [numpy.array([False]*len(states[a]))]
+				return known
 			else:
 				return map(lambda k: (numpy.zeros((len(k),))!=0), states)
 
@@ -219,6 +236,14 @@ class BatchModel(ModelLearner):
 					else:
 						known += [numpy.array([0]*len(states[a]))]
 
+				return known
+			elif method == 'oneclass':
+				known = []
+				for a in range(self.numActions):
+					if self.has_fit[a]:
+						known += [self.density_estimator[a].predict(states[a])]
+					else:
+						known += [numpy.array([0]*len(states[a]))]
 				return known
 			else:
 				return map(lambda k: numpy.zeros((len(k),)), states)
@@ -289,11 +314,13 @@ class BatchModel(ModelLearner):
 					self.predConst[a][i+3] = self.fitFactorModel(self.model[a][i+3], 
 										    self.experiences[indices[0],a], 
 										    self.transitions[indices[0],a,i+1])
-				if self.params['method'] != 'gp':
+				if self.params['method'] == 'gp':
 					for i in range(self.numContStates):
 						self.sigma_threshold[a][i] = self.buildConf(self.model[a][i+3], 
 											    self.experiences[indices[0],a], 
 											    self.transitions[indices[0],a,i+1])
+				if self.params['known_method'] == 'oneclass':
+					self.density_estimator[a].fit(self.experiences[:self.exp_index[a],a])
 				self.has_fit[a] = True
 			#print "#()", ','.join(map(str, self.sigma_threshold.flatten()))
 			return True
@@ -314,7 +341,7 @@ class BatchModel(ModelLearner):
 
 	def exploration_reward(self, state, known, rewards):
 		method = self.params['known_method']
-		if method == 'nndist':
+		if method == 'nndist' or method == 'oneclass':
 			rewards[numpy.invert(known)] = self.reward_range[1]
 			return rewards
 		else:
@@ -322,7 +349,7 @@ class BatchModel(ModelLearner):
 
 	def model_termination(self, pterm, known):
 		method = self.params['known_method']
-		if method == 'nndist':
+		if method == 'nndist' or method == 'oneclass':
 			pterm[numpy.invert(known)] = 1
 			return pterm
 		else:
