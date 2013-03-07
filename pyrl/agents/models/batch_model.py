@@ -2,7 +2,7 @@
 import numpy
 from sklearn import neighbors
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.svm import SVR, SVC, OneClassSVM
+from sklearn.svm import SVR, NuSVR, SVC, OneClassSVM
 from sklearn.gaussian_process import GaussianProcess
 
 # Batch methods:
@@ -333,7 +333,6 @@ class SVMBatchModel(BatchModel):
 
 	def _genregressor(self, isReward=False, isTermination=False):
 		return SVR(C=self.params['C'], epsilon=self.params['epsilon'], tol=self.params['tolerance'])
-
 	def _genclassifier(self):
 		return SVC()
 
@@ -368,10 +367,10 @@ class GaussianProcessBatchModel(BatchModel):
 					       nugget=self.params['nugget'], corr='linear')
 
 	def _known_state(self, states, action):
-		return map(lambda k: (k <= self.sigma_threshold[action]).all(), self._known_values(states, action))
+		return map(lambda k: (k <= self.sigma_threshold[action]).all(), self._known_value(states, action))
 
 	def _known_value(self, states, action):
-		predictions = numpy.array(map(lambda d: d.predict(states[a], eval_MSE=True), self.model[a][3:]))
+		predictions = numpy.array(map(lambda d: d.predict(states, eval_MSE=True), self.model[action][3:]))
 		return numpy.sqrt(predictions[:,1]).T
 
 	def buildConf(self, model, X, Y, zscore=1.960):
@@ -390,8 +389,8 @@ class GaussianProcessBatchModel(BatchModel):
 
 class SVMDensityEstimator:
 	def __init__(self, **params):
-		self.nu = self.params.setdefault('nu', 0.01)
-		self.svm_gamma = self.params.setdefault('svm_gamma', 0.1)
+		self.nu = params.setdefault('nu', 0.01)
+		self.svm_gamma = params.setdefault('svm_gamma', 0.1)
 
 	def _init_density_estimator(self):
 		self.density_estimator = [OneClassSVM(nu=self.nu, kernel="rbf", gamma=self.svm_gamma) for a in range(self.numActions)]
@@ -405,7 +404,7 @@ class SVMDensityEstimator:
 			cPickle.dump(self.density_estimator, f)
 
 	def _known_state(self, states, action):
-		return self._known_values(states, action) > 0
+		return self._known_value(states, action) > 0
 
 	def _known_value(self, states, action):
 		return self.density_estimator[action].predict(states)
@@ -415,21 +414,25 @@ class GPSVM(SVMDensityEstimator, GaussianProcessBatchModel):
 	def __init__(self, numDiscStates, contStateRanges, numActions, rewardRange, **params):
 		SVMDensityEstimator.__init__(self, **params)
 		GaussianProcessBatchModel.__init__(self, numDiscStates, contStateRanges, numActions, rewardRange, **params)
+		self._init_density_estimator()
 
 class SVM2(SVMDensityEstimator, SVMBatchModel):
 	def __init__(self, numDiscStates, contStateRanges, numActions, rewardRange, **params):
 		SVMDensityEstimator.__init__(self, **params)
 		SVMBatchModel.__init__(self, numDiscStates, contStateRanges, numActions, rewardRange, **params)
+		self._init_density_estimator()
 
 class RandForestSVM(SVMDensityEstimator, RandomForestBatchModel):
 	def __init__(self, numDiscStates, contStateRanges, numActions, rewardRange, **params):
 		SVMDensityEstimator.__init__(self, **params)
 		RandomForestBatchModel.__init__(self, numDiscStates, contStateRanges, numActions, rewardRange, **params)
+		self._init_density_estimator()
 
 class KNNSVM(SVMDensityEstimator, KNNBatchModel):
 	def __init__(self, numDiscStates, contStateRanges, numActions, rewardRange, **params):
 		SVMDensityEstimator.__init__(self, **params)
 		KNNBatchModel.__init__(self, numDiscStates, contStateRanges, numActions, rewardRange, **params)
+		self._init_density_estimator()
 
 
 class BatchModel2(ModelLearner):

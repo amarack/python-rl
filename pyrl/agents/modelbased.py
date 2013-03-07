@@ -153,26 +153,32 @@ if __name__=="__main__":
 	args = parser.parse_args()
 	
 	# Fitted Rmax configured for Mountain Car
-	#model_params = {"update_freq": 20, "known_threshold": 0.95, "max_experiences": 700}
-	#planner_params = {"basis": "fourier", "regressor": "ridge", "iterations": 200}
-	#model_class = batch_model.KNNBatchModel
+	model_params = {"update_freq": 20, "known_threshold": 0.95, "max_experiences": 700}
+	planner_params = {"basis": "fourier", "regressor": "ridge", "iterations": 200}
+	model_class = batch_model.KNNBatchModel
+	#model_class = batch_model.KNNSVM
 
 	# Random Forest model for Mountain Car
-        model_params = {"method": "randforest", "known_threshold": 0.99, "max_experiences": 800, "importance_weight": True}
-	planner_params = {"basis": "fourier", "regressor": "ridge", "iterations": 200}
-	model_class = batch_model.RandomForestBatchModel
+        #model_params = {"known_threshold": 0.95, "max_experiences": 800, "importance_weight": True}
+	#planner_params = {"basis": "fourier", "regressor": "ridge", "iterations": 200}
+	#model_class = batch_model.RandomForestBatchModel
+	#model_class = batch_model.RandForestSVM
 
 	# SVM for Mountain Car, sorta working, sorta not. But best I could get so far.
-        #model_params = {"method": "svm", "m": 0.95, "max_experiences": 500, "importance_weight": True}
+	#model_params = {"known_threshold": 0.95, "max_experiences": 500, "importance_weight": True}
 	#planner_params = {"basis": "fourier", "regressor": "ridge", "iterations": 500, "support_size": 50, "resample": 10}
+	#model_class = batch_model.SVMBatchModel
+	#model_class = batch_model.SVM2
+
+	# Gaussian Processes for Mountain Car
+	#model_params = {"max_experiences": 300, "nugget": 1.0e-10, "random_start": 100}
+	#planner_params = {"basis": "fourier", "regressor": "ridge", "iterations": 1000, "support_size": 50, "resample": 15}
+	#model_class = batch_model.GaussianProcessBatchModel
 
 	# SVM for Mountain Car, sorta working, sorta not. But best I could get so far. with oneclass for known/unknown
         #model_params = {"method": "svm", "m": 0.95, "max_experiences": 500, "importance_weight": True, "known_method": "oneclass"}
 	#planner_params = {"basis": "fourier", "regressor": "ridge", "iterations": 500, "support_size": 50, "resample": 10}
 
-	# Gaussian Processes for Mountain Car
-	#model_params = {"method": "gp", "m": 1.0e-4, "max_experiences": 300}
-	#planner_params = {"basis": "fourier", "regressor": "ridge", "iterations": 1000, "support_size": 50, "resample": 15}
 
 	#planner_params = {"basis": "fourier", "iterations": 200}
 	
