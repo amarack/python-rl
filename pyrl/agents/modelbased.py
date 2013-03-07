@@ -50,7 +50,7 @@ class ModelBasedAgent(Agent):
 			assert not TaskSpec.isSpecial(TaskSpec.getIntActions()[0][1]), " expecting max action to be a number not a special value"
 			self.numActions=TaskSpec.getIntActions()[0][1]+1;
 			
-			self.model = self.model_class(self.numDiscStates, TaskSpec.getDoubleObservations(), self.numActions, TaskSpec.getRewardRange()[0], self.model_params)
+			self.model = self.model_class(self.numDiscStates, TaskSpec.getDoubleObservations(), self.numActions, TaskSpec.getRewardRange()[0], **self.model_params)
 			self.planner = self.planner_class(self.gamma, self.model, params=self.planner_params)
 			
 		else:
@@ -153,19 +153,22 @@ if __name__=="__main__":
 	args = parser.parse_args()
 	
 	# Fitted Rmax configured for Mountain Car
-	#model_params = {"update_freq": 20, "b": 2.0, "known_threshold": 1, "m": 0.95, "max_experiences": 700}
+	#model_params = {"update_freq": 20, "known_threshold": 0.95, "max_experiences": 700}
 	#planner_params = {"basis": "fourier", "regressor": "ridge", "iterations": 200}
+	#model_class = batch_model.KNNBatchModel
 
 	# Random Forest model for Mountain Car
-        #model_params = {"method": "randforest", "m": 0.99, "max_experiences": 800, "importance_weight": True}
+        model_params = {"method": "randforest", "known_threshold": 0.99, "max_experiences": 800, "importance_weight": True}
+	planner_params = {"basis": "fourier", "regressor": "ridge", "iterations": 200}
+	model_class = batch_model.RandomForestBatchModel
 
 	# SVM for Mountain Car, sorta working, sorta not. But best I could get so far.
         #model_params = {"method": "svm", "m": 0.95, "max_experiences": 500, "importance_weight": True}
 	#planner_params = {"basis": "fourier", "regressor": "ridge", "iterations": 500, "support_size": 50, "resample": 10}
 
 	# SVM for Mountain Car, sorta working, sorta not. But best I could get so far. with oneclass for known/unknown
-        model_params = {"method": "svm", "m": 0.95, "max_experiences": 500, "importance_weight": True, "known_method": "oneclass"}
-	planner_params = {"basis": "fourier", "regressor": "ridge", "iterations": 500, "support_size": 50, "resample": 10}
+        #model_params = {"method": "svm", "m": 0.95, "max_experiences": 500, "importance_weight": True, "known_method": "oneclass"}
+	#planner_params = {"basis": "fourier", "regressor": "ridge", "iterations": 500, "support_size": 50, "resample": 10}
 
 	# Gaussian Processes for Mountain Car
 	#model_params = {"method": "gp", "m": 1.0e-4, "max_experiences": 300}
@@ -175,5 +178,6 @@ if __name__=="__main__":
 	
 	#planner_params = {"regressor": "tree", "iterations": 200}
 	#planner_params = {"regressor": "svm", "iterations": 200, "support_size": 50}
-
-	AgentLoader.loadAgent(ModelBasedAgent(args.gamma, batch_model.BatchModel, fitted_qiteration.FittedQIteration, model_params, planner_params))
+	
+	AgentLoader.loadAgent(ModelBasedAgent(args.gamma, model_class, fitted_qiteration.FittedQIteration, model_params, planner_params))
+#	AgentLoader.loadAgent(ModelBasedAgent(args.gamma, batch_model.BatchModel2, fitted_qiteration.FittedQIteration, model_params, planner_params))

@@ -102,7 +102,8 @@ class FittedQIteration(Planner):
 			prev_coef = None
 			samples = self.model.sampleStateActions(self.params['support_size'])
 			outcomes = self.model.predictSet(samples)
-			kn = self.model.getKnown(samples)
+			kn = self.model.getConfidence(samples) 
+			#kn = self.model.getKnown(samples) 
 			Xp = []
 			X = []
 			R = []
@@ -111,8 +112,8 @@ class FittedQIteration(Planner):
 			K = []
 			A = []
 			for a in range(self.actions):
-				for out in zip(samples[a], outcomes[a][0]):
-					print "###", out[0], out[1], a
+				#for out in zip(samples[a], outcomes[a][0]):
+				#	print "###", out[0], out[1], a
 				S += list(samples[a])
 				Xp += map(lambda k: [self.getStateAction(k, b) for b in range(self.actions)], outcomes[a][0])
 				X += map(lambda k: self.getStateAction(k, a), samples[a])
