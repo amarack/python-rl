@@ -1,4 +1,6 @@
 
+# Author: Will Dabney
+
 from random import Random
 import numpy
 import sys
@@ -13,19 +15,22 @@ from sklearn import linear_model
 from sklearn.svm import SVR
 from sklearn import tree
 
-# Fun Idea: For any situation where we run batch methods on a fundamentally incremental 
-# problem, we should look at an exponential decay of the rate at which samples are included
-# into our experiences used for training. 
-
-# Fitted Q-Iteration is just like the Batch Modeler, 
-# we can apply any batch regression algorithm:
-#+    Linear least squares with some basis function
-#+     Regression Trees
-#+     SVMs
-#     Gaussian Processes for Regression
-
 class FittedQIteration(Planner):
+	"""FittedQIteration is an implementation of the Fitted Q-Iteration algorithm of Ernst, Geurts, Wehenkel (2005).
+
+	This class allows the use of a variety of regression algorithms, provided by scikits-learn, to be used for 
+	representing the Q-value function. Additionally, different basis functions can be applied to the features before 
+	being passed to the regressors, including trivial, fourier, tile coding, and radial basis functions. 
+	"""
+
 	def __init__(self, gamma, model, params={}):
+		"""Inits the Fitted Q-Iteration planner with discount factor, instantiated model learner, and additional parameters.
+		
+		Args:
+			gamma: The discount factor for the domain
+			model: The model learner object
+			params: Additional parameters for use in the class.
+		"""
 		Planner.__init__(self, gamma, model, params)
 
 		self.randGenerator = Random()	
@@ -66,6 +71,15 @@ class FittedQIteration(Planner):
 			self.learner = None
 		
 	def getStateAction(self, state, action):
+		"""Returns the basified state feature array for the given state action pair.
+		
+		Args:
+			state: The array of state features
+			action: The action taken from the given state
+
+		Returns:
+			The array containing the result of applying the basis functions to the state-action.
+		"""
 		if self.basis is not None:
 			state = self.basis.computeFeatures(state)
 
@@ -74,61 +88,80 @@ class FittedQIteration(Planner):
 		return stateaction.flatten()
 
 	def predict(self, state, action):
+		"""Predict the next state, reward, and termination probability for the current state-action.
+		
+		Args:
+			state: The array of state features
+			action: The action taken from the given state
+
+		Returns:
+			Tuple (next_state, reward, termination), where next_state gives the predicted next state,
+			reward gives the predicted reward for transitioning to that state, and termination 
+			gives the expected probabillity of terminating the episode upon transitioning.
+
+			All three are None if no model has been learned for the given action.
+		"""
 		if self.model.has_fit[action]:
 			return self.model.predict(state, action)
 		else:
 			return None, None, None
 	
 	def getValue(self, state):
+		"""Get the Q-value function value for the greedy action choice at the given state (ie V(state)).
+		
+		Args:
+			state: The array of state features
+
+		Returns:
+			The double value for the value function at the given state
+		"""
 		if self.has_plan:
 			return self.learner.predict([self.getStateAction(state, a) for a in range(self.actions)]).max()
 		else:
 			return None
 
 	def getAction(self, state):
+		"""Get the action under the current plan policy for the given state.
+		
+		Args:
+			state: The array of state features
+
+		Returns:
+			The current greedy action under the planned policy for the given state. If no plan has been formed, 
+			return a random action.
+		"""
 		if self.has_plan:
 			return self.learner.predict([self.getStateAction(state, a) for a in range(self.actions)]).argmax()
 		else:
 			return self.randGenerator.randint(0, self.actions-1)
 		
-	# This is really ugly, probably also using much more memory than needed
-	# TODO: clean it up
-        def updatePlan(self, retry_on_fail=True):
-		# Fitted Q-Iteration
-		# predict r + gamma * max Q(s', a') for each s,a
-		# for each action, tuple containing for each sample: s', reward, terminates		
+
+        def updatePlan(self):
+		"""Run Fitted Q-Iteration on samples from the model, and update the plan accordingly."""
 		for sample_iter in range(self.params.setdefault('resample', 1)):
 			self.has_plan = False
 			prev_coef = None
 			samples = self.model.sampleStateActions(self.params['support_size'])
 			outcomes = self.model.predictSet(samples)
-			kn = self.model.getConfidence(samples) 
-			#kn = self.model.getKnown(samples) 
+
 			Xp = []
 			X = []
 			R = []
 			gammas = []
-			S = []
-			K = []
-			A = []
 			for a in range(self.actions):
-				#for out in zip(samples[a], outcomes[a][0]):
-				#	print "###", out[0], out[1], a
-				S += list(samples[a])
 				Xp += map(lambda k: [self.getStateAction(k, b) for b in range(self.actions)], outcomes[a][0])
 				X += map(lambda k: self.getStateAction(k, a), samples[a])
 				R += list(outcomes[a][1])
 				gammas += list((1.0 - outcomes[a][2]) * self.gamma)
-				K += list(kn[a])
-				A += [a for k in samples[a]]
+
 			Xp = numpy.array(Xp)
 			Xp = Xp.reshape(Xp.shape[0]*Xp.shape[1], Xp.shape[2])
 			X = numpy.array(X)
 			R = numpy.array(R)
 			gammas = numpy.array(gammas)
 			targets = []
-			S = numpy.array(S)
 			Qp = None
+
 			error = 1.0 
 			iter2 = 0 
 			threshold = 1.0e-4
@@ -152,11 +185,6 @@ class FittedQIteration(Planner):
 
 				iter2 += 1
 
-			print "#?", sample_iter, iter2, error, self.model.exp_index
-
-			import csv
-			with open("dv.dat", "wb") as f:
-				csvw = csv.writer(f)
-				csvw.writerows(map(lambda k: list(k[0]) + [k[1], k[2], k[3], k[5], k[4]], zip(S, R, K, gammas, targets, A)))
+			#print "#?", sample_iter, iter2, error, self.model.exp_index
 			if error <= threshold:
 				return
