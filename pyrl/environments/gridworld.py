@@ -115,7 +115,7 @@ def addGridworldArgs(parser):
 	parser.add_argument("--goal_y", type=float, default=10, help="Goal y coordinate")
 	parser.add_argument("--noise", type=float, default=0, help="Standard deviation of additive noise to generate")
 	parser.add_argument("--fudge", type=float, default=1.4143, help="Distance from goal allowed before episode is counted as finished")
-	parser.add_argument("--random_restarts", type=bool, default=False, help="Goal y coordinate")
+	parser.add_argument("--random_restarts", type=bool, default=False, help="Randomly assign x,y initial locations.")
 
 if __name__=="__main__":
 	import argparse

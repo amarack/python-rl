@@ -5,10 +5,7 @@ TODO for pyRL project
 Implement Environments (in Python) or Convert C/C++ into Module:
 ------------------------------
 
-Acrobot
 Cart Pole with different styles: RLGlue (easier), Realistic (much harder), swingup vs balance
-Mountain Car
-Pinball
 Tetris
 Dart Throwing (from Bruno Castro da Silva's paper on parameterized skills)
 Partially Observable Taxi
@@ -22,12 +19,8 @@ Implement Agents (in Python) or Convert C/C++ into Module:
 
 Implement "save_trajectory filename numsteps" message support into base class of existing agents
 
-Any simple POMDP solver (needed to fully test generic_pomdp domain code)
-LSPI
-Rmax
-SLF-Rmax
+LSPI/LSTD/RLS-TD
 Delayed Q-Learning
-TEXPLORE
 NAC
 TDC
 GTD
