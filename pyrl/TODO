@@ -24,4 +24,13 @@ Delayed Q-Learning
 NAC
 TDC
 GTD
+Skill Chaining
+PoWER
+PI^2
+TD-delta Pi
 
+Extensions to Existing Implementations:
+------------------------------
+
+Add other exploration bonus methods to the modelbased agents
+Beginning a new study on adaptive step-sizes
