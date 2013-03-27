@@ -16,6 +16,17 @@ fancytiles.py - code to get different shapes and sizes of tiles
 
 To use these:
 In a terminal window:
+cmake .
 make
 ... this creates the tiles.so and tiles.o files
+
+
+Note About CMake and Python on Mac: 
+For some reason things can sometimes get messed up with this combination. Some people claim 
+this is a bug in cmake or a bug from mac. It comes up when you have multiple python distributions 
+installed. So, most people should be fine, but if you get a fatal error when trying to use this 
+module in python you should look into uninstalling the unused distributions or pass to cmake 
+the following arguments with the correct values filled in: 
+
+-DPYTHON_LIBRARY=... -DPYTHON_INCLUDE=...
 
