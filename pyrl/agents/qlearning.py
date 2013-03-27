@@ -14,6 +14,7 @@ import pyrl.basis.fourier as fourier
 import pyrl.basis.rbf as rbf
 import pyrl.basis.tilecode as tilecode
 import sarsa_lambda
+import stepsizes
 
 class qlearning_agent(sarsa_lambda.sarsa_lambda):
 
@@ -69,17 +70,15 @@ class qlearning_agent(sarsa_lambda.sarsa_lambda):
 		delta = self.gamma*Q_tp + reward - numpy.dot(self.weights.flatten(), phi_t.flatten())
 
 		# Adaptive step-size if that is enabled
-		if self.use_autostep:
-			self.do_autostep(phi_t.flatten(), delta)
-		if self.use_ass:
-			phi_tp = numpy.zeros(phi_t.shape)
-			if s_tp is not None:
-				phi_tp[discState,:,a_tp] = s_tp
-			self.do_adaptivestep(phi_t, phi_tp, delta)
-		
+		phi_tp = numpy.zeros(phi_t.shape)
+		if s_tp is not None:
+			phi_tp[discState,:,a_tp] = s_tp
+
+		self.compute_stepsize(phi_t, phi_tp, delta, reward)
+
 		# Update the weights with both a scalar and vector stepsize used
 		# (Maybe we should actually make them both work together naturally)
-		self.weights += self.step_sizes * self.alpha * delta * self.traces
+		self.weights += self.step_sizes * delta * self.traces
 	
 	def agent_end(self,reward):
 		lastState = numpy.array(list(self.lastObservation.doubleArray))
@@ -109,8 +108,6 @@ if __name__=="__main__":
 	sarsa_lambda.addLinearTDArgs(parser)
 	args = parser.parse_args()
 	params = {}
-	params['autostep_mu'] = args.autostep_mu
-	params['autostep_tau'] = args.autostep_tau
 	params['name'] = args.basis
 	params['order'] = args.fourier_order
 	params['num_functions'] = args.rbf_num
@@ -119,15 +116,24 @@ if __name__=="__main__":
 	params['num_weights'] = args.tiles_size
 	alpha = args.stepsize
 
-	if args.adaptive_stepsize == "ass":
-		alpha = "ass"
-	elif args.adaptive_stepsize == "autostep":
-		alpha = "autostep"
-
 	epsilon = args.epsilon
 	softmax = False
 	if args.softmax is not None:
 		softmax = True
 		epsilon = args.softmax
 
-	AgentLoader.loadAgent(qlearning_agent(epsilon, alpha, args.gamma, args.lmbda, params=params, softmax=softmax))
+	if args.adaptive_stepsize == "autostep":
+		class AutoQ(stepsizes.Autostep, qlearning_agent):
+			def __init__(self, epsilon, alpha, gamma, lmbda, params={}, softmax=False):
+				qlearning_agent.__init__(self, epsilon, alpha, gamma, lmbda, params=params, softmax=softmax)
+
+		params['autostep_mu'] = args.autostep_mu
+		params['autostep_tau'] = args.autostep_tau
+		AgentLoader.loadAgent(AutoQ(epsilon, alpha, args.gamma, args.lmbda, params=params, softmax=softmax))
+	elif args.adaptive_stepsize == "ass":
+		class ABQ(stepsizes.AlphaBounds, qlearning_agent):
+			def __init__(self, epsilon, alpha, gamma, lmbda, params={}, softmax=False):
+				qlearning_agent.__init__(self, epsilon, alpha, gamma, lmbda, params=params, softmax=softmax)
+		AgentLoader.loadAgent(ABQ(epsilon, alpha, args.gamma, args.lmbda, params=params, softmax=softmax))
+	else:
+		AgentLoader.loadAgent(qlearning_agent(epsilon, alpha, args.gamma, args.lmbda, params=params, softmax=softmax))
