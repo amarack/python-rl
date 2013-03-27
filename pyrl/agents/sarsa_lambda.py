@@ -50,6 +50,13 @@ class sarsa_lambda(Agent):
 			self.numActions=TaskSpec.getIntActions()[0][1]+1;
 
 			fa_name = self.params.setdefault('name', 'trivial')
+			if self.numStates == 0:
+				# Only discrete states
+				self.numStates = 1
+				if fa_name != "trivial":
+					print "Error:", fa_name, " basis requires at least one continuous feature. Forcing trivial basis."
+					fa_name = "trivial"
+
 			# Set up the function approximation
 			if fa_name == 'fourier':
 				# number of dimensions, order, and then the dimension ranges
