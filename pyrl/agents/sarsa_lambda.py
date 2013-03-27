@@ -220,7 +220,7 @@ def addLinearTDArgs(parser):
 	parser.add_argument("--epsilon", type=float, default=0.1, help="Probability of exploration with epsilon-greedy.")
 	parser.add_argument("--softmax", type=float, help="Use softmax policies with the argument giving tau, the divisor which scales values used when computing soft-max policies.")
 	parser.add_argument("--stepsize", "--alpha", type=float, default=0.01, help="The step-size parameter which affects how far in the direction of the gradient parameters are updated.")
-	parser.add_argument("--adaptive_stepsize", choices=["ass", "autostep"], help="Use an adaptive step-size algorithm.")
+	parser.add_argument("--adaptive_stepsize", choices=["ass", "autostep", "test"], help="Use an adaptive step-size algorithm.")
 	parser.add_argument("--gamma", type=float, default=1.0, help="Discount factor")
 	parser.add_argument("--lambda", type=float, default=0.7, help="The eligibility traces decay rate. Set to 0 to disable eligibility traces.", dest='lmbda')
 	parser.add_argument("--basis", choices=["trivial", "fourier", "tile", "rbf"], default="trivial", help="Set the basis to use for linear function approximation.")

@@ -13,6 +13,82 @@
 
 import numpy
 
+
+class GHS(object):
+    """Generalized Harmonic Stepsize algorithm for scalar step-sizes.
+
+    Follows the equation: a_t = a_0 * (a / a + t - 1), 
+    for parameters a_0 and a
+    """
+    
+    def init_stepsize(self, weights_shape, params):
+        self.step_sizes = numpy.ones(weights_shape) * self.alpha
+        self.last_update = numpy.zeros(weights_shape)
+        self.ghs_param = params.setdefault('ghs_a', 10.0)
+        self.ghs_counter = 1
+
+    def compute_stepsize(self, phi_t, phi_tp, delta, reward):
+        self.step_sizes.fill(self.alpha * self.ghs_param/(self.ghs_param + self.ghs_counter - 1))
+        self.ghs_counter += 1
+
+class McClains(object):
+    """McClain's formula for scalar step-size
+
+    Follows the equation: a_t = a_{t-1} / (1 + a_{t-1} - a)
+    unless t = 0, then use a_0, for parameters a_0 and a
+    """
+    
+    def init_stepsize(self, weights_shape, params):
+        self.step_sizes = numpy.ones(weights_shape) * self.alpha
+        self.mcclain_param = params.setdefault('mcclain_a', 0.01)
+
+    def compute_stepsize(self, phi_t, phi_tp, delta, reward):
+        self.step_sizes.fill(self.alpha)
+        self.alpha /= (1 + self.alpha - self.mcclain_param)
+
+class STC(object):
+    """Search-Then-Converge formula for scalar step-size
+
+    Follows the equation: a_t = a_{t-1} * (1 + (c/a_0) * (t/N)) / (1 + (c/a_0) * (t/N) + N * (t^2/N^2))
+    for parameters a_0 the initial stepsize, c the target stepsize, N the pivot point.
+    N (the pivot point) is simply approximately how many steps at which the formula begins to 
+    converge more rather than search more.
+    """
+    
+    def init_stepsize(self, weights_shape, params):
+        self.step_sizes = numpy.ones(weights_shape) * self.alpha
+        self.stc_a0 = self.alpha
+        self.stc_c = params.setdefault('stc_c', 1000000.0)
+        self.stc_N = params.setdefault('stc_N', 500000.0)
+        self.stc_counter = 0
+
+    def compute_stepsize(self, phi_t, phi_tp, delta, reward):
+        self.alpha *= (1 + (self.stc_c * self.stc_counter)/(self.stc_a0 * self.stc_N)) 
+        self.alpha /= (1 + (self.stc_c * self.stc_counter)/(self.stc_a0 * self.stc_N) + self.stc_N*(self.stc_counter**2)/self.stc_N**2)
+        self.step_sizes.fill(self.alpha)
+        self.stc_counter += 1
+        print self.alpha
+
+class RProp(object):
+    """RProp algorithm for vector step-sizes.
+
+    From the paper:
+    Riedmiller, M. and Braun, H. (1993). 
+    A direct adaptive method for faster backpropagation learning: The RPROP algorithm.
+    """
+    
+    def init_stepsize(self, weights_shape, params):
+        self.step_sizes = numpy.ones(weights_shape) * self.alpha
+        self.last_update = numpy.zeros(weights_shape)
+        self.eta_low = params.setdefault('rprop_eta_low', 0.01)
+        self.eta_high = params.setdefault('rprop_eta_high', 1.2)
+
+    def compute_stepsize(self, phi_t, phi_tp, delta, reward):
+        sign_changes = numpy.where(self.last_update * delta * self.traces <= 0)
+        self.step_sizes.fill(self.eta_high)
+        self.step_sizes[sign_changes] = self.eta_low
+
+
 class Autostep(object):
     """Autostep algorithm for vector step-sizes.
 
@@ -61,4 +137,5 @@ class AlphaBounds(object):
         self.alpha = numpy.min([self.alpha, 1.0/numpy.abs(denomTerm)])
         self.step_sizes.fill(self.alpha)
 	
+
 
