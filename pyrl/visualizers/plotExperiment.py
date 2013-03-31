@@ -49,43 +49,43 @@ def processFile(filename, style, windowsize):
     print "Processed", numRuns, "runs from", filename
     return data
 
-styles = {"reward": 3, "steps": 1, "time": 2}
-style_labels = {3:"Reward", 1:"Steps", 2:"Time (Seconds)"}
+if __name__=="__main__":
+    styles = {"reward": 3, "steps": 1, "time": 2}
+    style_labels = {3:"Reward", 1:"Steps", 2:"Time (Seconds)"}
 
-# Read filename for experiment dump file from arguments
-if len(sys.argv) < 6:
-    printUsage()
+    # Read filename for experiment dump file from arguments
+    if len(sys.argv) < 6:
+        printUsage()
 
-mainTitle = sys.argv[1]
-style_str = sys.argv[2].lower()
-style = None
-try:
-    style = styles[style_str]
-    style_str = style_labels[style]
-    
-except:
-    printUsage()
+    mainTitle = sys.argv[1]
+    style_str = sys.argv[2].lower()
+    style = None
+    try:
+        style = styles[style_str]
+        style_str = style_labels[style]
+    except:
+        printUsage()
 
-windowsize = int(sys.argv[3])
-filenames = [sys.argv[i] for i in range(4, len(sys.argv), 2)]
-labels = [sys.argv[i] for i in range(5, len(sys.argv), 2)]
-colors = ['r', 'b', 'g', 'm']
-linestyles = ['-', '--', '-.']
-markers = ["*", ".", "o", ">", 'x', '^', 'H', 'd']
-indx = 0
-for filename in filenames:
-    data = processFile(filename, style, windowsize)
-    #plt.errorbar(range(data.shape[0]), data[:,0], yerr=data[:,1])
-    plt.fill_between(range(data.shape[0]), data[:,0]-data[:,1], data[:,0]+data[:,1], alpha=0.4, color=colors[indx%len(colors)])
-    plt.plot(data[:,0], linewidth=2, color=colors[indx%len(colors)], linestyle=linestyles[indx%len(linestyles)], marker=markers[indx%len(markers)], markersize=10)
-    indx+=1
+    windowsize = int(sys.argv[3])
+    filenames = [sys.argv[i] for i in range(4, len(sys.argv), 2)]
+    labels = [sys.argv[i] for i in range(5, len(sys.argv), 2)]
+    colors = ['r', 'b', 'g', 'm']
+    linestyles = ['-', '--', '-.']
+    markers = ["*", ".", "o", ">", 'x', '^', 'H', 'd']
+    indx = 0
+    for filename in filenames:
+        data = processFile(filename, style, windowsize)
+        #plt.errorbar(range(data.shape[0]), data[:,0], yerr=data[:,1])
+        plt.fill_between(range(data.shape[0]), data[:,0]-data[:,1], data[:,0]+data[:,1], alpha=0.4, color=colors[indx%len(colors)])
+        plt.plot(data[:,0], linewidth=2, color=colors[indx%len(colors)], linestyle=linestyles[indx%len(linestyles)], marker=markers[indx%len(markers)], markersize=10)
+        indx+=1
 
-plt.xlabel("Episodes")
-plt.ylabel(style_str)
-plt.title(mainTitle)
-plt.legend(labels,loc='best')
-plt.savefig(mainTitle + ".pdf")
-#plt.show()
+    plt.xlabel("Episodes")
+    plt.ylabel(style_str)
+    plt.title(mainTitle)
+    plt.legend(labels,loc='best')
+    plt.savefig(mainTitle + ".pdf")
+    #plt.show()
         
 
 

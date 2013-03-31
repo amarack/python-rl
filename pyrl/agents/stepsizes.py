@@ -67,7 +67,6 @@ class STC(object):
         self.alpha /= (1 + (self.stc_c * self.stc_counter)/(self.stc_a0 * self.stc_N) + self.stc_N*(self.stc_counter**2)/self.stc_N**2)
         self.step_sizes.fill(self.alpha)
         self.stc_counter += 1
-        print self.alpha
 
 class RProp(object):
     """RProp algorithm for vector step-sizes.
@@ -101,7 +100,7 @@ class Autostep(object):
         self.step_sizes = numpy.ones(weights_shape) * self.alpha
         self.h = numpy.zeros((numpy.prod(weights_shape),))
         self.v = numpy.zeros((numpy.prod(weights_shape),))
-        self.lmbda = 0.0 # Autostep cannot be used with eligibility traces (in current form)
+        #self.lmbda = 0.0 # Autostep cannot be used with eligibility traces (in current form)
         self.mu = params.setdefault('autostep_mu', 1.0e-2)
         self.tau = params.setdefault('autostep_tau', 1.0e4)
 
