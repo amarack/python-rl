@@ -57,13 +57,13 @@ def plotTwoParams(data, title, filename=None, labels=["X", "Y"]):
         (labels=[X,Y]): List of labels for the two axes. 
     """
 
+    stride = 2
     x = numpy.linspace(data[:,1].min(), data[:,1].max())
     y = numpy.linspace(data[:,2].min(), data[:,2].max())
     X,Y = numpy.meshgrid(x, y)
-    Z = griddata((data[:,1], data[:,2]), data[:,0], (X, Y),method='nearest')
+    Z = griddata((data[:,1], data[:,2]), data[:,0], (X, Y),method='linear')
     fig = plt.figure()
     ax = fig.gca()
-
     ax.set_xlabel(labels[0])
     ax.set_ylabel(labels[1])
 
