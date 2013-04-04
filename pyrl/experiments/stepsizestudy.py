@@ -13,7 +13,7 @@
 # Example: python -m pyrl.experiments.stepsizestudy --domain mountaincar --algorithm fixed
 ################################################################################
 
-from pyrl.environments import gridworld,mountaincar,acrobot
+from pyrl.environments import gridworld,mountaincar,acrobot,cartpole
 from pyrl.agents import sarsa_lambda,stepsizes
 import pyrl.experiments.episodic as episodic
 import pyrl.visualizers.plotExperiment as plotExperiment
@@ -65,6 +65,8 @@ def getDomain(domain):
         return mountaincar.MountainCar()
     elif domain == "acrobot":
         return acrobot.Acrobot()
+    elif domain == "cartpole":
+        return cartpole.CartPole()
     else:
         return gridworld.Gridworld(10,10,10,10)
 
@@ -187,7 +189,7 @@ def runExperiment(args):
 
 if __name__=="__main__":
     import argparse
-    domains = ["mountaincar", "acrobot", "gridworld"]
+    domains = ["mountaincar", "acrobot", "cartpole", "gridworld"]
     algorithms = ["fixed", "autostep", "rprop", "alphabound", "stc"]
 
     parser = argparse.ArgumentParser(description='Run a step-size algorithm experiment.')
