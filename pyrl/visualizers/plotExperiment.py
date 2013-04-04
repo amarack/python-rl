@@ -15,7 +15,6 @@
 ################################################################################
 
 import numpy
-import matplotlib.pyplot as plt
 import csv, sys
 
 def printUsage():
@@ -50,6 +49,7 @@ def processFile(filename, style, windowsize):
     return data
 
 if __name__=="__main__":
+    import matplotlib.pyplot as plt
     styles = {"reward": 3, "steps": 1, "time": 2}
     style_labels = {3:"Reward", 1:"Steps", 2:"Time (Seconds)"}
 
