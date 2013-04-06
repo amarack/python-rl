@@ -19,7 +19,6 @@ Implement Agents (in Python) or Convert C/C++ into Module:
 
 Implement "save_trajectory filename numsteps" message support into base class of existing agents
 
-LSPI/LSTD/RLS-TD
 Delayed Q-Learning
 NAC
 TDC
