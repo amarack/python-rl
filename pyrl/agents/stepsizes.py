@@ -39,6 +39,11 @@ class McClains(object):
     """
     
     def init_stepsize(self, weights_shape, params):
+        if self.alpha < params.setdefault('mcclain_a', 0.01):
+            a = self.alpha
+            self.alpha = params.setdefault('mcclain_a', 0.01)
+            params['mcclain_a'] = a
+
         self.step_sizes = numpy.ones(weights_shape) * self.alpha
         self.mcclain_param = params.setdefault('mcclain_a', 0.01)
 

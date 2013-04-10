@@ -134,6 +134,27 @@ def getStepSize(stepsize, seed=None, justParams=False):
             sarsa_params['stc_c'] = p[-2]
             sarsa_params['stc_N'] = p[-1]
             return stepsizes.STC, p[:-2], sarsa_params
+    elif stepsize == "mcclains":
+        # McClain's algorithm, takes two parameters, but one is just initial stepsize
+        sarsa_ranges += [[0., 1.]] # a, target stepsize
+        sarsa_spreads += [1]
+        p = obtainParameters(numpy.array(sarsa_ranges), spread=numpy.array(sarsa_spreads), seed=seed)
+        if justParams:
+            return p
+        else:
+            sarsa_params['mcclain_a'] = p[-1]
+            return stepsizes.McClains, p[:-1], sarsa_params
+    elif stepsize == "ghs":
+        # Generalized Harmonic Stepsize, takes two parameters, but one is just initial stepsize
+        sarsa_ranges += [[1., 1.e3]] # a, ghs parameter
+        sarsa_spreads += [0]
+        p = obtainParameters(numpy.array(sarsa_ranges), spread=numpy.array(sarsa_spreads), seed=seed)
+        if justParams:
+            return p
+        else:
+            sarsa_params['ghs_a'] = p[-1]
+            return stepsizes.GHS, p[:-1], sarsa_params
+
     else: 
         # Fixed step-size, requires initial step-size for the constant value
         p = obtainParameters(numpy.array(sarsa_ranges), spread=numpy.array(sarsa_spreads), seed=seed)
@@ -190,7 +211,7 @@ def runExperiment(args):
 if __name__=="__main__":
     import argparse
     domains = ["mountaincar", "acrobot", "cartpole", "gridworld"]
-    algorithms = ["fixed", "autostep", "rprop", "alphabound", "stc"]
+    algorithms = ["fixed", "autostep", "rprop", "alphabound", "stc", "mcclains", "ghs"]
 
     parser = argparse.ArgumentParser(description='Run a step-size algorithm experiment.')
     parser.add_argument("--domain", choices=domains,
