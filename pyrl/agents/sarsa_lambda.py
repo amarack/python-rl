@@ -89,6 +89,16 @@ class sarsa_lambda(Agent):
 
 
 	def getAction(self, state, discState):
+		"""Get the action under the current policy for the given state.
+		
+		Args:
+			state: The array of continuous state features
+			discState: The integer representing the current discrete state value
+
+		Returns:
+			The current policy action, or a random action with some probability.
+		"""
+
 		if self.softmax:
 			return self.sample_softmax(state, discState)
 		else:
@@ -118,6 +128,15 @@ class sarsa_lambda(Agent):
 			return numpy.dot(self.weights[discState,:,:].T, self.basis.computeFeatures(state)).argmax()
 		
 	def getDiscState(self, state):
+		"""Return the integer value representing the current discrete state.
+		
+		Args:
+			state: The array of integer state features
+
+		Returns:
+			The integer value representing the current discrete state
+		"""
+
 		if self.numDiscStates > 1:
 			x = numpy.zeros((self.numDiscStates,))
 			mxs = self.discStates[:,1] - self.discStates[:,0] + 1
@@ -128,6 +147,15 @@ class sarsa_lambda(Agent):
 			return 0
 
 	def agent_start(self,observation):
+		"""Start an episode for the RL agent.
+
+		Args:
+			observation: The first observation of the episode. Should be an RLGlue Observation object.
+
+		Returns:
+			The first action the RL agent chooses to take, represented as an RLGlue Action object.
+		"""
+
 		theState = numpy.array(list(observation.doubleArray))
 		thisIntAction=self.getAction(theState, self.getDiscState(observation.intArray))
 		returnAction=Action()
@@ -142,6 +170,16 @@ class sarsa_lambda(Agent):
 		return returnAction
 	
 	def agent_step(self,reward, observation):
+		"""Take one step in an episode for the agent, as the result of taking the last action.
+		
+		Args:
+			reward: The reward received for taking the last action from the previous state.
+			observation: The next observation of the episode, which is the consequence of taking the previous action.
+
+		Returns:
+			The next action the RL agent chooses to take, represented as an RLGlue Action object.
+		"""
+
 		newState = numpy.array(list(observation.doubleArray))
 		lastState = numpy.array(list(self.lastObservation.doubleArray))
 		lastAction = self.lastAction.intArray[0]
@@ -191,6 +229,11 @@ class sarsa_lambda(Agent):
 		self.weights += self.step_sizes * delta * self.traces
 
 	def agent_end(self,reward):
+		"""Receive the final reward in an episode, also signaling the end of the episode.
+		
+		Args:
+			reward: The reward received for taking the last action from the previous state.
+		"""
 		lastState = numpy.array(list(self.lastObservation.doubleArray))
 		lastAction = self.lastAction.intArray[0]
 
@@ -210,9 +253,18 @@ class sarsa_lambda(Agent):
 		self.update(phi_t, phi_tp, reward)
 
 	def agent_cleanup(self):
+		"""Perform any clean up operations before the end of an experiment."""
 		pass
 	
 	def agent_message(self,inMessage):
+		"""Receive a message from the environment or experiment and respond.
+		
+		Args:
+			inMessage: A string message sent by either the environment or experiment to the agent.
+
+		Returns:
+			A string response message.
+		"""
 		return "SarsaLambda(Python) does not understand your message."
 
 
