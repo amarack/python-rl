@@ -39,6 +39,7 @@ def plotOneParam(data, title, label, filename=None):
     """
 
     data = data[numpy.lexsort((data[:,0],data[:,1]))]
+
     plt.plot(data[:,1], data[:,0], linewidth=2)
     plt.xlabel(label)
     plt.title(title)
@@ -113,7 +114,7 @@ if __name__=="__main__":
     parser.add_argument("--parameter", type=str, action='append', nargs=2, 
                         help="Name of parameters to plot. If greater than two, names are not " + \
                             "used and instead the first two principal components are used. " + \
-                            "Give first the label of the parameter followed by its index. " + \
+                            "Give first the index followed by the label of the parameter. " + \
                             "Can be used at most twice.")
     parser.add_argument("--output", type=str, help="Filename to save the resulting figure.")
     parser.add_argument("--method", type=str, default='pca', choices=['pca', 'isomap', 'lle', 'mds'],
