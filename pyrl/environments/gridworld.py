@@ -47,6 +47,9 @@ class Gridworld(Environment):
 		ts.setExtra(self.domain_name)
 		return ts.toTaskSpec()
 
+	def getState(self):
+		return self.pos.tolist()
+
 	def reset(self):
 		if self.random_start:
 			self.pos = numpy.random.random((2,)) * self.size
@@ -77,22 +80,20 @@ class Gridworld(Environment):
 		
 		if self.noise > 0:
 			self.pos += numpy.random.normal(scale=self.noise, size=(2,))
-
 		self.pos = self.pos.clip([0, 0], self.size)
+		return 0.0 if self.isAtGoal() else -1.0
 
 	def env_step(self,thisAction):
 		episodeOver = 0
-		theReward = -1.0
 		intAction = thisAction.intArray[0]
 		
-		self.takeAction(intAction)
+		theReward = self.takeAction(intAction)
 
 		if self.isAtGoal():
-			theReward = 0.0
 			episodeOver = 1
 
 		theObs = Observation()
-		theObs.doubleArray = self.pos.tolist()
+		theObs.doubleArray = self.getState()
 		
 		returnRO = Reward_observation_terminal()
 		returnRO.r = theReward

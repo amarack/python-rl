@@ -47,7 +47,7 @@ class WindyGridworld(gridworld.Gridworld):
 	
 	def takeAction(self, action):
 		self.pos[1] += norm.pdf(self.pos[0], self.wind_center, self.wind_stdev) * self.wind_power
-		gridworld.Gridworld.takeAction(self, action)
+		return gridworld.Gridworld.takeAction(self, action)
 
 
 if __name__=="__main__":

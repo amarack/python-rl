@@ -69,8 +69,13 @@ class FuelWorld(gridworld.Gridworld):
 	def inFuelCell(self, position):
 		return self.pos[1] <= 1.0 or self.pos[1] >= self.size[1]-1.0
 
-	def takeAction(self, intAction):
+	def isAtGoal(self):
+		return gridworld.Gridworld.isAtGoal(self) or self.fuel < 0
 
+	def getState(self):
+		return gridworld.Gridworld.getState(self) + [self.fuel]
+
+	def takeAction(self, intAction):
 		if intAction == 0:
 			self.pos[0] += 1.0
 		elif intAction == 1:
@@ -102,41 +107,20 @@ class FuelWorld(gridworld.Gridworld):
 		if self.fuel > 60.0:
 			self.fuel = 60.0
 
-
-
-	def env_step(self,thisAction):
-		episodeOver = 0
-		theReward = -1.0
-		intAction = thisAction.intArray[0]
-		
-		self.takeAction(intAction)
-
-		if self.isAtGoal():
-			theReward = 0.0
-			episodeOver = 1
+		if gridworld.Gridworld.isAtGoal(self):
+			return 0.0
 		elif self.fuel < 0:
-			theReward = -400.0
-			episodeOver = 1
+			return -400.0
 		elif self.inFuelCell(self.pos): # Fuel costs
 			base = self.var[0] if self.pos[1] <= 1.0 else self.var[1]
 			a = self.var[2]
-			theReward = base - (int(self.pos[0]) % 5)*a
+			return base - (int(self.pos[0]) % 5)*a
 		elif intAction < 4:
-			theReward = -1.0
+			return -1.0
 		elif intAction >= 4:
-			theReward = -1.4
+			return -1.4
 		else:
-			print "ERROR in env_step"
-			
-		theObs = Observation()
-		theObs.doubleArray = self.pos.tolist() + [self.fuel]
-		
-		returnRO = Reward_observation_terminal()
-		returnRO.r = theReward
-		returnRO.o = theObs
-		returnRO.terminal = episodeOver
-
-		return returnRO
+			print "ERROR in FuelWorld.takeAction"
 
 
 if __name__=="__main__":

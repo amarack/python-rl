@@ -73,8 +73,9 @@ class MultiRoomGridworld(gridworld.Gridworld):
 			self.pos[:] = 0.0
 	
 	def takeAction(self, action):
-		gridworld.Gridworld.takeAction(self, action)
+		reward = gridworld.Gridworld.takeAction(self, action)
 		self.pos = self.fixPoint(self.pos)
+		return reward
 
 
 if __name__=="__main__":
