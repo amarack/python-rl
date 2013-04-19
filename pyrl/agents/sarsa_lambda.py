@@ -49,7 +49,7 @@ class sarsa_lambda(Agent):
 			assert not TaskSpec.isSpecial(TaskSpec.getIntActions()[0][1]), " expecting max action to be a number not a special value"
 			self.numActions=TaskSpec.getIntActions()[0][1]+1;
 
-			fa_name = self.params.setdefault('name', 'trivial')
+			fa_name = self.params.setdefault('basis', 'trivial')
 			if self.numStates == 0:
 				# Only discrete states
 				self.numStates = 1
@@ -290,7 +290,7 @@ if __name__=="__main__":
 	addLinearTDArgs(parser)
 	args = parser.parse_args()
 	params = {}
-	params['name'] = args.basis
+	params['basis'] = args.basis
 	params['order'] = args.fourier_order
 	params['num_functions'] = args.rbf_num
 	params['beta'] = args.rbf_beta
