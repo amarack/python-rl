@@ -1,7 +1,11 @@
 
 #include "Python.h" 
-#include "arrayobject.h" 
+#include "arrayobject.h"
 #include "noprefix.h"
+
+//#include "numpy/arrayobject.h"
+//#include "numpy/noprefix.h"
+
 #include "libpomdp.h"
 
 
@@ -128,7 +132,7 @@ static PyObject *C_transformBelief(PyObject *self, PyObject *args) {
   npy_intp dims[1];
   int i;
 
-  if (P == NULL || !PyArg_ParseTuple(args, "O!ii", &vin, &a, &obs))  return NULL;
+  if (P == NULL || !PyArg_ParseTuple(args, "Oii", &vin, &a, &obs))  return NULL;
 
   dims[0] = gNumStates;
   pi = (double*)malloc(gNumStates*sizeof(double));
@@ -211,7 +215,7 @@ static PyObject *loadFile(PyObject *self, PyObject *args) {
 
   Pobj = fillPyMatrix(P);
   Robj = fillPyMatrix(R);
-
+  
   return Py_BuildValue("diOO", gDiscount, isReward, Pobj, Robj);
 }
 

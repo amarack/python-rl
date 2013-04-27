@@ -6,8 +6,8 @@ __all__ = ["fuelworld", "gridworld", "mountaincar", "acrobot", "cartpole",
            "batch_replenish"]
 
 try:
-    import pyrl.environments.generic_pomdp
-    __all__.append("generic_pomdp")
+    from libPOMDP import libpomdp
+    __all__.append("pomdp")
 except:
     pass
 

@@ -1,7 +1,8 @@
 
 
 #include "Python.h" // Must be the first header?
-#include "arrayobject.h" // for numpy arrays
+#include "arrayobject.h"
+//#include "numpy/arrayobject.h"
 
 #include <stdlib.h>
 #include "mdp.h"

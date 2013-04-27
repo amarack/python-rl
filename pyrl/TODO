@@ -4,8 +4,7 @@ TODO for pyRL project
 
 Implement Environments (in Python) or Convert C/C++ into Module:
 ------------------------------
-
-Cart Pole with different styles: RLGlue (easier), Realistic (much harder), swingup vs balance
+PuddleWorld
 Tetris
 Dart Throwing (from Bruno Castro da Silva's paper on parameterized skills)
 Partially Observable Taxi
@@ -20,16 +19,17 @@ Implement Agents (in Python) or Convert C/C++ into Module:
 Implement "save_trajectory filename numsteps" message support into base class of existing agents
 
 Delayed Q-Learning
-NAC
-TDC
-GTD
+TD-delta Pi
+Mirror Descent for RL
+NAC / AC / Policy Gradient
+TDC / GTD
 Skill Chaining
 PoWER
 PI^2
-TD-delta Pi
+
 
 Extensions to Existing Implementations:
 ------------------------------
 
 Add other exploration bonus methods to the modelbased agents
-Beginning a new study on adaptive step-sizes
+
