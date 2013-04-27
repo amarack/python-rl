@@ -21,10 +21,12 @@ from rlglue.environment import EnvironmentLoader as EnvironmentLoader
 from rlglue.types import Observation
 from rlglue.types import Action
 from rlglue.types import Reward_observation_terminal
-
 from pyrl.rlglue import TaskSpecRLGlue
+from pyrl.rlglue.registry import register_environment
 
+@register_environment
 class Acrobot(Environment):
+	name = "Acrobot"
 
 	def __init__(self, noise=0.0, random_start=False):
             self.noise = noise

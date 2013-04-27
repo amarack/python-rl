@@ -22,19 +22,24 @@ from rlglue.environment import EnvironmentLoader as EnvironmentLoader
 from rlglue.types import Observation
 from rlglue.types import Action
 from rlglue.types import Reward_observation_terminal
-#from rlglue.utils import TaskSpecVRLGLUE3
-from pyrl.rlglue import TaskSpecRLGlue
 
-import gridworld
+from pyrl.rlglue import TaskSpecRLGlue
+from pyrl.rlglue.registry import register_environment
+
+from . import gridworld
 from scipy.stats import norm
 
+@register_environment
 class FuelWorld(gridworld.Gridworld):
+	name = "Fuel World"
+
 	# This is a continuous version of Todd Hester's Fuel World domain. 
 	# As such, we will make the size, starting locations, and goal fixed to 
 	# match the original's specifications. We will keep the additive gaussian noise, 
 	# and as mentioned this will be continuous instead of discrete state spaces.
 	def __init__(self, noise=0.0, fudge=1.4143, variation=(-10.0, -13.0, 5.0), fuel_noise=0.0):
-		gridworld.Gridworld.__init__(self, 31.0, 21.0, 24.0, 11.0, noise, True, fudge)
+		gridworld.Gridworld.__init__(self, size_x=31.0, size_y=21.0, goal_x=24.0, goal_y=11.0, 
+					     noise=noise, random_start=True, fudge=fudge)
 		self.fuel = 0.0
 		self.fuel_noise = fuel_noise
 		self.var = variation

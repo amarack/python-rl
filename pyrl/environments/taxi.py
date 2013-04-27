@@ -23,14 +23,16 @@ from rlglue.environment import EnvironmentLoader as EnvironmentLoader
 from rlglue.types import Observation
 from rlglue.types import Action
 from rlglue.types import Reward_observation_terminal
-#from rlglue.utils import TaskSpecVRLGLUE3
 from pyrl.rlglue import TaskSpecRLGlue
+from pyrl.rlglue.registry import register_environment
 
+@register_environment
 class Taxi(Environment):
+	name = "Taxi"
 
 	# All parameters are in units of 1, where 1 is how far on average
 	# the agent can move with a single action.
-	def __init__(self, size_x, size_y, walls=None, landmarks=None, fuel_loc=numpy.array([2.0, 1.0]), fickleness=0.0, noise=0.0, fudge=1.4143):
+	def __init__(self, size_x=5, size_y=5, walls=None, landmarks=None, fuel_loc=numpy.array([2.0, 1.0]), fickleness=0.0, noise=0.0, fudge=1.4143):
 		self.size = numpy.array([size_x, size_y])
 		if landmarks is None: # Use original Taxi landmarks
 			self.landmarks = numpy.array([[0.0, 0.0], [0.0, 4.0], [3.0, 0.0], [4.0, 4.0]])

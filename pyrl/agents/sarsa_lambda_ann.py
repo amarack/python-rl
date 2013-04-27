@@ -4,15 +4,11 @@ from rlglue.agent import AgentLoader as AgentLoader
 from rlglue.types import Action
 from rlglue.types import Observation
 from rlglue.utils import TaskSpecVRLGLUE3
+from pyrl.rlglue.registry import register_agent
 
 from random import Random
 import numpy
-import sys
 import copy
-
-import pyrl.basis.fourier as fourier
-import pyrl.basis.rbf as rbf
-import pyrl.basis.tilecode as tilecode
 
 import neurolab as nl
 
@@ -24,9 +20,11 @@ import neurolab as nl
 # as easy to implement myself, but in the event that we want to try out 
 # variations on the NN theme, neurolab has them implemented, tested and 
 # working. 
+@register_agent
 class sarsa_lambda_ann(Agent):
+	name = "Sarsa ANN"
 
-	def __init__(self, epsilon, alpha, gamma, lmbda, params={}, softmax=False):
+	def __init__(self, epsilon=0.1, alpha=0.01, gamma=1.0, lmbda=0.7, softmax=False, num_hidden=10, params={}):
 		self.randGenerator = Random()	
 		self.lastAction=Action()
 		self.lastObservation=Observation()
@@ -38,6 +36,7 @@ class sarsa_lambda_ann(Agent):
 		self.params = params
 		self.softmax = softmax
 		self.alpha = float(alpha)
+		self.num_hidden = num_hidden
 
 	def agent_init(self,taskSpec):
 		# Parse the task specification and set up the weights and such
@@ -55,7 +54,7 @@ class sarsa_lambda_ann(Agent):
 			self.numActions=TaskSpec.getIntActions()[0][1]+1;
 
 			# Set up the function approximation
-			self.net = nl.net.newff(TaskSpec.getDoubleObservations(), [self.params.setdefault('num_hidden', 10), self.numActions],[nl.net.trans.TanSig(), nl.net.trans.PureLin()])
+			self.net = nl.net.newff(TaskSpec.getDoubleObservations(), [self.num_hidden, self.numActions],[nl.net.trans.TanSig(), nl.net.trans.PureLin()])
 			self.traces = copy.deepcopy(map(lambda x: x.np, self.net.layers))
 			self.clearTraces()
 		else:
@@ -165,7 +164,7 @@ class sarsa_lambda_ann(Agent):
 		pass
 	
 	def agent_message(self,inMessage):
-		return "SarsaLambda(Python) does not understand your message."
+		return name + " does not understand your message."
 
 if __name__=="__main__":
 	import argparse
@@ -178,7 +177,6 @@ if __name__=="__main__":
 	parser.add_argument("--num_hidden", type=int, default=10, help="Number of hidden nodes to use in the Neural Network.")
 	args = parser.parse_args()
 	params = {}
-	params['num_hidden'] = args.num_hidden
 	alpha = args.stepsize
 	epsilon = args.epsilon
 	softmax = False
@@ -186,4 +184,4 @@ if __name__=="__main__":
 		softmax = True
 		epsilon = args.softmax
 
-	AgentLoader.loadAgent(sarsa_lambda_ann(epsilon, alpha, args.gamma, args.lmbda, params=params, softmax=softmax))
+	AgentLoader.loadAgent(sarsa_lambda_ann(epsilon=epsilon, alpha=alpha, gamma=args.gamma, lmbda=args.lmbda, num_hidden=args.num_hidden, params=params, softmax=softmax))

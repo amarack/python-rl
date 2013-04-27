@@ -21,8 +21,19 @@ from rlglue.types import Observation
 from rlglue.types import Action
 from rlglue.types import Reward_observation_terminal
 from pyrl.rlglue import TaskSpecRLGlue
+from pyrl.rlglue.registry import register_environment
 
+@register_environment
 class BatchReplenishment(Environment):
+	"""Batch replenishment inventory control task.
+
+	The domain was given by George and Powell 2006. It is an example of a simple 
+	domain in which no fixed step-size performs well, but adaptive step-sizes 
+	do well.
+	"""
+
+	name = "Batch Replenishment"
+
 	def __init__(self, demand_mean = 10.0, demand_std = 1.0, payoff = 5., 
 		     cost = 2., gamma = 0.99, time_period = 20, noise=0.0):
 

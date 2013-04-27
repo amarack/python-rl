@@ -1,4 +1,5 @@
 
+import numpy
 from CTiles import tiles
 
 class TileCodingBasis:

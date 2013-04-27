@@ -8,10 +8,8 @@
 
 """
 
-import sys
-import pygame
 import random
-import argparse
+import argparse, os
 import numpy as np
 from itertools import *
 
@@ -21,6 +19,12 @@ from pyrl.rlglue import TaskSpecRLGlue
 from rlglue.types import Reward_observation_terminal
 from rlglue.environment.Environment import Environment
 from rlglue.environment import EnvironmentLoader as EnvironmentLoader
+from pyrl.rlglue.registry import register_environment
+
+try:
+    import pygame
+except ImportError, e:
+    print 'Pygame not available ', e
 
 class BallModel:
     """ This class maintains the state of the ball
@@ -369,12 +373,13 @@ class PinballModel:
         if self.ball.position[1] < 0.0:
             self.ball.position[1] = 0.05
 
+@register_environment
 class PinballRLGlue(Environment):
     """This class is an RL-Glue adapter for :class:`pinball.PinballModel` """
 
-    domain_name = 'pinball for reinforcement learning'
+    name = "Pinball"
 
-    def __init__(self, configuration):
+    def __init__(self, configuration=os.path.join(os.path.dirname(__file__), 'configs', 'pinball_simple_single.cfg')):
         """ This class exposes a Pinball environment over RL-Glue
 
 	:param configuration: a configuration file for this environment
@@ -401,7 +406,7 @@ class PinballRLGlue(Environment):
         ts.addContinuousObservation((0.0, 1))
 
         ts.setEpisodic()
-        ts.setExtra(self.domain_name)
+        ts.setExtra(self.name)
 
         return ts.toTaskSpec()
 

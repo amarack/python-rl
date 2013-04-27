@@ -6,15 +6,16 @@ from rlglue.agent import AgentLoader as AgentLoader
 from rlglue.types import Action
 from rlglue.types import Observation
 from rlglue.utils import TaskSpecVRLGLUE3
+from pyrl.rlglue.registry import register_agent
 
 from random import Random
 import numpy
-import sys
 import copy
 
 from pyrl.agents.models import batch_model
 from pyrl.agents.planners import fitted_qiteration
 
+@register_agent
 class ModelBasedAgent(Agent):
 	"""
 	ModelBasedAgent provides a reinforcement learning agent which plans, using the planner class provided, 
@@ -22,28 +23,36 @@ class ModelBasedAgent(Agent):
 	just a wrapper around the real functionality of the planner and modeling classes.
         """
 
-	def __init__(self, gamma, model, planner, model_params={}, planner_params={}):
+	name = "Model Based Agent"
+
+	def __init__(self, **kwargs):
 		"""Inits ModelBasedAgent with discount factor, model/planner classes, and parameters for these classes.
 		
 		Args:
-			gamma: The discount factor for the domain
-			model: The model learner class
-			planner: The planner class which will interface with the model
-			model_params: Parameters for the model class
-			planner_params: Parameters for the planner class
+			gamma=1.0: The discount factor for the domain
+			model=KNNBatchModel: The model learner class
+			planner=FittedQIteration: The planner class which will interface with the model
+			model_params={}: Parameters for the model class
+			planner_params={}: Parameters for the planner class
 		"""
 		self.randGenerator = Random()	
 		self.lastAction=Action()
 		self.lastObservation=Observation()
 
-		self.gamma = gamma
-		self.model_class = model
-		self.planner_class = planner
-		self.model = None
-		self.planner = None
-		self.model_params = model_params
-		self.planner_params = planner_params
-		self.epsilon = 0.0
+		model_class = kwargs.setdefault('model_class', batch_model.KNNBatchModel)
+		planner_class = kwargs.setdefault('planner_class', fitted_qiteration.FittedQIteration)
+		self.model = model_class(**(kwargs.setdefault('model_params', {})))
+		self.planner = planner_class(self.model, **(kwargs.setdefault('planner_params', {})))
+
+	def randomize_parameters(self, **args):
+		"""Generate parameters randomly, constrained by given named parameters.
+		
+		The only parameters are those for the model and planner, so this returns their 
+		randomized parameters concatenated.
+
+		"""
+		return self.model.randomize_parameters(**args) + self.planner.randomize_parameters(**args)
+
 
 	def agent_init(self,taskSpec):
 		"""Initialize the RL agent.
@@ -68,9 +77,10 @@ class ModelBasedAgent(Agent):
 			assert not TaskSpec.isSpecial(TaskSpec.getIntActions()[0][1]), " expecting max action to be a number not a special value"
 			self.numActions=TaskSpec.getIntActions()[0][1]+1;
 			
-			self.model = self.model_class(self.numDiscStates, TaskSpec.getDoubleObservations(), \
-							      self.numActions, TaskSpec.getRewardRange()[0], **self.model_params)
-			self.planner = self.planner_class(self.gamma, self.model, params=self.planner_params)
+			self.model.model_init(self.numDiscStates, TaskSpec.getDoubleObservations(), \
+						      self.numActions, TaskSpec.getRewardRange()[0])
+			self.planner.planner_init(self.numDiscStates, TaskSpec.getDoubleObservations(), \
+						      self.numActions, TaskSpec.getRewardRange()[0])
 			
 		else:
 			print "Task Spec could not be parsed: "+taskSpecString;
@@ -89,9 +99,6 @@ class ModelBasedAgent(Agent):
 		Returns:
 			The current greedy action under the planned policy for the given state.
 		"""
-		if self.randGenerator.random() < self.epsilon:
-			return self.randGenerator.randint(0,self.numActions-1)
-
 		s = numpy.zeros((len(state) + 1,))
 		s[0] = discState
 		s[1:] = state
@@ -159,7 +166,7 @@ class ModelBasedAgent(Agent):
 		phi_tp[0] = newDiscState
 		phi_tp[1:] = newState
 
-		print ','.join(map(str, lastState))
+		#print ','.join(map(str, lastState))
 
 		self.planner.updateExperience(phi_t, lastAction, phi_tp, reward)
 
@@ -200,7 +207,7 @@ class ModelBasedAgent(Agent):
 		Returns:
 			A string response message.
 		"""
-		return "ModelBasedAgent(Python) does not understand your message."
+		return name + " does not understand your message."
 
 # If executed as a standalone script this will default to RLGlue network mode.
 # Some parameters can be passed at the command line to customize behavior.
@@ -209,7 +216,7 @@ if __name__=="__main__":
 	parser = argparse.ArgumentParser(description='Run ModelBasedAgent in network mode')
 	parser.add_argument("--gamma", type=float, default=0.99, help="Discount factor")
 	parser.add_argument("--model", type=str, default="knn", help="What model class to use", choices=["knn", "randforest", "svm", "gp"])
-	parser.add_argument("--planner", type=str, default="fitqit", help="What planner class to use", choices=["fitqit"])
+	parser.add_argument("--planner", type=str, default="fittedq", help="What planner class to use", choices=["fittedq"])
 	parser.add_argument("--svmde",  action='store_true', help="Use the one class SVM density estimator for known/unknown distinctions.")
 	args = parser.parse_args()
 
@@ -225,7 +232,7 @@ if __name__=="__main__":
 		else:
 			model_class = batch_model.KNNBatchModel
 	elif args.model == "randforest":
-		model_params = {"known_threshold": 0.95, "max_experiences": 800, "importance_weight": True}		
+		model_params = {"known_threshold": 0.95, "max_experiences": 800, "importance_weight": True}
 		if args.svmde:
 			model_class = model_class = batch_model.RandForestSVM
 		else:
@@ -246,6 +253,9 @@ if __name__=="__main__":
 	if args.planner == "fitqit":
 		planner_params = {"basis": "fourier", "regressor": "ridge", "iterations": 1000, "support_size": 50, "resample": 15}
 		planner_class = fitted_qiteration.FittedQIteration
-	
-	AgentLoader.loadAgent(ModelBasedAgent(args.gamma, model_class, planner_class, model_params, planner_params))
+
+	params = {'gamma': args.gamma, 'model_class': model_class, 'model_params': model_params, 
+		  'planner_class': planner_class, 'planner_params': planner_params}
+		  
+	AgentLoader.loadAgent(ModelBasedAgent(params))
 

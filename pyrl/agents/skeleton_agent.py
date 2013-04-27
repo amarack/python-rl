@@ -1,7 +1,9 @@
 # 
 # Copyright (C) 2008, Brian Tanner
 # 
-#http://rl-glue-ext.googlecode.com/
+# http://rl-glue-ext.googlecode.com/
+#
+# Modified by Will Dabney, 2013
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,21 +19,36 @@
 #
 
 import random
-import sys
 import copy
 from rlglue.agent.Agent import Agent
 from rlglue.agent import AgentLoader as AgentLoader
 from rlglue.types import Action
 from rlglue.types import Observation
+from pyrl.rlglue.registry import register_agent
 
 from random import Random
 
-
+@register_agent
 class skeleton_agent(Agent):
+	name = "Skeleton agent"
+	
 	randGenerator=Random()
 	lastAction=Action()
 	lastObservation=Observation()
-	
+
+	def randomize_parameters(self, **args):
+		"""Generate parameters randomly, constrained by given named parameters.
+
+		Args:
+			**args: Named parameters to fix, which will not be randomly generated
+
+		Returns:
+			List of resulting parameters of the class. Will always be in the same order. 
+			Empty list if parameter free.
+
+		"""
+		return []
+
 	def agent_init(self,taskSpec):
 		#See the sample_sarsa_agent in the mines-sarsa-example project for how to parse the task spec
 		self.lastAction=Action()

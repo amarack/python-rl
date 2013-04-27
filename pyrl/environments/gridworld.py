@@ -14,7 +14,6 @@
 # limitations under the License.
 #
 
-import sys
 import numpy
 
 from rlglue.environment.Environment import Environment
@@ -22,14 +21,16 @@ from rlglue.environment import EnvironmentLoader as EnvironmentLoader
 from rlglue.types import Observation
 from rlglue.types import Action
 from rlglue.types import Reward_observation_terminal
-#from rlglue.utils import TaskSpecVRLGLUE3
 from pyrl.rlglue import TaskSpecRLGlue
+from pyrl.rlglue.registry import register_environment
 
+@register_environment
 class Gridworld(Environment):
+	name = "Gridworld"
 
 	# All parameters are in units of 1, where 1 is how far on average
 	# the agent can move with a single action.
-	def __init__(self, size_x, size_y, goal_x, goal_y, noise=0.0, random_start=False, fudge=1.4143):
+	def __init__(self, size_x=10, size_y=10, goal_x=10, goal_y=10, noise=0.0, random_start=False, fudge=1.4143):
 		self.size = numpy.array([size_x, size_y])
 		self.goal = numpy.array([goal_x, goal_y])
 		self.noise = noise
@@ -123,4 +124,4 @@ if __name__=="__main__":
 	parser = argparse.ArgumentParser(description='Run 2D Noisy Continuous Gridworld environment in network mode.')
 	addGridworldArgs(parser)
 	args = parser.parse_args()
-	EnvironmentLoader.loadEnvironment(Gridworld(args.size_x, args.size_y, args.goal_x, args.goal_y, noise=args.noise, random_start=args.random_restarts, fudge=args.fudge))
+	EnvironmentLoader.loadEnvironment(Gridworld(size_x=args.size_x, size_y=args.size_y, goal_x=args.goal_x, goal_y=args.goal_y, noise=args.noise, random_start=args.random_restarts, fudge=args.fudge))

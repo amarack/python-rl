@@ -4,10 +4,10 @@ from rlglue.agent import AgentLoader as AgentLoader
 from rlglue.types import Action
 from rlglue.types import Observation
 from rlglue.utils import TaskSpecVRLGLUE3
+from pyrl.rlglue.registry import register_agent
 
 from random import Random
 import numpy
-import sys
 import copy
 
 import pyrl.basis.fourier as fourier
@@ -15,22 +15,86 @@ import pyrl.basis.rbf as rbf
 import pyrl.basis.tilecode as tilecode
 import stepsizes
 
+@register_agent
 class sarsa_lambda(Agent):
+	name = "Sarsa"
 
-	def __init__(self, epsilon, alpha, gamma, lmbda, params={}, softmax=False):
+	def __init__(self, **kwargs):
+		"""Initialize Sarsa based agent, or some subclass with given named parameters.
+		
+		Args:
+			epsilon=0.1: Exploration rate for epsilon-greedy, or the rescale factor for soft-max policies.
+			alpha=0.01: Step-Size for parameter updates.
+			gamma=1.0: Discount factor for learning, also viewed as a planning/learning horizon.
+			lmbda=0.7: Eligibility decay rate.
+			softmax=False: True to use soft-max style policies, false to use epsilon-greedy policies.
+			basis='trivial': Name of basis functions to use. [trivial, fourier, rbf, tile]
+			fourier_order=3: Order of fourier basis to use if using fourier basis.
+			rbf_number=0: Number of radial basis functions to use if doing rbf basis. Defaults to 0 for dim of states.
+			rbf_beta=1.0: Beta parameter for rbf basis.
+			tile_number=100: Number of tilings to use with tile coding basis.
+			tile_weights=2048: Number of weights to use with tile coding.
+			**kwargs: Additional named arguments
+
+		"""
+
 		self.randGenerator = Random()	
 		self.lastAction=Action()
 		self.lastObservation=Observation()
 
-		self.epsilon = epsilon
-		self.lmbda = lmbda
-		self.gamma = gamma
+		# Initialize algorithm parameters
+		self.epsilon = kwargs.setdefault('epsilon', 0.1)
+		self.alpha = kwargs.setdefault('alpha', 0.01)
+		self.lmbda = kwargs.setdefault('lmbda', 0.7)
+		self.gamma = kwargs.setdefault('gamma', 1.0)
+		self.fa_name = kwargs.setdefault('basis', 'trivial')
+		self.softmax = kwargs.setdefault('softmax', False)
+		self.params = kwargs
 		self.basis = None
-		self.params = params
-		self.softmax = softmax
 
-		# Set up the step-size
-		self.alpha = float(alpha)
+	def randomize_parameters(self, **args):
+		"""Generate parameters randomly, constrained by given named parameters.
+
+		If used, this must be called before agent_init in order to have desired effect.
+		
+		Parameters that fundamentally change the algorithm are not randomized over. For 
+		example, basis and softmax fundamentally change the domain and have very few values 
+		to be considered. They are not randomized over.
+
+		Basis parameters, on the other hand, have many possible values and ARE randomized. 
+
+		Args:
+			**args: Named parameters to fix, which will not be randomly generated
+
+		Returns:
+			List of resulting parameters of the class. Will always be in the same order. 
+			Empty list if parameter free.
+
+		"""
+
+		# Randomize main parameters
+		self.epsilon = args.setdefault('epsilon', numpy.random.random())
+		self.alpha = args.setdefault('alpha', numpy.random.random())
+		self.gamma = args.setdefault('gamma', numpy.random.random())
+		self.lmbda = args.setdefault('lmbda', numpy.random.random())
+		self.softmax = args.setdefault('softmax', self.softmax)
+		self.fa_name = args.setdefault('basis', self.fa_name)
+		param_list = [self.epsilon, self.alpha, self.gamma, self.lmbda, int(self.softmax)]
+
+		# Randomize basis parameters
+		if self.fa_name == 'fourier':
+			self.params['fourier_order'] = args.setdefault('fourier_order', numpy.random.choice([3,5,7,9]))
+			param_list.append(self.params['fourier_order'])
+		elif self.fa_name == 'rbf':
+			self.params['rbf_number'] = args.setdefault('rbf_number', numpy.random.randint(100))
+			self.params['rbf_beta'] = args.setdefault('rbf_beta', numpy.random.random())
+			param_list += [self.params['rbf_number'], self.params['rbf_beta']]
+		elif self.fa_name == 'tile':
+			self.params['tile_number'] = args.setdefault('tile_number', numpy.random.randint(200))
+			self.params['tile_weights'] = args.setdefault('tile_weights', 2**numpy.random.randint(15))
+			param_list += [self.params['tiles_number'], self.params['tiles_weights']]
+		
+		return param_list
 
 	def agent_init(self,taskSpec):
 		# Parse the task specification and set up the weights and such
@@ -49,31 +113,30 @@ class sarsa_lambda(Agent):
 			assert not TaskSpec.isSpecial(TaskSpec.getIntActions()[0][1]), " expecting max action to be a number not a special value"
 			self.numActions=TaskSpec.getIntActions()[0][1]+1;
 
-			fa_name = self.params.setdefault('basis', 'trivial')
 			if self.numStates == 0:
 				# Only discrete states
 				self.numStates = 1
-				if fa_name != "trivial":
-					print "Error:", fa_name, " basis requires at least one continuous feature. Forcing trivial basis."
-					fa_name = "trivial"
+				if self.fa_name != "trivial":
+					print "Error:", self.fa_name, " basis requires at least one continuous feature. Forcing trivial basis."
+					self.fa_name = "trivial"
 
 			# Set up the function approximation
-			if fa_name == 'fourier':
-				# number of dimensions, order, and then the dimension ranges
+			if self.fa_name == 'fourier':
 				self.basis = fourier.FourierBasis(self.numStates, 
-								  self.params.setdefault('order', 3), 
+								  self.params.setdefault('fourier_order', 3), 
 								  TaskSpec.getDoubleObservations())
 				self.weights = numpy.zeros((self.numDiscStates, self.basis.numTerms, self.numActions))
-			elif fa_name == 'rbf':
+			elif self.fa_name == 'rbf':
+				num_functions = self.numStates if self.params.setdefault('rbf_number', 0) == 0 else self.params['rbf_number']
 				self.basis = rbf.RBFBasis(self.numStates,
-							  self.params.setdefault('num_functions', self.numStates), 
-							  self.params.setdefault('beta', 1.0), 
+							  num_functions, 
+							  self.params.setdefault('rbf_beta', 0.9), 
 							  TaskSpec.getDoubleObservations())
-				self.weights = numpy.zeros((self.numDiscStates, self.params.setdefault('num_functions', self.numStates), self.numActions))
-			elif fa_name == 'tile':
-				self.basis = tilecode.TileCodingBasis(self.params.setdefault('num_tiles', 100), 
-								      self.params.setdefault('num_weights', 2048))
-				self.weights = numpy.zeros((self.numDiscStates, self.params.setdefault('num_weights'), self.numActions))
+				self.weights = numpy.zeros((self.numDiscStates, num_functions, self.numActions))
+			elif self.fa_name == 'tile':
+				self.basis = tilecode.TileCodingBasis(self.params.setdefault('tile_number', 100), 
+								      self.params.setdefault('tile_weights', 2048))
+				self.weights = numpy.zeros((self.numDiscStates, self.params['tile_weights'], self.numActions))
 			else:
 				self.basis = None
 				self.weights = numpy.zeros((self.numDiscStates, self.numStates, self.numActions))
@@ -265,7 +328,7 @@ class sarsa_lambda(Agent):
 		Returns:
 			A string response message.
 		"""
-		return "SarsaLambda(Python) does not understand your message."
+		return name + " does not understand your message."
 
 
 def addLinearTDArgs(parser):
@@ -290,32 +353,31 @@ if __name__=="__main__":
 	addLinearTDArgs(parser)
 	args = parser.parse_args()
 	params = {}
-	params['basis'] = args.basis
-	params['order'] = args.fourier_order
-	params['num_functions'] = args.rbf_num
-	params['beta'] = args.rbf_beta
-	params['num_tiles'] = args.tiles_num
-	params['num_weights'] = args.tiles_size
-	alpha = args.stepsize
+	params['alpha'] = args.alpha
+	params['gamma'] = args.gamma
+	params['lmbda'] = args.lmbda
 
-	epsilon = args.epsilon
-	softmax = False
 	if args.softmax is not None:
-		softmax = True
-		epsilon = args.softmax
+		params['softmax'] = True
+		params['epsilon'] = args.softmax
+	else:
+		params['softmax'] = False
+		params['epsilon'] = args.epsilon
+
+	params['basis'] = args.basis
+	params['fourier_order'] = args.fourier_order
+	params['rbf_number'] = args.rbf_num
+	params['rbf_beta'] = args.rbf_beta
+	params['tile_number'] = args.tiles_num
+	params['tile_weights'] = args.tiles_size
 
 	if args.adaptive_stepsize == "autostep":
-		class AutoSarsa(stepsizes.Autostep, sarsa_lambda):
-			def __init__(self, epsilon, alpha, gamma, lmbda, params={}, softmax=False):
-				sarsa_lambda.__init__(self, epsilon, alpha, gamma, lmbda, params=params, softmax=softmax)
-
+		AutoSarsa = stepsizes.genAdaptiveAgent(stepsizes.Autostep, sarsa_lambda)
 		params['autostep_mu'] = args.autostep_mu
 		params['autostep_tau'] = args.autostep_tau
-		AgentLoader.loadAgent(AutoSarsa(epsilon, alpha, args.gamma, args.lmbda, params=params, softmax=softmax))
+		AgentLoader.loadAgent(AutoSarsa(**params))
 	elif args.adaptive_stepsize == "ass":
-		class ABSarsa(stepsizes.AlphaBounds, sarsa_lambda):
-			def __init__(self, epsilon, alpha, gamma, lmbda, params={}, softmax=False):
-				sarsa_lambda.__init__(self, epsilon, alpha, gamma, lmbda, params=params, softmax=softmax)
-		AgentLoader.loadAgent(ABSarsa(epsilon, alpha, args.gamma, args.lmbda, params=params, softmax=softmax))
+		ABSarsa = stepsizes.genAdaptiveAgent(stepsizes.AlphaBounds, sarsa_lambda)
+		AgentLoader.loadAgent(ABSarsa(**params))
 	else:
-		AgentLoader.loadAgent(sarsa_lambda(epsilon, alpha, args.gamma, args.lmbda, params=params, softmax=softmax))
+		AgentLoader.loadAgent(sarsa_lambda(**params))

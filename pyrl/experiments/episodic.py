@@ -1,71 +1,67 @@
-# 
-# Copyright (C) 2008, Brian Tanner
-# 
-#http://rl-glue-ext.googlecode.com/
-#
-# Licensed under the Apache License, Version 2.0 (the "License"
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
 
+# Author: Will Dabney
+# Author: Pierre-Luc Bacon <pierrelucbacon@gmail.com>
 
-
-import sys
-import timeit
 import csv
-
-import rlglue.RLGlue as rl_glue
-
+from pyrl.misc.timer import Timer
 from pyrl.rlglue import RLGlueLocal as RLGlueLocal
-from pyrl.agents.skeleton_agent import skeleton_agent
-from pyrl.environments.skeleton_environment import skeleton_environment
+from pyrl.rlglue.registry import register_experiment
+import rlglue.RLGlue as rl_glue
+import pyrl.visualizers.plotExperiment as plotExperiment
 
+@register_experiment
+class Episodic(object):
+    name = "Episodic"
 
-stepLimit = 5000
-RLGlue = None
+    def __init__(self, agent=None, environment=None, maxsteps=5000, num_episodes=10, 
+                 num_runs=1, timed=True, evaluate='reward'):
+        self.maxsteps = maxsteps
+        self.num_episodes = num_episodes
+        self.num_runs = num_runs
+        self.timed = timed
+        self.evaluate = evaluate
 
-def setupExperiment(maxSteps, environment_class=None, agent_class=None):
-	global stepLimit
-	global RLGlue
-	stepLimit = maxSteps
-	if not (environment_class is None or agent_class is None):
-		RLGlue = RLGlueLocal.LocalGlue(environment_class, agent_class)
-	else:
-		RLGlue = rl_glue
+        if agent is not None and environment is not None:
+            self.rlglue = RLGlueLocal.LocalGlue(environment, agent)
+            self.agent = agent
+            self.environment = environment
+        else:
+            self.rlglue = rl_glue
 
-def runEpisode(timed=True):
-	terminal = 0
-	runtime = 0
-	if timed:
-		runtime = timeit.timeit('RLGlue.RL_episode(stepLimit)', setup = "from pyrl.experiments.episodic import RLGlue,stepLimit", number=1)
-		terminal=RLGlue.exitStatus
-	else:
-		terminal=RLGlue.RL_episode(stepLimit)
+    def run_episode(self):
+        terminal = 0
+        runtime = 0
+        if self.timed:
+            timer = Timer()
+            with timer:
+                terminal = self.rlglue.RL_episode(self.maxsteps)
+            runtime = timer.duration_in_seconds()
 
-	totalSteps=RLGlue.RL_num_steps()
-	totalReward=RLGlue.RL_return()
-	return terminal, totalSteps, totalReward, runtime
+        else:
+            terminal = self.rlglue.RL_episode(self.maxsteps)
 
+        totalSteps = self.rlglue.RL_num_steps()
+        totalReward = self.rlglue.RL_return()
+        return terminal, totalSteps, totalReward, runtime
 
-def runTrial(numEpisodes, filename=None, timed=True):
-	taskSpec = RLGlue.RL_init()
-	for i in range(numEpisodes):
-		term,steps,reward, runtime = runEpisode(timed)
-		if filename is None:
-			print i, steps, runtime, reward, term
-		else:
-			with open(filename, "a") as f:
-				csvwrite = csv.writer(f)
-				csvwrite.writerow([i, steps, runtime, reward, term])
-	RLGlue.RL_cleanup()
+    def run_trial(self, filename=None):
+        self.rlglue.RL_init()
+        for i in range(self.num_episodes):
+            term, steps, reward, runtime = self.run_episode()
+            if filename is None:
+                print i, steps, runtime, reward, term
+            else:
+                with open(filename, "a") as f:
+                    csvwrite = csv.writer(f)
+                    csvwrite.writerow([i, steps, runtime, reward, term])
+        self.rlglue.RL_cleanup()
+
+    def run_experiment(self, filename=None, **args):
+        if filename is None:
+            print 'trial, number of steps, runtime, accumulated reward, termination'
+        for run in range(self.num_runs):
+            self.run_trial(filename=filename)
+
 
 
 

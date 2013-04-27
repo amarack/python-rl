@@ -1,28 +1,35 @@
 
+# Author: Will Dabney
+
+from random import Random
+import numpy
+import copy
+
 from rlglue.agent.Agent import Agent
 from rlglue.agent import AgentLoader as AgentLoader
 from rlglue.types import Action
 from rlglue.types import Observation
 from rlglue.utils import TaskSpecVRLGLUE3
+from pyrl.rlglue.registry import register_agent
 
-from random import Random
-import numpy
-import sys
-import copy
-
-import pyrl.basis.fourier as fourier
-import pyrl.basis.rbf as rbf
-import pyrl.basis.tilecode as tilecode
 import sarsa_lambda
 import stepsizes
 
+@register_agent
 class qlearning_agent(sarsa_lambda.sarsa_lambda):
-
-	def __init__(self, epsilon, alpha, gamma, lmbda, params={}, softmax=False):
-		sarsa_lambda.sarsa_lambda.__init__(self, epsilon, alpha, gamma, lmbda, params, softmax)
-
+	name = "Q-Learning"
 	
 	def agent_step(self,reward, observation):
+		"""Take one step in an episode for the agent, as the result of taking the last action.
+		
+		Args:
+			reward: The reward received for taking the last action from the previous state.
+			observation: The next observation of the episode, which is the consequence of taking the previous action.
+
+		Returns:
+			The next action the RL agent chooses to take, represented as an RLGlue Action object.
+		"""
+
 		newState = numpy.array(list(observation.doubleArray))
 		lastState = numpy.array(list(self.lastObservation.doubleArray))
 		lastAction = self.lastAction.intArray[0]
@@ -81,6 +88,12 @@ class qlearning_agent(sarsa_lambda.sarsa_lambda):
 		self.weights += self.step_sizes * delta * self.traces
 	
 	def agent_end(self,reward):
+		"""Receive the final reward in an episode, also signaling the end of the episode.
+		
+		Args:
+			reward: The reward received for taking the last action from the previous state.
+		"""
+
 		lastState = numpy.array(list(self.lastObservation.doubleArray))
 		lastAction = self.lastAction.intArray[0]
 
@@ -99,41 +112,38 @@ class qlearning_agent(sarsa_lambda.sarsa_lambda):
 		self.traces += phi_t
 		self.update(phi_t, None, 0, reward)
 	
-	def agent_message(self,inMessage):
-		return "Q-Lambda(Python) does not understand your message."
-
 if __name__=="__main__":
 	import argparse
 	parser = argparse.ArgumentParser(description='Run Q-Lambda, q-learning with eligibility traces, agent in network mode with linear function approximation.')
-	sarsa_lambda.addLinearTDArgs(parser)
+	addLinearTDArgs(parser)
 	args = parser.parse_args()
 	params = {}
-	params['name'] = args.basis
-	params['order'] = args.fourier_order
-	params['num_functions'] = args.rbf_num
-	params['beta'] = args.rbf_beta
-	params['num_tiles'] = args.tiles_num
-	params['num_weights'] = args.tiles_size
-	alpha = args.stepsize
+	params['alpha'] = args.alpha
+	params['gamma'] = args.gamma
+	params['lmbda'] = args.lmbda
 
-	epsilon = args.epsilon
-	softmax = False
 	if args.softmax is not None:
-		softmax = True
-		epsilon = args.softmax
+		params['softmax'] = True
+		params['epsilon'] = args.softmax
+	else:
+		params['softmax'] = False
+		params['epsilon'] = args.epsilon
+
+	params['basis'] = args.basis
+	params['fourier_order'] = args.fourier_order
+	params['rbf_number'] = args.rbf_num
+	params['rbf_beta'] = args.rbf_beta
+	params['tile_number'] = args.tiles_num
+	params['tile_weights'] = args.tiles_size
 
 	if args.adaptive_stepsize == "autostep":
-		class AutoQ(stepsizes.Autostep, qlearning_agent):
-			def __init__(self, epsilon, alpha, gamma, lmbda, params={}, softmax=False):
-				qlearning_agent.__init__(self, epsilon, alpha, gamma, lmbda, params=params, softmax=softmax)
-
+		AutoQ = stepsizes.genAdaptiveAgent(stepsizes.Autostep, qlearning_agent)
 		params['autostep_mu'] = args.autostep_mu
 		params['autostep_tau'] = args.autostep_tau
-		AgentLoader.loadAgent(AutoQ(epsilon, alpha, args.gamma, args.lmbda, params=params, softmax=softmax))
+		AgentLoader.loadAgent(AutoQ(**params))
 	elif args.adaptive_stepsize == "ass":
-		class ABQ(stepsizes.AlphaBounds, qlearning_agent):
-			def __init__(self, epsilon, alpha, gamma, lmbda, params={}, softmax=False):
-				qlearning_agent.__init__(self, epsilon, alpha, gamma, lmbda, params=params, softmax=softmax)
-		AgentLoader.loadAgent(ABQ(epsilon, alpha, args.gamma, args.lmbda, params=params, softmax=softmax))
+		ABQ = stepsizes.genAdaptiveAgent(stepsizes.AlphaBounds, qlearning_agent)
+		AgentLoader.loadAgent(ABQ(**params))
 	else:
-		AgentLoader.loadAgent(qlearning_agent(epsilon, alpha, args.gamma, args.lmbda, params=params, softmax=softmax))
+		AgentLoader.loadAgent(qlearning_agent(**params))
+

@@ -22,12 +22,14 @@ from rlglue.environment import EnvironmentLoader as EnvironmentLoader
 from rlglue.types import Observation
 from rlglue.types import Action
 from rlglue.types import Reward_observation_terminal
-#from rlglue.utils import TaskSpecVRLGLUE3
 from pyrl.rlglue import TaskSpecRLGlue
+from pyrl.rlglue.registry import register_environment
 
-import gridworld
+from . import gridworld
 
+@register_environment
 class MultiRoomGridworld(gridworld.Gridworld):
+	name = "Multi-Room Gridworld"
 
 	# All parameters are in units of 1, where 1 is how far on average
 	# the agent can move with a single action.
@@ -35,8 +37,9 @@ class MultiRoomGridworld(gridworld.Gridworld):
 	# at 0.5*size_y with a door at 0.9*size_x, and 
 	# above that wall a vertical wall will be placed at 0.3*size_x with a door at 0.75*size_y
 	# If the goal falls inside a wall it will be pushed to the nearest non-wall location
-	def __init__(self, size_x, size_y, goal_x, goal_y, noise=0.0, random_start=False, fudge=1.4143):
-		gridworld.Gridworld.__init__(self, size_x, size_y, goal_x, goal_y, noise, random_start, fudge)
+	def __init__(self, size_x=10, size_y=10, goal_x=10, goal_y=10, noise=0.0, random_start=False, fudge=1.4143):
+		gridworld.Gridworld.__init__(self, size_x=size_x, size_y=size_y, goal_x=goal_x, goal_y=goal_y, 
+					     noise=noise, random_start=random_start, fudge=fudge)
 		# Build walls and doors (actually might only need to specify the doors)
 		#self.wall1 = numpy.array([[0.0, size_y*0.5], [size_x, size_y*0.5]])
 		self.door1 = numpy.array([size_x*0.9, size_y*0.5])
@@ -83,4 +86,4 @@ if __name__=="__main__":
 	parser = argparse.ArgumentParser(description='Run 2D MultiRoom Noisy Continuous Gridworld environment in network mode.')
 	gridworld.addGridworldArgs(parser)
 	args = parser.parse_args()
-	EnvironmentLoader.loadEnvironment(MultiRoomGridworld(args.size_x, args.size_y, args.goal_x, args.goal_y, noise=args.noise, random_start=args.random_restarts, fudge=args.fudge))
+	EnvironmentLoader.loadEnvironment(MultiRoomGridworld(size_x=args.size_x, size_y=args.size_y, goal_x=args.goal_x, goal_y=args.goal_y, noise=args.noise, random_start=args.random_restarts, fudge=args.fudge))

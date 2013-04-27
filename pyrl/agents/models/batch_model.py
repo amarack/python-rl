@@ -25,10 +25,26 @@ class BatchModel(ModelLearner):
 		_genregressor: Return a regressor object to be used to model real valued variables
 		_genclassifier: Return a classifier object to be used to model discrete valued variables
 	"""
+	def __init__(self, **kwargs):
+		self.params = kwargs
+		# Set up parameters
+		self.params.setdefault('relative', True)
+		self.params.setdefault('update_freq', 20)
+		self.params.setdefault('b', 2.0)
+		self.params.setdefault('known_threshold', 0.95)
+		self.params.setdefault('max_experiences', 700)
+		self.params.setdefault('importance_weight', False)
+		self._supports_imp_weights = False
 
-	def __init__(self, numDiscStates, contStateRanges, numActions, rewardRange, **params):
-		ModelLearner.__init__(self, numDiscStates, contStateRanges, numActions, rewardRange, params)
-		self._init_parameters()
+	def model_init(self, numDiscStates, contFeatureRanges, numActions, rewardRange):
+		self.numDiscStates = numDiscStates
+		self.numContStates = len(contFeatureRanges)
+		self.numActions = numActions
+		self.reward_range = rewardRange
+		self.feature_ranges = numpy.array([[0, self.numDiscStates-1]] + list(contFeatureRanges))
+		self.feature_span = numpy.ones((len(self.feature_ranges),))
+		non_constants = self.feature_ranges[:,0]!=self.feature_ranges[:,1]
+		self.feature_span[non_constants] = self.feature_ranges[non_constants,1] - self.feature_ranges[non_constants,0]
 
 		# Initialize storage for training data
 		self.experiences = numpy.zeros((self.params['max_experiences'], self.numActions, self.numContStates + 1))
@@ -44,15 +60,36 @@ class BatchModel(ModelLearner):
 		self.model = [[self._genregressor(isReward=True), self._genregressor(isTermination=True), self._genclassifier()] + \
 				      [self._genregressor() for i in range(self.numContStates)] for k in range(self.numActions)]
 
-	def _init_parameters(self):
-		# Set up parameter defaults
-		self.params.setdefault('relative', True)
-		self.params.setdefault('update_freq', 20)
-		self.params.setdefault('b', 2.0)
-		self.params.setdefault('known_threshold', 0.95)
-		self.params.setdefault('max_experiences', 700)
-		self.params.setdefault('importance_weight', False)
-		self._supports_imp_weights = False
+
+	def randomize_parameters(self, **args):
+		"""Generate parameters randomly, constrained by given named parameters.
+
+		If used, this must be called before model_init in order to have desired effect.
+		
+		Parameters that fundamentally change the algorithm are not randomized over. For 
+		example, basis and softmax fundamentally change the domain and have very few values 
+		to be considered. They are not randomized over.
+
+		Basis parameters, on the other hand, have many possible values and ARE randomized. 
+
+		Args:
+			**args: Named parameters to fix, which will not be randomly generated
+
+		Returns:
+			List of resulting parameters of the class. Will always be in the same order. 
+			Empty list if parameter free.
+
+		"""
+		self.params['relative'] = args.setdefault('relative', numpy.random.random() < 0.5) 
+		self.params['update_freq'] = args.setdefault('update_freq', numpy.random.randint(200))
+		self.params['b'] = args.setdefault('b', numpy.random.random()*10)
+		self.params['known_threshold'] = args.setdefault('known_threshold', numpy.random.random()*5)
+		self.params['max_experiences'] = args.setdefault('max_experiences', (numpy.random.randint(10)+1)*100)
+		self.params['importance_weight'] = self._supports_imp_weights and args.setdefault('importance_weight', numpy.random.random()<0.5)
+		param_list = [self.params['relative'], self.params['update_freq'], self.params['b'], 
+			      self.params['known_threshold'], self.params['max_experiences'], 
+			      self.params['importance_weight']]
+		return param_list
 
 	def _update_density_estimator(self):
 		pass
@@ -258,8 +295,8 @@ class BatchModel(ModelLearner):
 		self.experiences[index,action, :] = lastState
 		self.rewards[index, action] = reward
 		if newState is not None:
-			if pnew[0] is not None:
-				print "#:P>", numpy.linalg.norm(newState - pnew[0]), newState, pnew[0]
+			#if pnew[0] is not None:
+			#	print "#:P>", numpy.linalg.norm(newState - pnew[0]), newState, pnew[0]
 
 			newState = self.normState(newState)
 			if self.params['relative']:
@@ -278,13 +315,34 @@ class BatchModel(ModelLearner):
 
 
 class KNNBatchModel(BatchModel):
-	def __init__(self, numDiscStates, contStateRanges, numActions, rewardRange, **params):
-		BatchModel.__init__(self, numDiscStates, contStateRanges, numActions, rewardRange, **params)
-
-	def _init_parameters(self):
-		BatchModel._init_parameters(self)
+	def __init__(self, **kwargs):
+		BatchModel.__init__(self, **kwargs)
 		self.params.setdefault('num_neighbors', 1)
 		self._supports_imp_weights = False
+
+	def randomize_parameters(self, **args):
+		"""Generate parameters randomly, constrained by given named parameters.
+
+		If used, this must be called before model_init in order to have desired effect.
+		
+		Parameters that fundamentally change the algorithm are not randomized over. For 
+		example, basis and softmax fundamentally change the domain and have very few values 
+		to be considered. They are not randomized over.
+
+		Basis parameters, on the other hand, have many possible values and ARE randomized. 
+
+		Args:
+			**args: Named parameters to fix, which will not be randomly generated
+
+		Returns:
+			List of resulting parameters of the class. Will always be in the same order. 
+			Empty list if parameter free.
+
+		"""
+		param_list = BatchModel.randomize_parameters(self, **args)
+		self.params['num_neighbors'] = args.setdefault('num_neighbors', numpy.random.randint(20)+1)
+		param_list.append(self.params['num_neighbors'])
+		return param_list
 
 	def _genregressor(self, isReward=False, isTermination=False):
 		return neighbors.KNeighborsRegressor(self.params['num_neighbors'], weights=self.gaussianDist, 
@@ -302,14 +360,36 @@ class KNNBatchModel(BatchModel):
 		return self.gaussianDist(dist).sum(1)
 
 class RandomForestBatchModel(BatchModel):
-	def __init__(self, numDiscStates, contStateRanges, numActions, rewardRange, **params):
-		BatchModel.__init__(self, numDiscStates, contStateRanges, numActions, rewardRange, **params)
 
-	def _init_parameters(self):
-		BatchModel._init_parameters(self)
+	def __init__(self, **kwargs):
+		BatchModel.__init__(self, **kwargs)
 		self.params.setdefault('num_estimators', 5)
 		self.params.setdefault('num_jobs', 2)
 		self._supports_imp_weights = True
+
+	def randomize_parameters(self, **args):
+		"""Generate parameters randomly, constrained by given named parameters.
+
+		If used, this must be called before model_init in order to have desired effect.
+		
+		Parameters that fundamentally change the algorithm are not randomized over. For 
+		example, basis and softmax fundamentally change the domain and have very few values 
+		to be considered. They are not randomized over.
+
+		Basis parameters, on the other hand, have many possible values and ARE randomized. 
+
+		Args:
+			**args: Named parameters to fix, which will not be randomly generated
+
+		Returns:
+			List of resulting parameters of the class. Will always be in the same order. 
+			Empty list if parameter free.
+
+		"""
+		param_list = BatchModel.randomize_parameters(self, **args)
+		self.params['num_estimators'] = args.setdefault('num_estimators', numpy.random.randint(30)+1)
+		param_list.append(self.params['num_estimators'])
+		return param_list
 
 	def _genregressor(self, isReward=False, isTermination=False):
 		return RandomForestRegressor(n_jobs=self.params['num_jobs'], n_estimators=self.params['num_estimators'])
@@ -319,15 +399,39 @@ class RandomForestBatchModel(BatchModel):
 
 
 class SVMBatchModel(BatchModel):
-	def __init__(self, numDiscStates, contStateRanges, numActions, rewardRange, **params):
-		BatchModel.__init__(self, numDiscStates, contStateRanges, numActions, rewardRange, **params)
 
-	def _init_parameters(self):
-		BatchModel._init_parameters(self)
+	def __init__(self, **kwargs):
+		BatchModel.__init__(self, **kwargs)
 		self.params.setdefault('C', 1.0)
 		self.params.setdefault('epsilon', 0.00001)
 		self.params.setdefault('tolerance', 1.0e-6)
 		self._supports_imp_weights = True
+
+	def randomize_parameters(self, **args):
+		"""Generate parameters randomly, constrained by given named parameters.
+
+		If used, this must be called before model_init in order to have desired effect.
+		
+		Parameters that fundamentally change the algorithm are not randomized over. For 
+		example, basis and softmax fundamentally change the domain and have very few values 
+		to be considered. They are not randomized over.
+
+		Basis parameters, on the other hand, have many possible values and ARE randomized. 
+
+		Args:
+			**args: Named parameters to fix, which will not be randomly generated
+
+		Returns:
+			List of resulting parameters of the class. Will always be in the same order. 
+			Empty list if parameter free.
+
+		"""
+		param_list = BatchModel.randomize_parameters(self, **args)
+		self.params['C'] = args.setdefault('C', numpy.random.random()*2)
+		self.params['epsilon'] = args.setdefault('epsilon', numpy.random.random()*.1)
+		self.params['tolerance'] = args.setdefault('tolerance', 10.**-(numpy.random.randint(10)))
+		param_list += [self.params['C'], self.params['epsilon'], self.params['tolerance']]
+		return param_list
 
 	def _genregressor(self, isReward=False, isTermination=False):
 		return SVR(C=self.params['C'], epsilon=self.params['epsilon'], tol=self.params['tolerance'])
@@ -336,18 +440,47 @@ class SVMBatchModel(BatchModel):
 
 
 class GaussianProcessBatchModel(BatchModel):
-	def __init__(self, numDiscStates, contStateRanges, numActions, rewardRange, **params):
-		BatchModel.__init__(self, numDiscStates, contStateRanges, numActions, rewardRange, **params)
-		self.sigma_threshold = numpy.zeros((self.numActions, self.numContStates))
 
-	def _init_parameters(self):
-		BatchModel._init_parameters(self)
+
+	def __init__(self, **kwargs):
+		BatchModel.__init__(self, **kwargs)
 		self.params.setdefault('theta0', 1e-2)
 		self.params.setdefault('thetaL', 1e-4)
 		self.params.setdefault('thetaU', 1.)
 		self.params.setdefault('random_start', 100)
 		self.params.setdefault('nugget', 1.0e-10)
 		self._supports_imp_weights = False
+
+	def model_init(self, numDiscStates, contFeatureRanges, numActions, rewardRange):
+		BatchModel.model_init(self, numDiscStates, contFeatureRanges, numActions, rewardRange)
+		self.sigma_threshold = numpy.zeros((self.numActions, self.numContStates))
+
+	def randomize_parameters(self, **args):
+		"""Generate parameters randomly, constrained by given named parameters.
+
+		If used, this must be called before model_init in order to have desired effect.
+		
+		Parameters that fundamentally change the algorithm are not randomized over. For 
+		example, basis and softmax fundamentally change the domain and have very few values 
+		to be considered. They are not randomized over.
+
+		Basis parameters, on the other hand, have many possible values and ARE randomized. 
+
+		Args:
+			**args: Named parameters to fix, which will not be randomly generated
+
+		Returns:
+			List of resulting parameters of the class. Will always be in the same order. 
+			Empty list if parameter free.
+
+		"""
+		param_list = BatchModel.randomize_parameters(self, **args)
+		self.params['theta0'] = args.setdefault('theta0', 10.**-(numpy.random.randint(10)))
+		self.params['thetaL'] = args.setdefault('thetaL', 10.**-(numpy.random.randint(10)))
+		self.params['thetaU'] = args.setdefault('thetaU', 10.**-(numpy.random.randint(2)))
+		self.params['nugget'] = args.setdefault('nugget', 10.**-(numpy.random.randint(12)))
+		param_list += [self.params['theta0'], self.params['thetaL'], self.params['thetaU'], self.params['nugget']]
+		return param_list
 
 	def _genregressor(self, isReward=False, isTermination=False):
 		if isReward or isTermination:
@@ -385,10 +518,33 @@ class GaussianProcessBatchModel(BatchModel):
 									    self.transitions[indices[0],a,i+1])
 
 
-class SVMDensityEstimator:
+class SVMDensityEstimator(object):
 	def __init__(self, **params):
 		self.nu = params.setdefault('nu', 0.01)
 		self.svm_gamma = params.setdefault('svm_gamma', 0.1)
+
+	def randomize_parameters(self, **args):
+		"""Generate parameters randomly, constrained by given named parameters.
+
+		If used, this must be called before model_init in order to have desired effect.
+		
+		Parameters that fundamentally change the algorithm are not randomized over. For 
+		example, basis and softmax fundamentally change the domain and have very few values 
+		to be considered. They are not randomized over.
+
+		Basis parameters, on the other hand, have many possible values and ARE randomized. 
+
+		Args:
+			**args: Named parameters to fix, which will not be randomly generated
+
+		Returns:
+			List of resulting parameters of the class. Will always be in the same order. 
+			Empty list if parameter free.
+
+		"""
+		self.params['nu'] = args.setdefault('nu', numpy.random.random())
+		self.params['svm_gamma'] = args.setdefault('svm_gamma', numpy.random.random())
+		return [self.params['nu'] + self.params['svm_gamma']]
 
 	def _init_density_estimator(self):
 		self.density_estimator = [OneClassSVM(nu=self.nu, kernel="rbf", gamma=self.svm_gamma) for a in range(self.numActions)]
@@ -396,10 +552,10 @@ class SVMDensityEstimator:
 	def _update_density_estimator(self):
 		for a in range(self.numActions):
 			self.density_estimator[a].fit(self.experiences[:self.exp_index[a],a])
-
-		import cPickle
-		with open('dens.pickle', 'wb') as f:
-			cPickle.dump(self.density_estimator, f)
+		# The density estimator classes are still being tested 
+		#import cPickle
+		#with open('dens.pickle', 'wb') as f:
+		#	cPickle.dump(self.density_estimator, f)
 
 	def _known_state(self, states, action):
 		return self._known_value(states, action) > 0
@@ -408,33 +564,16 @@ class SVMDensityEstimator:
 		return self.density_estimator[action].predict(states)
 
 
-class GPSVM(SVMDensityEstimator, GaussianProcessBatchModel):
-	def __init__(self, numDiscStates, contStateRanges, numActions, rewardRange, **params):
-		SVMDensityEstimator.__init__(self, **params)
-		GaussianProcessBatchModel.__init__(self, numDiscStates, contStateRanges, numActions, rewardRange, **params)
-		self._init_density_estimator()
+def genDensityEstModel(demodel, main_model):
+	class JoinedDensityModel(demodel, main_model):
+		def randomize_parameters(self, **args):
+			return main_model.randomize_parameters(self, **args) + \
+			    demodel.randomize_parameters(self, **args)
+	return JoinedDensityModel
 
-class SVM2(SVMDensityEstimator, SVMBatchModel):
-	def __init__(self, numDiscStates, contStateRanges, numActions, rewardRange, **params):
-		SVMDensityEstimator.__init__(self, **params)
-		SVMBatchModel.__init__(self, numDiscStates, contStateRanges, numActions, rewardRange, **params)
-		self._init_density_estimator()
-
-class RandForestSVM(SVMDensityEstimator, RandomForestBatchModel):
-	def __init__(self, numDiscStates, contStateRanges, numActions, rewardRange, **params):
-		SVMDensityEstimator.__init__(self, **params)
-		RandomForestBatchModel.__init__(self, numDiscStates, contStateRanges, numActions, rewardRange, **params)
-		self._init_density_estimator()
-
-class KNNSVM(SVMDensityEstimator, KNNBatchModel):
-	def __init__(self, numDiscStates, contStateRanges, numActions, rewardRange, **params):
-		SVMDensityEstimator.__init__(self, **params)
-		KNNBatchModel.__init__(self, numDiscStates, contStateRanges, numActions, rewardRange, **params)
-		self._init_density_estimator()
-
+GPSVM = genDensityEstModel(SVMDensityEstimator, GaussianProcessBatchModel)
+SVM2 = genDensityEstModel(SVMDensityEstimator, SVMBatchModel)
+RandForestSVM = genDensityEstModel(SVMDensityEstimator, RandomForestBatchModel)
+KNNSVM = genDensityEstModel(SVMDensityEstimator, KNNBatchModel)
 
         
-
-
-
-

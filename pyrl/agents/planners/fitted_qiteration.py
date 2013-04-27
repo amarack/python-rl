@@ -3,8 +3,6 @@
 
 from random import Random
 import numpy
-import sys
-import copy
 
 import pyrl.basis.fourier as fourier
 import pyrl.basis.rbf as rbf
@@ -23,39 +21,19 @@ class FittedQIteration(Planner):
 	being passed to the regressors, including trivial, fourier, tile coding, and radial basis functions. 
 	"""
 
-	def __init__(self, gamma, model, params={}):
+	def __init__(self, model, **kwargs):
 		"""Inits the Fitted Q-Iteration planner with discount factor, instantiated model learner, and additional parameters.
 		
 		Args:
-			gamma: The discount factor for the domain
 			model: The model learner object
-			params: Additional parameters for use in the class.
+			gamma=1.0: The discount factor for the domain
+			**kwargs: Additional parameters for use in the class.
 		"""
-		Planner.__init__(self, gamma, model, params)
-
-		self.randGenerator = Random()	
-		self.ranges, self.actions = model.getStateSpace()
-		self.has_plan = False
+		Planner.__init__(self, model, **kwargs)
+		self.fa_name = self.params.setdefault('basis', 'trivial')
 		self.params.setdefault('iterations', 200)
 		self.params.setdefault('support_size', 200)
-
-		# Set up basis
 		self.basis = None
-		fa_name = self.params.setdefault('basis', 'trivial')
-		if fa_name == 'fourier':
-			self.basis = fourier.FourierBasis(len(self.ranges),
-							  self.params.setdefault('fourier_order', 3), 
-							  self.ranges)
-		elif fa_name == 'rbf':
-			self.basis = rbf.RBFBasis(len(self.ranges),
-						  self.params.setdefault('rbf_num_functions', len(self.ranges)), 
-						  self.params.setdefault('rbf_beta', 1.0), 
-						  self.ranges)
-		elif fa_name == 'tile':
-			self.basis = tilecode.TileCodingBasis(self.params.setdefault('tile_numtiles', 100), 
-							      self.params.setdefault('tile_numweights', 2048))
-		else:
-			self.basis = None
 
 		# Set up regressor
 		learn_name = self.params.setdefault('regressor', 'linreg')
@@ -69,6 +47,64 @@ class FittedQIteration(Planner):
 			self.learner = SVR()
 		else:
 			self.learner = None
+
+	def randomize_parameters(self, **args):
+		"""Generate parameters randomly, constrained by given named parameters.
+
+		Parameters that fundamentally change the algorithm are not randomized over. For 
+		example, basis and softmax fundamentally change the domain and have very few values 
+		to be considered. They are not randomized over.
+
+		Basis parameters, on the other hand, have many possible values and ARE randomized. 
+
+		Args:
+			**args: Named parameters to fix, which will not be randomly generated
+
+		Returns:
+			List of resulting parameters of the class. Will always be in the same order. 
+			Empty list if parameter free.
+
+		"""
+		param_list = Planner.randomize_parameters(self, **args)
+		self.params['iterations'] = args.setdefault('iterations', numpy.random.randint(500))
+		self.params['support_size'] = args.setdefault('support_size', numpy.random.randint(500))
+		param_list += [self.params['iterations'], self.params['support_size']]
+
+		# Randomize basis parameters
+		if self.fa_name == 'fourier':
+			self.params['fourier_order'] = args.setdefault('fourier_order', numpy.random.choice([3,5,7,9]))
+			param_list.append(self.params['fourier_order'])
+		elif self.fa_name == 'rbf':
+			self.params['rbf_number'] = args.setdefault('rbf_number', numpy.random.randint(100))
+			self.params['rbf_beta'] = args.setdefault('rbf_beta', numpy.random.random())
+			param_list += [self.params['rbf_number'], self.params['rbf_beta']]
+		elif self.fa_name == 'tile':
+			self.params['tile_number'] = args.setdefault('tile_number', numpy.random.randint(200))
+			self.params['tile_weights'] = args.setdefault('tile_weights', 2**numpy.random.randint(15))
+			param_list += [self.params['tiles_number'], self.params['tiles_weights']]
+
+		return param_list
+
+
+	def planner_init(self, numDiscStates, contFeatureRanges, numActions, rewardRange):
+		self.has_plan = False
+		self.ranges, self.actions = self.model.getStateSpace()
+		# Set up basis
+		if self.fa_name == 'fourier':
+			self.basis = fourier.FourierBasis(len(self.ranges),
+							  self.params.setdefault('fourier_order', 3),
+							  self.ranges)
+		elif self.fa_name == 'rbf':
+			self.basis = rbf.RBFBasis(len(self.ranges),
+						  self.params.setdefault('rbf_number', len(self.ranges)), 
+						  self.params.setdefault('rbf_beta', 1.0), 
+						  self.ranges)
+		elif self.fa_name == 'tile':
+			self.basis = tilecode.TileCodingBasis(self.params.setdefault('tile_number', 100), 
+							      self.params.setdefault('tile_weights', 2048))
+		else:
+			self.basis = None
+
 		
 	def getStateAction(self, state, action):
 		"""Returns the basified state feature array for the given state action pair.

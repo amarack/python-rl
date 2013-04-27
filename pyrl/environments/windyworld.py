@@ -22,18 +22,19 @@ from rlglue.environment import EnvironmentLoader as EnvironmentLoader
 from rlglue.types import Observation
 from rlglue.types import Action
 from rlglue.types import Reward_observation_terminal
-#from rlglue.utils import TaskSpecVRLGLUE3
 from pyrl.rlglue import TaskSpecRLGlue
+from pyrl.rlglue.registry import register_environment
 
-import gridworld
+from . import gridworld
 from scipy.stats import norm
 
+@register_environment
 class WindyGridworld(gridworld.Gridworld):
 	# The effect of the wind is always positive in the y dimension, and 
 	# is equal to the wind_power multiplied with the pdf of the current x-coordinate on a Gaussian distribution 
 	# with mean wind_center and standard deviation wind_stdev.
-	def __init__(self, size_x, size_y, goal_x, goal_y, wind_center, wind_stdev=1.0, wind_power=2.0, noise=0.0, random_start=False, fudge=1.4143):
-		gridworld.Gridworld.__init__(self, size_x, size_y, goal_x, goal_y, noise, random_start, fudge)
+	def __init__(self, size_x=10, size_y=10, goal_x=10, goal_y=10, wind_center=7., wind_stdev=1.0, wind_power=2.0, noise=0.0, random_start=False, fudge=1.4143):
+		gridworld.Gridworld.__init__(self, size_x=size_x, size_y=size_y, goal_x=goal_x, goal_y=goal_y, noise=noise, random_start=random_start, fudge=fudge)
 		self.wind_center = wind_center
 		self.wind_stdev = wind_stdev
 		self.wind_power = wind_power

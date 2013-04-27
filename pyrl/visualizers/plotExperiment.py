@@ -25,10 +25,12 @@ def movingaverage(interval, window_size):
     window = numpy.ones(int(window_size))/float(window_size)
     return numpy.convolve(interval, window, 'same')
 
-def processFile(filename, style, windowsize):
+def processFile(filename, style, windowsize, verbose=True):
     episodes = {}
     maxEp = 0
     numRuns = 0
+    styles = {"reward": 3, "steps": 1, "time": 2}
+    style = styles[style]
 
     with open(filename, "r") as f:
         csvread = csv.reader(f)
@@ -45,13 +47,14 @@ def processFile(filename, style, windowsize):
 
     data[:,0] = movingaverage(data[:,0], windowsize)
     data[:,1] = movingaverage(data[:,1], windowsize)
-    print "Processed", numRuns, "runs from", filename
+    if verbose:
+        print "Processed", numRuns, "runs from", filename
     return data
 
 if __name__=="__main__":
     import matplotlib.pyplot as plt
     styles = {"reward": 3, "steps": 1, "time": 2}
-    style_labels = {3:"Reward", 1:"Steps", 2:"Time (Seconds)"}
+    style_labels = {"reward":"Reward", "steps":"Steps", "time":"Time (Seconds)"}
 
     # Read filename for experiment dump file from arguments
     if len(sys.argv) < 6:
@@ -61,7 +64,6 @@ if __name__=="__main__":
     style_str = sys.argv[2].lower()
     style = None
     try:
-        style = styles[style_str]
         style_str = style_labels[style]
     except:
         printUsage()

@@ -1,42 +1,43 @@
 # Author: Will Dabney
 
-from rlglue.agent.Agent import Agent
-from rlglue.agent import AgentLoader as AgentLoader
-from rlglue.types import Action
-from rlglue.types import Observation
-from rlglue.utils import TaskSpecVRLGLUE3
-
 from random import Random
 import numpy
-import sys
-import copy
+
+from rlglue.agent import AgentLoader as AgentLoader
+from pyrl.rlglue.registry import register_agent
 
 import pyrl.misc.matrix as matrix
-import pyrl.basis.fourier as fourier
-import pyrl.basis.rbf as rbf
-import pyrl.basis.tilecode as tilecode
-
 import sarsa_lambda
 
+@register_agent
 class LSTD(sarsa_lambda.sarsa_lambda):
 	"""Least Squares Temporal Difference Learning (LSTD) agent."""
 	
-	def __init__(self, epsilon, gamma, lmbda, params={}, softmax=False):
-		"""Initializes LSTD with exploration rate, discount factor, and eligibility trace decay rate.
+	name = "Least Squares Temporal Difference Learning"
+
+	def randomize_parameters(self, **args):
+		"""Generate parameters randomly, constrained by given named parameters.
+
+		If used, this must be called before agent_init in order to have desired effect.
 		
+		Parameters that fundamentally change the algorithm are not randomized over. For 
+		example, basis and softmax fundamentally change the domain and have very few values 
+		to be considered. They are not randomized over.
+
+		Basis parameters, on the other hand, have many possible values and ARE randomized. 
+
 		Args:
-			epsilon: The exploration rate for epsilon-greedy.
-			gamma: The discount factor for the domain
-			lmbda: The (lambda) eligibility trace decay rate
-			params: Additional parameters
-			softmax: Whether to switch from eps-greedy to softmax policies. Default to False.
+			**args: Named parameters to fix, which will not be randomly generated
+
+		Returns:
+			List of resulting parameters of the class. Will always be in the same order. 
+			Empty list if parameter free.
+
 		"""
-		# lstd_gamma holds the true gamma, and we pass 1. for gamma to sarsa, so we 
-		# don't need to rewrite the eligibility traces update.
-		sarsa_lambda.sarsa_lambda.__init__(self, epsilon, 1.0, 1.0, lmbda, params, softmax)
-		self.A = None
-		self.b = None
-		self.lstd_gamma = gamma
+		# LSTD does not use alpha, so we remove it from the list
+		param_list = sarsa_lambda.sarsa_lambda.randomize_parameters(**args)
+		self.update_freq = self.params.setdefault('lstd_update_freq', numpy.random.randint(200))
+		return param_list[:1] + param_list[2:] + [self.update_freq]
 
 	def init_stepsize(self, weights_shape, params):
 		"""Initializes the step-size variables, in this case meaning the A matrix and b vector.
@@ -50,16 +51,15 @@ class LSTD(sarsa_lambda.sarsa_lambda):
 		self.A = numpy.zeros((numpy.prod(weights_shape),numpy.prod(weights_shape)))
 		self.step_sizes = numpy.zeros((numpy.prod(weights_shape),))
 		self.lstd_counter = 0
-	
+		self.lstd_gamma = self.gamma
+		self.update_freq = int(params.setdefault('lstd_update_freq', 100))
+		self.gamma = 1.0
+		
 	def shouldUpdate(self):
 		self.lstd_counter += 1
-		return self.lstd_counter % 100
+		return self.lstd_counter % self.update_freq
 
 	def update(self, phi_t, phi_tp, reward):
-		# z update..
-		self.traces *= self.lmbda
-		self.traces += phi_t
-
 		# A update...
 		d = phi_t.flatten() - self.lstd_gamma * phi_tp.flatten()
 		self.A = self.A + numpy.outer(self.traces.flatten(), d)
@@ -69,35 +69,16 @@ class LSTD(sarsa_lambda.sarsa_lambda):
 			B = numpy.linalg.pinv(self.A)
 			self.weights = numpy.dot(B, self.step_sizes).reshape(self.weights.shape)
 		
-	def agent_message(self,inMessage):
-		"""Receive a message from the environment or experiment and respond.
-		
-		Args:
-			inMessage: A string message sent by either the environment or experiment to the agent.
 
-		Returns:
-			A string response message.
-		"""
-		return "LSTD(lambda) [Python] does not understand your message."
+@register_agent
+class oLSTD(sarsa_lambda.sarsa_lambda):
+	"""Online Least Squares Temporal Difference Learning (oLSTD) agent. 
 
+	O(n^2) time complexity.
 
-class oLSTD(LSTD):
-	"""Online Least Squares Temporal Difference Learning (oLSTD) agent. O(n^2) time complexity."""
-	def __init__(self, epsilon, alpha, gamma, lmbda, params={}, softmax=False):
-		"""Initializes LSTD with exploration rate, discount factor, and eligibility trace decay rate.
-		
-		Args:
-			epsilon: The exploration rate for epsilon-greedy.
-			alpha: The multiplicative scale for the random initialization of the inverse matrix.
-			gamma: The discount factor for the domain
-			lmbda: The (lambda) eligibility trace decay rate
-			params: Additional parameters
-			softmax: Whether to switch from eps-greedy to softmax policies. Default to False.
-		"""
-		sarsa_lambda.sarsa_lambda.__init__(self, epsilon, alpha, 1.0, lmbda, params, softmax)
-		self.A = None
-		self.b = None
-		self.lstd_gamma = gamma
+	"""
+
+	name = "Online Least Squares TD"
 
 	def init_stepsize(self, weights_shape, params):
 		"""Initializes the step-size variables, in this case meaning the A matrix and b vector.
@@ -110,46 +91,71 @@ class oLSTD(LSTD):
 		self.A += numpy.random.random(self.A.shape)*self.alpha
 		self.step_sizes = numpy.zeros((numpy.prod(weights_shape),))
 		self.lstd_counter = 0
+		self.lstd_gamma = self.gamma
+		self.gamma = 1.0
 
 	def update(self, phi_t, phi_tp, reward):
-		self.traces *= self.lmbda
-		self.traces += phi_t
-
 		d = phi_t.flatten() - self.lstd_gamma * phi_tp.flatten()
 		self.step_sizes += self.traces.flatten() * reward
 
 		self.A = matrix.SMInv(self.A, self.traces.flatten(), d, 1.)
 		self.weights = numpy.dot(self.A, self.step_sizes).reshape(self.weights.shape)
 
-	def shouldUpdate(self):
-		return True
 
+@register_agent
 class iLSTD(LSTD):
 	"""Incremental Least Squares Temporal Difference Learning (iLSTD) agent."""
-	def __init__(self, epsilon, alpha, gamma, lmbda, num_sweeps, params={}, softmax=False):
-		"""Initializes iLSTD with exploration rate, step-size, discount factor, and eligibility trace decay rate.
+
+	name = "Incremental Least Squares TD"
+
+	def __init__(self, **kwargs):
+		"""Initialize Sarsa based agent, or some subclass with given named parameters.
 		
 		Args:
-			epsilon: The exploration rate for epsilon-greedy.
-			alpha: The step-size to use.
-			gamma: The discount factor for the domain
-			lmbda: The (lambda) eligibility trace decay rate
-			num_sweeps: The number of sweeps to perform per time step.
-			params: Additional parameters
-			softmax: Whether to switch from eps-greedy to softmax policies. Default to False.
+			epsilon=0.1: Exploration rate for epsilon-greedy, or the rescale factor for soft-max policies.
+			alpha=0.01: Step-Size for parameter updates.
+			gamma=1.0: Discount factor for learning, also viewed as a planning/learning horizon.
+			lmbda=0.7: Eligibility decay rate.
+			softmax=False: True to use soft-max style policies, false to use epsilon-greedy policies.
+			basis='trivial': Name of basis functions to use. [trivial, fourier, rbf, tile]
+			fourier_order=3: Order of fourier basis to use if using fourier basis.
+			rbf_number=0: Number of radial basis functions to use if doing rbf basis. Defaults to 0 for dim of states.
+			rbf_beta=1.0: Beta parameter for rbf basis.
+			tile_number=100: Number of tilings to use with tile coding basis.
+			tile_weights=2048: Number of weights to use with tile coding.
+			ilstd_sweeps=1: Number of update sweeps to perform per step for iLSTD.
+			**kwargs: Additional named arguments
+
 		"""
-		sarsa_lambda.sarsa_lambda.__init__(self, epsilon, alpha, 1.0, lmbda, params, softmax)
-		self.A = None
-		self.b = None
-		self.num_sweeps = num_sweeps
-		self.lstd_gamma = gamma
+
+		sarsa_lambda.sarsa_lambda.__init__(self, **kwargs)
+		self.num_sweeps = int(kwargs.setdefault('ilstd_sweeps', 1))
+
+	def randomize_parameters(self, **args):
+		"""Generate parameters randomly, constrained by given named parameters.
+
+		If used, this must be called before agent_init in order to have desired effect.
+		
+		Parameters that fundamentally change the algorithm are not randomized over. For 
+		example, basis and softmax fundamentally change the domain and have very few values 
+		to be considered. They are not randomized over.
+
+		Basis parameters, on the other hand, have many possible values and ARE randomized. 
+
+		Args:
+			**args: Named parameters to fix, which will not be randomly generated
+
+		Returns:
+			List of resulting parameters of the class. Will always be in the same order. 
+			Empty list if parameter free.
+
+		"""
+		param_list = sarsa_lambda.sarsa_lambda.randomize_parameters(**args)
+		self.num_sweeps = int(args.setdefault('ilstd_sweeps', numpy.random.randint(99)+1))
+		return param_list + [self.num_sweeps]
 
 	def update(self, phi_t, phi_tp, reward):
 		#iLSTD
-		# z update..
-		self.traces *= self.lmbda
-		self.traces += phi_t
-
 		# A update...
 		d = numpy.outer(self.traces.flatten(), phi_t.flatten() - self.lstd_gamma*phi_tp.flatten())
 		self.A = self.A + d
@@ -159,16 +165,59 @@ class iLSTD(LSTD):
 			self.weights.flat[j] += self.alpha * self.step_sizes[j]
 			self.step_sizes -= self.alpha * self.step_sizes[j] * self.A.T[:,j]
 
-	def shouldUpdate(self):
-		return True
 
+@register_agent
+class RLSTD(sarsa_lambda.sarsa_lambda):
 
-class RLSTD(LSTD):
+	name = "Recursive Least Squares TD"
+
 	# alpha is the forgetting factor, delta is what to initialize A to
-	def __init__(self, epsilon, alpha, delta, gamma, lmbda, params={}, softmax=False):
-		sarsa_lambda.sarsa_lambda.__init__(self, epsilon, alpha, gamma, lmbda, params, softmax)
-		self.delta = delta
-		self.A = None
+	def __init__(self, **kwargs):
+		"""Initialize Sarsa based agent, or some subclass with given named parameters.
+		
+		Args:
+			epsilon=0.1: Exploration rate for epsilon-greedy, or the rescale factor for soft-max policies.
+			alpha=1.: Forgetting factor
+			gamma=1.0: Discount factor for learning, also viewed as a planning/learning horizon.
+			lmbda=0.7: Eligibility decay rate.
+			softmax=False: True to use soft-max style policies, false to use epsilon-greedy policies.
+			basis='trivial': Name of basis functions to use. [trivial, fourier, rbf, tile]
+			fourier_order=3: Order of fourier basis to use if using fourier basis.
+			rbf_number=0: Number of radial basis functions to use if doing rbf basis. Defaults to 0 for dim of states.
+			rbf_beta=1.0: Beta parameter for rbf basis.
+			tile_number=100: Number of tilings to use with tile coding basis.
+			tile_weights=2048: Number of weights to use with tile coding.
+			delta=200: Initialization of inverse matrix to delta*Identity
+			**kwargs: Additional named arguments
+
+		"""
+
+		kwargs.setdefault('alpha', 1.0)
+		sarsa_lambda.sarsa_lambda.__init__(self, **kwargs)
+		self.delta = kwargs.setdefault('rlstd_delta', 1.0)
+
+	def randomize_parameters(self, **args):
+		"""Generate parameters randomly, constrained by given named parameters.
+
+		If used, this must be called before agent_init in order to have desired effect.
+		
+		Parameters that fundamentally change the algorithm are not randomized over. For 
+		example, basis and softmax fundamentally change the domain and have very few values 
+		to be considered. They are not randomized over.
+
+		Basis parameters, on the other hand, have many possible values and ARE randomized. 
+
+		Args:
+			**args: Named parameters to fix, which will not be randomly generated
+
+		Returns:
+			List of resulting parameters of the class. Will always be in the same order. 
+			Empty list if parameter free.
+
+		"""
+		param_list = sarsa_lambda.sarsa_lambda.randomize_parameters(**args)
+		self.delta = args.setdefault('rlstd_delta', numpy.random.randint(1000)+1)
+		return param_list + [self.delta]
 
 	def init_stepsize(self, weights_shape, params):
 		self.A = numpy.eye(numpy.prod(weights_shape)) * self.delta 
@@ -183,9 +232,6 @@ class RLSTD(LSTD):
 		K = d / (self.alpha + numpy.dot((phi_t - self.gamma * phi_tp).flatten(), d))
 		self.A = matrix.SMInv(self.A, self.traces.flatten(), (phi_t - self.gamma*phi_tp).flatten(), self.alpha)
 		self.weights += (reward - numpy.dot((phi_t - self.gamma * phi_tp).flatten(), self.weights.flatten())) * K.reshape(self.weights.shape)
-
-	def shouldUpdate(self):
-		return True
 
 
 
@@ -216,27 +262,33 @@ if __name__=="__main__":
 
 	args = parser.parse_args()
 	params = {}
-	params['name'] = args.basis
-	params['order'] = args.fourier_order
-	params['num_functions'] = args.rbf_num
-	params['beta'] = args.rbf_beta
-	params['num_tiles'] = args.tiles_num
-	params['num_weights'] = args.tiles_size
-	alpha = args.stepsize
+	params['alpha'] = args.alpha
+	params['gamma'] = args.gamma
+	params['lmbda'] = args.lmbda
 
-	epsilon = args.epsilon
-	softmax = False
 	if args.softmax is not None:
-		softmax = True
-		epsilon = args.softmax
-
-	if args.algorithm == "lstd":
-		AgentLoader.loadAgent(LSTD(epsilon, args.gamma, args.lmbda, params=params, softmax=softmax))
-	elif args.algorithm == "online":
-		AgentLoader.loadAgent(oLSTD(epsilon, args.beta, args.gamma, args.lmbda, params=params, softmax=softmax))
-	elif args.algorithm == "ilstd":
-		AgentLoader.loadAgent(iLSTD(epsilon, alpha, args.gamma, args.lmbda, args.num_sweeps, params=params, softmax=softmax))
-	elif args.algorithm == "rlstd":
-		AgentLoader.loadAgent(RLSTD(epsilon, args.mu, args.delta, args.gamma, args.lmbda, params=params, softmax=softmax))
+		params['softmax'] = True
+		params['epsilon'] = args.softmax
 	else:
-		print "Error: Unknown LSTD algorithm", args.algorithm
+		params['softmax'] = False
+		params['epsilon'] = args.epsilon
+
+	params['basis'] = args.basis
+	params['fourier_order'] = args.fourier_order
+	params['rbf_number'] = args.rbf_num
+	params['rbf_beta'] = args.rbf_beta
+	params['tile_number'] = args.tiles_num
+	params['tile_weights'] = args.tiles_size
+
+	if args.algorithm == 'rlstd':
+		params['alpha'] = args.mu
+		params['rlstd_delta'] = args.delta
+		AgentLoader.loadAgent(RLSTD(**params))
+	elif args.algorithm == 'online':
+		params['alpha'] = args.beta
+		AgentLoader.loadAgent(oLSTD(**params))
+	elif args.algorithm == 'ilstd':
+		params['ilstd_sweeps'] = args.num_sweeps
+		AgentLoader.loadAgent(iLSTD(**params))
+	else:
+		AgentLoader.loadAgent(LSTD(**params))
