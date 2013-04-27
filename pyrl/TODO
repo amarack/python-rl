@@ -32,4 +32,4 @@ Extensions to Existing Implementations:
 ------------------------------
 
 Add other exploration bonus methods to the modelbased agents
-
+Add error bars to the compareParameters visualizer
