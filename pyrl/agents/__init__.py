@@ -14,6 +14,7 @@ try:
     __all__.append("qlearning")
     __all__.append("sarsa_lambda")
     __all__.append("lstd")
+    __all__.append("policy_gradient")
 except:
     pass
 
