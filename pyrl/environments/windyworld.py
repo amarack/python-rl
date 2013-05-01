@@ -30,6 +30,7 @@ from scipy.stats import norm
 
 @register_environment
 class WindyGridworld(gridworld.Gridworld):
+	name = "Windy Gridworld"
 	# The effect of the wind is always positive in the y dimension, and 
 	# is equal to the wind_power multiplied with the pdf of the current x-coordinate on a Gaussian distribution 
 	# with mean wind_center and standard deviation wind_stdev.

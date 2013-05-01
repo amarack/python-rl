@@ -1,4 +1,4 @@
-import numpy, itertools
+import numpy, itertools, math
 
 # Compute the value of (A + uv^T)^-1 given A^-1, u, and v. 
 # Uses the Sherman-Morrison formula
@@ -13,3 +13,15 @@ def SMInv(Ainv, u, v, e):
 
 def vector_angle(u, v):
     return numpy.arccos(numpy.dot(u,v)/(numpy.linalg.norm(u)*numpy.linalg.norm(v)))*180.0/numpy.pi
+
+def mvnpdf(x, mu, sigma_inv):
+    size = len(x)
+    if size == len(mu) and sigma_inv.shape == (size, size):
+        det = 1./numpy.linalg.det(sigma_inv)
+        norm_const = 1.0/ ( math.pow((2*numpy.pi),float(size)/2) * math.pow(det,0.5) )
+        x_mu = x - mu
+        result = math.pow(math.e, -0.5 * numpy.dot(x_mu, numpy.dot(sigma_inv, x_mu)))
+        return norm_const * result
+    else:
+        raise NameError("The dimensions of the input don't match")
+

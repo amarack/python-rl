@@ -21,7 +21,6 @@ Implement "save_trajectory filename numsteps" message support into base class of
 Delayed Q-Learning
 TD-delta Pi
 Mirror Descent for RL
-NAC / AC / Policy Gradient
 TDC / GTD
 Skill Chaining
 PoWER
