@@ -18,11 +18,20 @@ import stepsizes
 
 def pnorm_linkfunc(weights, order):
 	"""Link function induced by the p-norm."""
+	if (weights==0.0).all():
+		return numpy.zeros(weights.shape)
 	return numpy.sign(weights) * numpy.abs(weights)**(order-1) / numpy.linalg.norm(weights, ord=order)**(order - 2)
 		
 
 @register_agent
 class md_qlearn(qlearning.qlearning_agent):
+	"""Sparse Mirror Descent Q-Learning using a p-norm distance generating function. 
+	Set the sparsity parameter to zero to get Mirror Descent Q-Learning.
+	From the paper:
+
+	Sparse Q-Learning with Mirror Descent,
+	Sridhar Mahadevan and Bo Liu, 2012.
+	"""
 	name = "Sparse Mirror Descent Q-Learning"
 	
 	def __init__(self, **kwargs):
@@ -76,6 +85,13 @@ class md_qlearn(qlearning.qlearning_agent):
 		
 @register_agent
 class md_sarsa(sarsa_lambda.sarsa_lambda):
+	"""Sparse Mirror Descent Q-Learning using a p-norm distance generating function. 
+	Set the sparsity parameter to zero to get Mirror Descent Q-Learning.
+	From the paper:
+
+	Sparse Q-Learning with Mirror Descent,
+	Sridhar Mahadevan and Bo Liu, 2012.
+	"""
 	name = "Sparse Mirror Descent Sarsa"
 	
 	def __init__(self, **kwargs):
@@ -112,6 +128,13 @@ class md_sarsa(sarsa_lambda.sarsa_lambda):
 # NOTE: This agent is not working at all. Not sure yet what is wrong
 @register_agent
 class cmd_sarsa(sarsa_lambda.sarsa_lambda):
+	"""Sparse Mirror Descent Q-Learning using a p-norm distance generating function. 
+	Set the sparsity parameter to zero to get Mirror Descent Q-Learning.
+	From the paper:
+
+	Sparse Q-Learning with Mirror Descent,
+	Sridhar Mahadevan and Bo Liu, 2012.
+	"""
 	name = "Composite Mirror Descent Sarsa"
 	
 	def __init__(self, **kwargs):
@@ -136,6 +159,73 @@ class cmd_sarsa(sarsa_lambda.sarsa_lambda):
 		update = self.weights - nobis_term * delta * self.traces
 		self.weights = numpy.sign(update) * (numpy.abs(update) - nobis_term * self.sparsity)
 
+
+@register_agent
+class mdba_qlearn(md_qlearn):
+	"""Sparse Mirror Descent Q-Learning with Non-Linear Basis Adaptation, 
+	using a p-norm distance generating function. Set the sparsity parameter 
+	to zero to get Mirror Descent Q-Learning.
+	From the paper:
+
+	Basis Adaptation for Sparse Nonlinear Reinforcement Learning
+	Sridhar Mahadevan, Stephen Giguere, and Nicholas Jacek, 2013.
+	"""
+	name = "Sparse Mirror Descent Q-Learning with Non-Linear Basis Adaptation"	
+	def __init__(self, **kwargs):
+		kwargs['basis'] = 'fourier' # Force to use fourier basis for adaptation
+		md_qlearn.__init__(self, **kwargs)
+		self.beta = kwargs.setdefault('nonlinear_lr', 1.e-6)
+
+	def agent_init(self, taskSpec):
+		md_qlearn.agent_init(self, taskSpec)
+		self.freq_scale = numpy.ones((self.weights.shape[1],))
+
+	def update(self, phi_t, state, discState, reward):
+		Q_tp = 0.0
+		a_tp = 0
+		s_tp = None
+		Q_values = None
+		if state is not None:
+			# Find max_a Q(s_tp)
+			if self.basis is None:
+				s_tp = state
+			else:
+				s_tp = self.basis.computeFeatures(state)
+			Q_values = numpy.dot(self.weights[discState,:,:].T, s_tp)
+			a_tp = Q_values.argmax()
+			Q_tp = Q_values.max()
+
+			delta = self.gamma*Q_tp + reward - numpy.dot(self.weights.flatten(), phi_t.flatten())
+			deltaGrad = numpy.zeros(self.freq_scale.shape)
+			logSumExp = Q_tp + numpy.log(numpy.exp(Q_values - Q_tp).sum())
+			update_fs = numpy.zeros(self.freq_scale.shape)
+
+			approxMaxGrad = numpy.exp(Q_values - logSumExp)
+
+			sfeatures = numpy.dot(numpy.dot(numpy.diag(1./self.freq_scale), self.basis.multipliers), numpy.array([self.basis.scale(state[i],i) for i in range(len(state))]))
+			fa_grad = -numpy.pi * sfeatures * numpy.sin(numpy.pi * self.freq_scale * sfeatures)
+			for a in range(self.numActions):
+				deltaGrad += approxMaxGrad[a] * (fa_grad * self.weights[discState,:,a]) 
+
+			lastState = numpy.array(list(self.lastObservation.doubleArray))
+			lastAction = self.lastAction.intArray[0]
+			lastDiscState = self.getDiscState(self.lastObservation.intArray)
+
+			sfeatures = numpy.dot(numpy.dot(numpy.diag(1./self.freq_scale), self.basis.multipliers), numpy.array([self.basis.scale(lastState[i],i) for i in range(len(state))]))
+			fa_grad = -numpy.pi * sfeatures * numpy.sin(numpy.pi * self.freq_scale * sfeatures)
+
+			update_fs = self.beta * delta * (self.gamma * deltaGrad - (fa_grad * self.weights[lastDiscState, :,lastAction]))
+		
+		        # Do MDA update for weights
+			md_qlearn.update(self, phi_t, state, discState, reward)
+
+			# Update frequency scaling
+			update_fs += self.freq_scale
+			# Change scaling on multipliers
+			self.basis.multipliers = numpy.dot(numpy.diag(update_fs/self.freq_scale), self.basis.multipliers)
+			self.freq_scale = update_fs
+		else:
+			md_qlearn.update(self, phi_t, state, discState, reward)
 
 
 
