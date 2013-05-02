@@ -15,6 +15,7 @@ try:
     __all__.append("sarsa_lambda")
     __all__.append("lstd")
     __all__.append("policy_gradient")
+    __all__.append("mirror_descent")
 except:
     pass
 

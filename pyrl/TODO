@@ -4,7 +4,6 @@ TODO for pyRL project
 
 Implement Environments (in Python) or Convert C/C++ into Module:
 ------------------------------
-PuddleWorld
 Tetris
 Dart Throwing (from Bruno Castro da Silva's paper on parameterized skills)
 Partially Observable Taxi

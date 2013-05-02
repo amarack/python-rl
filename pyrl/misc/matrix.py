@@ -14,6 +14,9 @@ def SMInv(Ainv, u, v, e):
 def vector_angle(u, v):
     return numpy.arccos(numpy.dot(u,v)/(numpy.linalg.norm(u)*numpy.linalg.norm(v)))*180.0/numpy.pi
 
+# Modified version of this solution:
+# http://stackoverflow.com/questions/11615664/multivariate-normal-density-in-python
+# Takes the inverse of the covariance matrix instead of the covariance matrix
 def mvnpdf(x, mu, sigma_inv):
     size = len(x)
     if size == len(mu) and sigma_inv.shape == (size, size):
