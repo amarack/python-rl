@@ -22,7 +22,7 @@ def pnorm_linkfunc(weights, order):
 		
 
 @register_agent
-class md_sarsa(qlearning.qlearning_agent):
+class md_qlearn(qlearning.qlearning_agent):
 	name = "Sparse Mirror Descent Q-Learning"
 	
 	def __init__(self, **kwargs):
@@ -31,8 +31,6 @@ class md_sarsa(qlearning.qlearning_agent):
 
 	def agent_start(self,observation):
 		returnAction = qlearning.qlearning_agent.agent_start(self, observation)
-		# Weights mustn't be uniformly zero or the pnorm link function is not defined
-		self.weights = numpy.random.random(self.weights.shape)*0.01
 		self.pnorm = 2. * max(1, numpy.log10(numpy.prod(self.weights.shape)))
 		self.qnorm = self.pnorm / (self.pnorm - 1.)
 		return returnAction
@@ -86,8 +84,6 @@ class md_sarsa(sarsa_lambda.sarsa_lambda):
 
 	def agent_start(self,observation):
 		returnAction = sarsa_lambda.sarsa_lambda.agent_start(self, observation)
-		# Weights mustn't be uniformly zero or the pnorm link function is not defined
-		self.weights = numpy.random.random(self.weights.shape)
 		self.pnorm = 2. * max(1, numpy.log10(numpy.prod(self.weights.shape)))
 		self.qnorm = self.pnorm / (self.pnorm - 1.)
 		return returnAction
@@ -139,6 +135,7 @@ class cmd_sarsa(sarsa_lambda.sarsa_lambda):
 		# Update the weights
 		update = self.weights - nobis_term * delta * self.traces
 		self.weights = numpy.sign(update) * (numpy.abs(update) - nobis_term * self.sparsity)
+
 
 
 

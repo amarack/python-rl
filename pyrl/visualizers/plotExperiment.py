@@ -61,8 +61,8 @@ if __name__=="__main__":
         printUsage()
 
     mainTitle = sys.argv[1]
-    style_str = sys.argv[2].lower()
-    style = None
+    style = sys.argv[2].lower()
+
     try:
         style_str = style_labels[style]
     except:
