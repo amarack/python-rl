@@ -254,13 +254,8 @@ class sarsa_lambda(Agent):
 		# Update eligibility traces
 		phi_t = numpy.zeros(self.traces.shape)
 		phi_tp = numpy.zeros(self.traces.shape)
-
-		if self.basis is None:
-			phi_tp[newDiscState, :,newIntAction] = newState
-			phi_t[lastDiscState, :,lastAction] = lastState
-		else:
-			phi_tp[newDiscState, :,newIntAction] = self.basis.computeFeatures(newState)
-			phi_t[lastDiscState, :,lastAction] = self.basis.computeFeatures(lastState)
+		phi_t[lastDiscState, :, lastAction] = lastState if self.basis is None else self.basis.computeFeatures(lastState)
+		phi_tp[newDiscState, :, newIntAction] = newState if self.basis is None else self.basis.computeFeatures(newState)
 		
 		self.traces *= self.gamma * self.lmbda
 		self.traces += phi_t
@@ -303,11 +298,7 @@ class sarsa_lambda(Agent):
 		# Update eligibility traces
 		phi_t = numpy.zeros(self.traces.shape)
 		phi_tp = numpy.zeros(self.traces.shape)
-
-		if self.basis is None:
-			phi_t[lastDiscState, :,lastAction] = lastState
-		else:
-			phi_t[lastDiscState, :,lastAction] = self.basis.computeFeatures(lastState)
+		phi_t[lastDiscState, :, lastAction] = lastState if self.basis is None else self.basis.computeFeatures(lastState)
 		
 		self.traces *= self.gamma * self.lmbda
 		self.traces += phi_t

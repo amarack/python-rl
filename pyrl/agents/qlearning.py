@@ -39,12 +39,8 @@ class qlearning_agent(sarsa_lambda.sarsa_lambda):
 
 		# Update eligibility traces
 		phi_t = numpy.zeros(self.traces.shape)
+		phi_t[lastDiscState, :, lastAction] = lastState if self.basis is None else self.basis.computeFeatures(lastState)
 
-		if self.basis is None:
-			phi_t[lastDiscState, :,lastAction] = lastState
-		else:
-			phi_t[lastDiscState, :,lastAction] = self.basis.computeFeatures(lastState)
-		
 		self.traces *= self.gamma * self.lmbda
 		self.traces += phi_t
 
@@ -59,27 +55,21 @@ class qlearning_agent(sarsa_lambda.sarsa_lambda):
 		self.lastObservation=copy.deepcopy(observation)
 		return returnAction
 
-	def update(self, phi_t, state, discState, reward):
-		Q_tp = 0.0
-		a_tp = 0
-		s_tp = None
+	def getActionValues(self, state, discState):
 		if state is not None:
-			# Find max_a Q(s_tp)
-			if self.basis is None:
-				s_tp = state
-			else:
-				s_tp = self.basis.computeFeatures(state)
-			Q_tp = numpy.dot(self.weights[discState,:,:].T, s_tp)
-			a_tp = Q_tp.argmax()
-			Q_tp = Q_tp.max()
+			s = state if self.basis is None else self.basis.computeFeatures(state)
+			return numpy.dot(self.weights[discState,:,:].T, s)
+		else:
+			return numpy.zeros((self.numActions,))
+
+	def update(self, phi_t, state, discState, reward):
+		qvalues = self.getActionValues(state, discState)
+		a_tp = qvalues.argmax()
+		phi_tp = numpy.zeros(self.traces.shape)
+		phi_tp[discState, :, a_tp] = state if self.basis is None else self.basis.computeFeatures(state)
 
 		# Compute Delta (TD-error)
-		delta = self.gamma*Q_tp + reward - numpy.dot(self.weights.flatten(), phi_t.flatten())
-
-		# Adaptive step-size if that is enabled
-		phi_tp = numpy.zeros(phi_t.shape)
-		if s_tp is not None:
-			phi_tp[discState,:,a_tp] = s_tp
+		delta = self.gamma*qvalues[a_tp] + reward - numpy.dot(self.weights.flatten(), phi_t.flatten())
 
 		# Update the weights with both a scalar and vector stepsize used
 		# (Maybe we should actually make them both work together naturally)
@@ -100,11 +90,7 @@ class qlearning_agent(sarsa_lambda.sarsa_lambda):
 		# Update eligibility traces
 		phi_t = numpy.zeros(self.traces.shape)
 		phi_tp = numpy.zeros(self.traces.shape)
-
-		if self.basis is None:
-			phi_t[lastDiscState, :,lastAction] = lastState
-		else:
-			phi_t[lastDiscState, :,lastAction] = self.basis.computeFeatures(lastState)
+		phi_t[lastDiscState, :, lastAction] = lastState if self.basis is None else self.basis.computeFeatures(lastState)
 		
 		self.traces *= self.gamma * self.lmbda
 		self.traces += phi_t

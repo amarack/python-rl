@@ -51,26 +51,11 @@ class md_qlearn(qlearning.qlearning_agent):
 		return pnorm_linkfunc(weights.flatten(), self.pnorm).reshape(weights.shape)
 
 	def update(self, phi_t, state, discState, reward):
-		Q_tp = 0.0
-		a_tp = 0
-		s_tp = None
-		if state is not None:
-			# Find max_a Q(s_tp)
-			if self.basis is None:
-				s_tp = state
-			else:
-				s_tp = self.basis.computeFeatures(state)
-			Q_tp = numpy.dot(self.weights[discState,:,:].T, s_tp)
-			a_tp = Q_tp.argmax()
-			Q_tp = Q_tp.max()
+		qvalues = self.getActionValues(state, discState)
+		a_tp = qvalues.argmax()
 
 		# Compute Delta (TD-error)
-		delta = self.gamma*Q_tp + reward - numpy.dot(self.weights.flatten(), phi_t.flatten())
-
-		# Adaptive step-size if that is enabled
-		phi_tp = numpy.zeros(phi_t.shape)
-		if s_tp is not None:
-			phi_tp[discState,:,a_tp] = s_tp
+		delta = self.gamma*qvalues[a_tp] + reward - numpy.dot(self.weights.flatten(), phi_t.flatten())
 
 		# Update dual weights
 		dual_weights = self.proj_dual(self.weights)
@@ -181,26 +166,17 @@ class mdba_qlearn(md_qlearn):
 		self.freq_scale = numpy.ones((self.weights.shape[1],))
 
 	def update(self, phi_t, state, discState, reward):
-		Q_tp = 0.0
-		a_tp = 0
-		s_tp = None
-		Q_values = None
-		if state is not None:
-			# Find max_a Q(s_tp)
-			if self.basis is None:
-				s_tp = state
-			else:
-				s_tp = self.basis.computeFeatures(state)
-			Q_values = numpy.dot(self.weights[discState,:,:].T, s_tp)
-			a_tp = Q_values.argmax()
-			Q_tp = Q_values.max()
+		qvalues = self.getActionValues(state, discState)
+		a_tp = qvalues.argmax()
 
-			delta = self.gamma*Q_tp + reward - numpy.dot(self.weights.flatten(), phi_t.flatten())
+		if state is not None:
+			# Compute Delta (TD-error)
+			delta = self.gamma*qvalues[a_tp] + reward - numpy.dot(self.weights.flatten(), phi_t.flatten())
 			deltaGrad = numpy.zeros(self.freq_scale.shape)
-			logSumExp = Q_tp + numpy.log(numpy.exp(Q_values - Q_tp).sum())
+			logSumExp = qvalues[a_tp] + numpy.log(numpy.exp(qvalues - qvalues[a_tp]).sum())
 			update_fs = numpy.zeros(self.freq_scale.shape)
 
-			approxMaxGrad = numpy.exp(Q_values - logSumExp)
+			approxMaxGrad = numpy.exp(qvalues - logSumExp)
 
 			sfeatures = numpy.dot(numpy.dot(numpy.diag(1./self.freq_scale), self.basis.multipliers), numpy.array([self.basis.scale(state[i],i) for i in range(len(state))]))
 			fa_grad = -numpy.pi * sfeatures * numpy.sin(numpy.pi * self.freq_scale * sfeatures)
