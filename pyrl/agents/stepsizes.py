@@ -11,7 +11,8 @@
 # Author: Will Dabney                                           #
 #################################################################
 
-import numpy
+import numpy, scipy.linalg
+from pyrl.misc import matrix
 from pyrl.rlglue.registry import register_agent
 
 
@@ -53,9 +54,9 @@ class AdaptiveStepSize(object):
     def init_stepsize(self, weights_shape, params):
         self.step_sizes = numpy.ones(weights_shape) * self.alpha
 
-    def compute_stepsize(self, phi_t, phi_tp, delta, reward):
-        pass
-    
+    def rescale_update(self, phi_t, phi_tp, delta, reward, descent_direction):
+        return self.step_sizes * descent_direction
+
     def randomize_parameters(self, **args):
         """Generate parameters randomly, constrained by given named parameters.
         
@@ -90,9 +91,10 @@ class GHS(AdaptiveStepSize):
         self.ghs_param = params.setdefault('ghs_a', 10.0)
         self.ghs_counter = 1
 
-    def compute_stepsize(self, phi_t, phi_tp, delta, reward):
+    def rescale_update(self, phi_t, phi_tp, delta, reward, descent_direction):
         self.step_sizes.fill(self.alpha * self.ghs_param/(self.ghs_param + self.ghs_counter - 1))
         self.ghs_counter += 1
+        return self.step_sizes * descent_direction
 
     def randomize_parameters(self, **args):
         self.params['ghs_a'] = args.setdefault('ghs_a', numpy.random.random()*10000.)
@@ -114,9 +116,10 @@ class McClains(AdaptiveStepSize):
         self.step_sizes = numpy.ones(weights_shape) * self.alpha
         self.mcclain_param = params.setdefault('mcclain_a', 0.01)
 
-    def compute_stepsize(self, phi_t, phi_tp, delta, reward):
+    def rescale_update(self, phi_t, phi_tp, delta, reward, descent_direction):
         self.step_sizes.fill(self.alpha)
         self.alpha /= (1 + self.alpha - self.mcclain_param)
+        return self.step_sizes * descent_direction
 
     def randomize_parameters(self, **args):
         self.params['mcclain_a'] = args.setdefault('mcclain_a', numpy.random.random()*self.alpha)
@@ -138,11 +141,12 @@ class STC(AdaptiveStepSize):
         self.stc_N = params.setdefault('stc_N', 500000.0)
         self.stc_counter = 0
 
-    def compute_stepsize(self, phi_t, phi_tp, delta, reward):
+    def rescale_update(self, phi_t, phi_tp, delta, reward, descent_direction):
         self.alpha *= (1 + (self.stc_c * self.stc_counter)/(self.stc_a0 * self.stc_N)) 
         self.alpha /= (1 + (self.stc_c * self.stc_counter)/(self.stc_a0 * self.stc_N) + self.stc_N*(self.stc_counter**2)/self.stc_N**2)
         self.step_sizes.fill(self.alpha)
         self.stc_counter += 1
+        return self.step_sizes * descent_direction
 
     def randomize_parameters(self, **args):
         self.params['stc_c'] = args.setdefault('stc_c', numpy.random.random()*1.e10)
@@ -164,10 +168,11 @@ class RProp(AdaptiveStepSize):
         self.eta_low = params.setdefault('rprop_eta_low', 0.01)
         self.eta_high = params.setdefault('rprop_eta_high', 1.2)
 
-    def compute_stepsize(self, phi_t, phi_tp, delta, reward):
+    def rescale_update(self, phi_t, phi_tp, delta, reward, descent_direction):
         sign_changes = numpy.where(self.last_update * delta * self.traces <= 0)
         self.step_sizes.fill(self.eta_high)
         self.step_sizes[sign_changes] = self.eta_low
+        return self.step_sizes * descent_direction
 
     def randomize_parameters(self, **args):
         self.params['rprop_eta_high'] = args.setdefault('rprop_eta_high', numpy.random.random()*2.)
@@ -192,7 +197,7 @@ class Autostep(AdaptiveStepSize):
         self.mu = params.setdefault('autostep_mu', 1.0e-2)
         self.tau = params.setdefault('autostep_tau', 1.0e4)
 
-    def compute_stepsize(self, phi_t, phi_tp, delta, reward):
+    def rescale_update(self, phi_t, phi_tp, delta, reward, descent_direction):
         x = phi_t.flatten()
         deltaTerm = delta * x * self.h
         alphas = self.step_sizes.flatten()
@@ -206,6 +211,7 @@ class Autostep(AdaptiveStepSize):
         # This may or may not be used depending on which paper you read
         #plus_note[plus_note < 0] = 0.0 
         self.h = self.h * plus_note + self.step_sizes.flatten()*delta*x
+        return self.step_sizes * descent_direction
 
     def randomize_parameters(self, **args):
         self.params['autostep_mu'] = args.setdefault('autostep_mu', numpy.random.random())
@@ -222,10 +228,60 @@ class AlphaBounds(AdaptiveStepSize):
     name = "AlphaBound"
     def init_stepsize(self, weights_shape, params):
         self.step_sizes = numpy.ones(weights_shape) * self.alpha
-        
-    def compute_stepsize(self, phi_t, phi_tp, delta, reward):
+
+    def rescale_update(self, phi_t, phi_tp, delta, reward, descent_direction):
         deltaPhi = (self.gamma * phi_tp - phi_t).flatten()
         denomTerm = numpy.dot(self.traces.flatten(), deltaPhi.flatten())
         self.alpha = numpy.min([self.alpha, 1.0/numpy.abs(denomTerm)])
         self.step_sizes.fill(self.alpha)
-	
+        return self.step_sizes * descent_direction	
+
+class AdagradFull(AdaptiveStepSize):
+    """ADAGRAD algorithm for adaptive step-sizes, originally for the more general problem 
+    of adaptive proximal functions in subgradient methods. This is an implementation of 
+    the full matrix variation.
+
+    From the paper:
+    John Duchi, Elad Hazan, Yoram Singer, 2010
+    Adaptive Subgradient Methods for Online Learning and Stochastic Optimization.
+    """
+    name = "AdagradFull"
+    def init_stepsize(self, weights_shape, params):
+        self.step_sizes = numpy.ones(weights_shape) * self.alpha
+        self.h = numpy.eye(self.step_sizes.size) * params.setdefault("adagrad_precond", 0.001)
+        self.adagrad_counter = 0.
+            
+    def rescale_update(self, phi_t, phi_tp, delta, reward, descent_direction):
+        self.adagrad_counter += 1      
+        g = delta * phi_t.flatten()
+        self.h = matrix.SMInv(self.h, g, g, 1.)
+        if self.adagrad_counter > 1:
+            Hinv = numpy.real(scipy.linalg.sqrtm(self.h))
+            descent_direction = numpy.dot(Hinv, descent_direction.flatten())
+            descent_direction *= numpy.sqrt(self.adagrad_counter)
+        return self.step_sizes * descent_direction.reshape(self.step_sizes.shape)
+
+
+class AdagradDiagonal(AdaptiveStepSize):
+    """ADAGRAD algorithm for adaptive step-sizes, originally for the more general problem 
+    of adaptive proximal functions in subgradient methods. This is an implementation of 
+    the diagonal matrix variation.
+
+    From the paper:
+    John Duchi, Elad Hazan, Yoram Singer, 2010
+    Adaptive Subgradient Methods for Online Learning and Stochastic Optimization.
+    """
+    name = "AdagradDiagonal"
+    def init_stepsize(self, weights_shape, params):
+        self.step_sizes = numpy.ones(weights_shape) * self.alpha
+        self.h = numpy.zeros(weights_shape)
+        self.adagrad_counter = 0.
+
+    def rescale_update(self, phi_t, phi_tp, delta, reward, descent_direction):
+        self.adagrad_counter += 1        
+        self.h += (delta *  phi_t)**2
+        if self.adagrad_counter > 1:
+            self.step_sizes.fill(self.alpha)
+            non_zeros = numpy.where(self.h != 0.0)
+            self.step_sizes[non_zeros] *= numpy.sqrt(self.adagrad_counter) /  numpy.sqrt(self.h[non_zeros])
+        return self.step_sizes * descent_direction

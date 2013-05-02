@@ -278,18 +278,16 @@ class sarsa_lambda(Agent):
 	def init_stepsize(self, weights_shape, params):
 		self.step_sizes = numpy.ones(weights_shape) * self.alpha
 
-	def compute_stepsize(self, phi_t, phi_tp, delta, reward):
-		pass
+	def rescale_update(self, phi_t, phi_tp, delta, reward, descent_direction):
+		return self.step_sizes * descent_direction
 
 	def update(self, phi_t, phi_tp, reward):
 		# Compute Delta (TD-error)
 		delta = numpy.dot(self.weights.flatten(), (self.gamma * phi_tp - phi_t).flatten()) + reward
 
-		# Adaptive step-size if that is enabled
-		self.compute_stepsize(phi_t, phi_tp, delta, reward)
-
 		# Update the weights with both a scalar and vector stepsize used
-		self.weights += self.step_sizes * delta * self.traces
+		# Adaptive step-size if that is enabled
+		self.weights += self.rescale_update(phi_t, phi_tp, delta, reward, delta*self.traces)
 
 	def agent_end(self,reward):
 		"""Receive the final reward in an episode, also signaling the end of the episode.
@@ -330,6 +328,9 @@ class sarsa_lambda(Agent):
 		"""
 		return name + " does not understand your message."
 
+
+AdaSarsa = stepsizes.genAdaptiveAgent(stepsizes.AdagradDiagonal, sarsa_lambda)
+AdaFullSarsa = stepsizes.genAdaptiveAgent(stepsizes.AdagradFull, sarsa_lambda)
 
 def addLinearTDArgs(parser):
 	parser.add_argument("--epsilon", type=float, default=0.1, help="Probability of exploration with epsilon-greedy.")

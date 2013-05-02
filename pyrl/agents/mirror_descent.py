@@ -65,9 +65,6 @@ class md_sarsa(qlearning.qlearning_agent):
 		if s_tp is not None:
 			phi_tp[discState,:,a_tp] = s_tp
 
-		# Adaptive step-size if that is enabled
-		self.compute_stepsize(phi_t, phi_tp, delta, reward)
-
 		# Update dual weights
 		dual_weights = self.proj_dual(self.weights)
 		dual_weights += self.step_sizes * delta * self.traces
@@ -77,7 +74,6 @@ class md_sarsa(qlearning.qlearning_agent):
 		
 		# Update the weights
 		self.weights = self.proj_primal(dual_weights)
-
 
 		
 @register_agent
@@ -105,9 +101,6 @@ class md_sarsa(sarsa_lambda.sarsa_lambda):
 	def update(self, phi_t, phi_tp, reward):
 		# Compute Delta (TD-error)
 		delta = numpy.dot(self.weights.flatten(), (self.gamma * phi_tp - phi_t).flatten()) + reward
-
-		# Adaptive step-size if that is enabled
-		self.compute_stepsize(phi_t, phi_tp, delta, reward)
 
 		# Update dual weights
 		dual_weights = self.proj_dual(self.weights)
@@ -138,9 +131,6 @@ class cmd_sarsa(sarsa_lambda.sarsa_lambda):
 			self.covariance = numpy.zeros(phi_t.shape)
 
 		self.covariance += phi_t**2
-
-		# Adaptive step-size if that is enabled
-		self.compute_stepsize(phi_t, phi_tp, delta, reward)
 
 		H = numpy.sqrt(self.covariance)
 		H[H == 0.0] = 1.0

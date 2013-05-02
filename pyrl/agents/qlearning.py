@@ -81,12 +81,10 @@ class qlearning_agent(sarsa_lambda.sarsa_lambda):
 		if s_tp is not None:
 			phi_tp[discState,:,a_tp] = s_tp
 
-		self.compute_stepsize(phi_t, phi_tp, delta, reward)
-
 		# Update the weights with both a scalar and vector stepsize used
 		# (Maybe we should actually make them both work together naturally)
-		self.weights += self.step_sizes * delta * self.traces
-	
+		self.weights += self.rescale_update(phi_t, phi_tp, delta, reward, delta*self.traces)
+
 	def agent_end(self,reward):
 		"""Receive the final reward in an episode, also signaling the end of the episode.
 		
