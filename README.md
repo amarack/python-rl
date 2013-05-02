@@ -4,6 +4,12 @@ python-rl
 Some Reinforcement Learning in Python
 
 
-Run with:
+Run with::
 
 python -m pyrl.rlglue.run
+
+
+Contributors
+============
+Will Dabney
+Pierre-Luc Bacon
