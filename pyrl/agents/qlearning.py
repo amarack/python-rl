@@ -41,9 +41,7 @@ class qlearning_agent(sarsa_lambda.sarsa_lambda):
 		phi_t = numpy.zeros(self.traces.shape)
 		phi_t[lastDiscState, :, lastAction] = lastState if self.basis is None else self.basis.computeFeatures(lastState)
 
-		self.traces *= self.gamma * self.lmbda
-		self.traces += phi_t
-
+		self.update_traces(phi_t, None)
 		self.update(phi_t, newState, newDiscState, reward)
 		
 		# QLearning can choose action after update
@@ -89,11 +87,9 @@ class qlearning_agent(sarsa_lambda.sarsa_lambda):
 
 		# Update eligibility traces
 		phi_t = numpy.zeros(self.traces.shape)
-		phi_tp = numpy.zeros(self.traces.shape)
 		phi_t[lastDiscState, :, lastAction] = lastState if self.basis is None else self.basis.computeFeatures(lastState)
 		
-		self.traces *= self.gamma * self.lmbda
-		self.traces += phi_t
+		self.update_traces(phi_t, None)
 		self.update(phi_t, None, 0, reward)
 	
 if __name__=="__main__":

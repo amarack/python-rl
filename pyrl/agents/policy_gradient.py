@@ -18,7 +18,10 @@ class policy_gradient(sarsa_lambda.sarsa_lambda):
 	def agent_start(self,observation):
 		self.step_count = 0
 		return sarsa_lambda.sarsa_lambda.agent_start(self, observation)
-	
+
+	def update(self, phi_t, phi_tp, reward, compatFeatures):
+		pass
+
 	def agent_step(self,reward, observation):
 		"""Take one step in an episode for the agent, as the result of taking the last action.
 		

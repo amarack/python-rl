@@ -231,7 +231,11 @@ class sarsa_lambda(Agent):
 		self.lastObservation=copy.deepcopy(observation)
 		
 		return returnAction
-	
+
+	def update_traces(self, phi_t, phi_tp):
+		self.traces *= self.gamma * self.lmbda
+		self.traces += phi_t
+		
 	def agent_step(self,reward, observation):
 		"""Take one step in an episode for the agent, as the result of taking the last action.
 		
@@ -257,9 +261,7 @@ class sarsa_lambda(Agent):
 		phi_t[lastDiscState, :, lastAction] = lastState if self.basis is None else self.basis.computeFeatures(lastState)
 		phi_tp[newDiscState, :, newIntAction] = newState if self.basis is None else self.basis.computeFeatures(newState)
 		
-		self.traces *= self.gamma * self.lmbda
-		self.traces += phi_t
-
+		self.update_traces(phi_t, phi_tp)
 		self.update(phi_t, phi_tp, reward)
 
 		returnAction=Action()
@@ -299,9 +301,8 @@ class sarsa_lambda(Agent):
 		phi_t = numpy.zeros(self.traces.shape)
 		phi_tp = numpy.zeros(self.traces.shape)
 		phi_t[lastDiscState, :, lastAction] = lastState if self.basis is None else self.basis.computeFeatures(lastState)
-		
-		self.traces *= self.gamma * self.lmbda
-		self.traces += phi_t
+
+		self.update_traces(phi_t, phi_tp)
 		self.update(phi_t, phi_tp, reward)
 
 	def agent_cleanup(self):
@@ -318,6 +319,17 @@ class sarsa_lambda(Agent):
 			A string response message.
 		"""
 		return name + " does not understand your message."
+
+
+@register_agent
+class residual_gradient(sarsa_lambda):
+	name = "Residual Gradient"
+	def update_traces(self, phi_t, phi_tp):
+		self.traces *= self.gamma * self.lmbda
+		self.traces += (phi_t - self.gamma * phi_tp)
+
+	
+
 
 
 AdaSarsa = stepsizes.genAdaptiveAgent(stepsizes.AdagradDiagonal, sarsa_lambda)
