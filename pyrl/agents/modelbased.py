@@ -38,11 +38,13 @@ class ModelBasedAgent(Agent):
 		self.randGenerator = Random()	
 		self.lastAction=Action()
 		self.lastObservation=Observation()
+		self.params = kwargs
 
-		model_class = kwargs.setdefault('model_class', batch_model.KNNBatchModel)
-		planner_class = kwargs.setdefault('planner_class', fitted_qiteration.FittedQIteration)
-		self.model = model_class(**(kwargs.setdefault('model_params', {})))
-		self.planner = planner_class(self.model, **(kwargs.setdefault('planner_params', {})))
+	def init_parameters(self):
+		model_class = self.params.setdefault('model_class', batch_model.KNNBatchModel)
+		planner_class = self.params.setdefault('planner_class', fitted_qiteration.FittedQIteration)
+		self.model = model_class(**(self.params.setdefault('model_params', {})))
+		self.planner = planner_class(self.model, **(self.params.setdefault('planner_params', {})))
 
 	def randomize_parameters(self, **args):
 		"""Generate parameters randomly, constrained by given named parameters.
@@ -51,8 +53,24 @@ class ModelBasedAgent(Agent):
 		randomized parameters concatenated.
 
 		"""
-		return self.model.randomize_parameters(**args) + self.planner.randomize_parameters(**args)
+		param_list = self.model.randomize_parameters(**args) + self.planner.randomize_parameters(**args)
+		self.params['model_params'] = self.model.params
+		self.params['planner_params'] = self.planner.params
+		return param_list
 
+	def agent_supported(self, parsedSpec):
+		if parsedSpec.valid:
+			# Check observation form, and then set up number of features/states
+			assert len(parsedSpec.getDoubleObservations()) + len(parsedSpec.getIntObservations()) > 0, "Expecting at least one continuous or discrete observation"
+
+			# Check action form, and then set number of actions
+			assert len(parsedSpec.getIntActions())==1, "Expecting 1-dimensional discrete actions"
+			assert len(parsedSpec.getDoubleActions())==0, "Expecting no continuous actions"
+			assert not parsedSpec.isSpecial(parsedSpec.getIntActions()[0][0]), "Expecting min action to be a number not a special value"
+			assert not parsedSpec.isSpecial(parsedSpec.getIntActions()[0][1]), "Expecting max action to be a number not a special value"
+			return True
+		else:
+			return False
 
 	def agent_init(self,taskSpec):
 		"""Initialize the RL agent.
@@ -60,21 +78,14 @@ class ModelBasedAgent(Agent):
 		Args:
 			taskSpec: The RLGlue task specification string.
 		"""
+		# (Re)initialize parameters (incase they have been changed during a trial
+		self.init_parameters()
 		# Parse the task specification and set up the weights and such
 		TaskSpec = TaskSpecVRLGLUE3.TaskSpecParser(taskSpec)
-		if TaskSpec.valid:
-			# Check observation form, and then set up number of features/states
-			assert len(TaskSpec.getDoubleObservations()) + len(TaskSpec.getIntObservations()) >0, \
-			    "expecting at least one continuous or discrete observation"
+		if self.agent_supported(TaskSpec):
 			self.numStates=len(TaskSpec.getDoubleObservations())
 			self.discStates = numpy.array(TaskSpec.getIntObservations())
 			self.numDiscStates = int(reduce(lambda a, b: a * (b[1] - b[0] + 1), self.discStates, 1.0)) 
-
-			# Check action form, and then set number of actions
-			assert len(TaskSpec.getIntActions())==1, "expecting 1-dimensional discrete actions"
-			assert len(TaskSpec.getDoubleActions())==0, "expecting no continuous actions"
-			assert not TaskSpec.isSpecial(TaskSpec.getIntActions()[0][0]), " expecting min action to be a number not a special value"
-			assert not TaskSpec.isSpecial(TaskSpec.getIntActions()[0][1]), " expecting max action to be a number not a special value"
 			self.numActions=TaskSpec.getIntActions()[0][1]+1;
 			
 			self.model.model_init(self.numDiscStates, TaskSpec.getDoubleObservations(), \

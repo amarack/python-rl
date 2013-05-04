@@ -33,10 +33,10 @@ class md_qlearn(qlearning.qlearning_agent):
 	Sridhar Mahadevan and Bo Liu, 2012.
 	"""
 	name = "Sparse Mirror Descent Q-Learning"
-	
-	def __init__(self, **kwargs):
-		qlearning.qlearning_agent.__init__(self, **kwargs)
-		self.sparsity = kwargs.setdefault('sparsity', 0.01)
+
+	def init_parameters(self):
+		qlearning.qlearning_agent.init_parameters(self)
+		self.sparsity = self.params.setdefault('sparsity', 0.01)
 
 	def agent_start(self,observation):
 		returnAction = qlearning.qlearning_agent.agent_start(self, observation)
@@ -79,9 +79,9 @@ class md_sarsa(sarsa_lambda.sarsa_lambda):
 	"""
 	name = "Sparse Mirror Descent Sarsa"
 	
-	def __init__(self, **kwargs):
-		sarsa_lambda.sarsa_lambda.__init__(self, **kwargs)
-		self.sparsity = kwargs.setdefault('sparsity', 0.01)
+	def init_parameters(self):
+		sarsa_lambda.sarsa_lambda.init_parameters(self)
+		self.sparsity = self.params.setdefault('sparsity', 0.01)
 
 	def agent_start(self,observation):
 		returnAction = sarsa_lambda.sarsa_lambda.agent_start(self, observation)
@@ -121,10 +121,10 @@ class cmd_sarsa(sarsa_lambda.sarsa_lambda):
 	Sridhar Mahadevan and Bo Liu, 2012.
 	"""
 	name = "Composite Mirror Descent Sarsa"
-	
-	def __init__(self, **kwargs):
-		sarsa_lambda.sarsa_lambda.__init__(self, **kwargs)
-		self.sparsity = kwargs.setdefault('sparsity', 0.01)
+
+	def init_parameters(self):
+		sarsa_lambda.sarsa_lambda.init_parameters(self)
+		self.sparsity = self.params.setdefault('sparsity', 0.01)
 		self.covariance = None
 
 	def update(self, phi_t, phi_tp, reward):
@@ -156,10 +156,11 @@ class mdba_qlearn(md_qlearn):
 	Sridhar Mahadevan, Stephen Giguere, and Nicholas Jacek, 2013.
 	"""
 	name = "Sparse Mirror Descent Q-Learning with Non-Linear Basis Adaptation"	
-	def __init__(self, **kwargs):
-		kwargs['basis'] = 'fourier' # Force to use fourier basis for adaptation
-		md_qlearn.__init__(self, **kwargs)
-		self.beta = kwargs.setdefault('nonlinear_lr', 1.e-6)
+
+	def init_parameters(self):
+		self.params['basis'] = 'fourier' # Force to use fourier basis for adaptation
+		md_qlearn.init_parameters(self)
+		self.beta = self.params.setdefault('nonlinear_lr', 1.e-6)
 
 	def agent_init(self, taskSpec):
 		md_qlearn.agent_init(self, taskSpec)

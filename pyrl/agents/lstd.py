@@ -39,6 +39,12 @@ class LSTD(sarsa_lambda.sarsa_lambda):
 		self.update_freq = self.params.setdefault('lstd_update_freq', numpy.random.randint(200))
 		return param_list[:1] + param_list[2:] + [self.update_freq]
 
+	def init_parameters(self):
+		sarsa_lambda.sarsa_lambda.init_parameters(self)
+		self.lstd_gamma = self.gamma
+		self.update_freq = int(self.params.setdefault('lstd_update_freq', 100))
+		self.gamma = 1.0
+
 	def init_stepsize(self, weights_shape, params):
 		"""Initializes the step-size variables, in this case meaning the A matrix and b vector.
 
@@ -51,9 +57,6 @@ class LSTD(sarsa_lambda.sarsa_lambda):
 		self.A = numpy.zeros((numpy.prod(weights_shape),numpy.prod(weights_shape)))
 		self.step_sizes = numpy.zeros((numpy.prod(weights_shape),))
 		self.lstd_counter = 0
-		self.lstd_gamma = self.gamma
-		self.update_freq = int(params.setdefault('lstd_update_freq', 100))
-		self.gamma = 1.0
 		
 	def shouldUpdate(self):
 		self.lstd_counter += 1
@@ -80,6 +83,12 @@ class oLSTD(sarsa_lambda.sarsa_lambda):
 
 	name = "Online Least Squares TD"
 
+	def init_parameters(self):
+		sarsa_lambda.sarsa_lambda.init_parameters(self)
+		self.lstd_gamma = self.gamma
+		self.gamma = 1.0
+
+
 	def init_stepsize(self, weights_shape, params):
 		"""Initializes the step-size variables, in this case meaning the A matrix and b vector.
 
@@ -91,8 +100,6 @@ class oLSTD(sarsa_lambda.sarsa_lambda):
 		self.A += numpy.random.random(self.A.shape)*self.alpha
 		self.step_sizes = numpy.zeros((numpy.prod(weights_shape),))
 		self.lstd_counter = 0
-		self.lstd_gamma = self.gamma
-		self.gamma = 1.0
 
 	def update(self, phi_t, phi_tp, reward):
 		d = phi_t.flatten() - self.lstd_gamma * phi_tp.flatten()
@@ -108,28 +115,9 @@ class iLSTD(LSTD):
 
 	name = "Incremental Least Squares TD"
 
-	def __init__(self, **kwargs):
-		"""Initialize Sarsa based agent, or some subclass with given named parameters.
-		
-		Args:
-			epsilon=0.1: Exploration rate for epsilon-greedy, or the rescale factor for soft-max policies.
-			alpha=0.01: Step-Size for parameter updates.
-			gamma=1.0: Discount factor for learning, also viewed as a planning/learning horizon.
-			lmbda=0.7: Eligibility decay rate.
-			softmax=False: True to use soft-max style policies, false to use epsilon-greedy policies.
-			basis='trivial': Name of basis functions to use. [trivial, fourier, rbf, tile]
-			fourier_order=3: Order of fourier basis to use if using fourier basis.
-			rbf_number=0: Number of radial basis functions to use if doing rbf basis. Defaults to 0 for dim of states.
-			rbf_beta=1.0: Beta parameter for rbf basis.
-			tile_number=100: Number of tilings to use with tile coding basis.
-			tile_weights=2048: Number of weights to use with tile coding.
-			ilstd_sweeps=1: Number of update sweeps to perform per step for iLSTD.
-			**kwargs: Additional named arguments
-
-		"""
-
-		sarsa_lambda.sarsa_lambda.__init__(self, **kwargs)
-		self.num_sweeps = int(kwargs.setdefault('ilstd_sweeps', 1))
+	def init_parameters(self):
+		LSTD.init_parameters(self)
+		self.num_sweeps = int(self.params.setdefault('ilstd_sweeps', 1))
 
 	def randomize_parameters(self, **args):
 		"""Generate parameters randomly, constrained by given named parameters.
@@ -171,30 +159,10 @@ class RLSTD(sarsa_lambda.sarsa_lambda):
 
 	name = "Recursive Least Squares TD"
 
-	# alpha is the forgetting factor, delta is what to initialize A to
-	def __init__(self, **kwargs):
-		"""Initialize Sarsa based agent, or some subclass with given named parameters.
-		
-		Args:
-			epsilon=0.1: Exploration rate for epsilon-greedy, or the rescale factor for soft-max policies.
-			alpha=1.: Forgetting factor
-			gamma=1.0: Discount factor for learning, also viewed as a planning/learning horizon.
-			lmbda=0.7: Eligibility decay rate.
-			softmax=False: True to use soft-max style policies, false to use epsilon-greedy policies.
-			basis='trivial': Name of basis functions to use. [trivial, fourier, rbf, tile]
-			fourier_order=3: Order of fourier basis to use if using fourier basis.
-			rbf_number=0: Number of radial basis functions to use if doing rbf basis. Defaults to 0 for dim of states.
-			rbf_beta=1.0: Beta parameter for rbf basis.
-			tile_number=100: Number of tilings to use with tile coding basis.
-			tile_weights=2048: Number of weights to use with tile coding.
-			delta=200: Initialization of inverse matrix to delta*Identity
-			**kwargs: Additional named arguments
-
-		"""
-
-		kwargs.setdefault('alpha', 1.0)
-		sarsa_lambda.sarsa_lambda.__init__(self, **kwargs)
-		self.delta = kwargs.setdefault('rlstd_delta', 1.0)
+	def init_parameters(self):
+		self.params.setdefault('alpha', 1.0)
+		sarsa_lambda.sarsa_lambda.init_parameters(self)
+		self.delta = self.params.setdefault('rlstd_delta', 1.0)
 
 	def randomize_parameters(self, **args):
 		"""Generate parameters randomly, constrained by given named parameters.

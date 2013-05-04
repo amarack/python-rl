@@ -41,15 +41,16 @@ class sarsa_lambda(Agent):
 		self.randGenerator = Random()	
 		self.lastAction=Action()
 		self.lastObservation=Observation()
-
-		# Initialize algorithm parameters
-		self.epsilon = kwargs.setdefault('epsilon', 0.1)
-		self.alpha = kwargs.setdefault('alpha', 0.01)
-		self.lmbda = kwargs.setdefault('lmbda', 0.7)
-		self.gamma = kwargs.setdefault('gamma', 1.0)
-		self.fa_name = kwargs.setdefault('basis', 'trivial')
-		self.softmax = kwargs.setdefault('softmax', False)
 		self.params = kwargs
+
+	def init_parameters(self):
+		# Initialize algorithm parameters
+		self.epsilon = self.params.setdefault('epsilon', 0.1)
+		self.alpha = self.params.setdefault('alpha', 0.01)
+		self.lmbda = self.params.setdefault('lmbda', 0.7)
+		self.gamma = self.params.setdefault('gamma', 1.0)
+		self.fa_name = self.params.setdefault('basis', 'trivial')
+		self.softmax = self.params.setdefault('softmax', False)
 		self.basis = None
 
 	def randomize_parameters(self, **args):
@@ -96,28 +97,42 @@ class sarsa_lambda(Agent):
 		
 		return param_list
 
-	def agent_init(self,taskSpec):
-		# Parse the task specification and set up the weights and such
-		TaskSpec = TaskSpecVRLGLUE3.TaskSpecParser(taskSpec)
-		if TaskSpec.valid:
+	def agent_supported(self, parsedSpec):
+		if parsedSpec.valid:
 			# Check observation form, and then set up number of features/states
-			assert len(TaskSpec.getDoubleObservations()) + len(TaskSpec.getIntObservations()) >0, "expecting at least one continuous or discrete observation"
-			self.numStates=len(TaskSpec.getDoubleObservations())
-			self.discStates = numpy.array(TaskSpec.getIntObservations())
-			self.numDiscStates = int(reduce(lambda a, b: a * (b[1] - b[0] + 1), self.discStates, 1.0)) #if len(self.discStates) > 0 else 0
+			assert len(parsedSpec.getDoubleObservations()) + len(parsedSpec.getIntObservations()) > 0, "Expecting at least one continuous or discrete observation"
 
 			# Check action form, and then set number of actions
-			assert len(TaskSpec.getIntActions())==1, "expecting 1-dimensional discrete actions"
-			assert len(TaskSpec.getDoubleActions())==0, "expecting no continuous actions"
-			assert not TaskSpec.isSpecial(TaskSpec.getIntActions()[0][0]), " expecting min action to be a number not a special value"
-			assert not TaskSpec.isSpecial(TaskSpec.getIntActions()[0][1]), " expecting max action to be a number not a special value"
+			assert len(parsedSpec.getIntActions())==1, "Expecting 1-dimensional discrete actions"
+			assert len(parsedSpec.getDoubleActions())==0, "Expecting no continuous actions"
+			assert not parsedSpec.isSpecial(parsedSpec.getIntActions()[0][0]), "Expecting min action to be a number not a special value"
+			assert not parsedSpec.isSpecial(parsedSpec.getIntActions()[0][1]), "Expecting max action to be a number not a special value"
+			return True
+		else:
+			return False
+
+	def agent_init(self,taskSpec):
+		"""Initialize the RL agent.
+
+		Args:
+			taskSpec: The RLGlue task specification string.
+		"""
+
+		# (Re)initialize parameters (incase they have been changed during a trial
+		self.init_parameters()
+		# Parse the task specification and set up the weights and such
+		TaskSpec = TaskSpecVRLGLUE3.TaskSpecParser(taskSpec)
+		if self.agent_supported(TaskSpec):
+			self.numStates=len(TaskSpec.getDoubleObservations())
+			self.discStates = numpy.array(TaskSpec.getIntObservations())
+			self.numDiscStates = int(reduce(lambda a, b: a * (b[1] - b[0] + 1), self.discStates, 1.0)) 
 			self.numActions=TaskSpec.getIntActions()[0][1]+1;
 
 			if self.numStates == 0:
 				# Only discrete states
 				self.numStates = 1
 				if self.fa_name != "trivial":
-					print "Error:", self.fa_name, " basis requires at least one continuous feature. Forcing trivial basis."
+					print "Selected basis requires at least one continuous feature. Using trivial basis."
 					self.fa_name = "trivial"
 
 			# Set up the function approximation

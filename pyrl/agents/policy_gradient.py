@@ -124,6 +124,9 @@ class REINFORCE(policy_gradient):
 		self.baseline_denom = numpy.zeros(self.weights.shape)
 		self.gradient_estimate = numpy.zeros(self.weights.shape)
 		self.ep_count = 0
+
+	def init_parameters(self):
+		policy_gradient.init_parameters(self)
 		self.num_rollouts = self.params.setdefault('num_rollouts', 5)
 
 	def agent_start(self,observation):
@@ -145,7 +148,7 @@ class REINFORCE(policy_gradient):
 		return policy_gradient.agent_start(self, observation)
 
 	def update(self, phi_t, phi_tp, reward, compatFeatures):
-		self.traces += self.getCompatibleFeatures(lastAction, lastState, lastDiscState)
+		self.traces += compatFeatures
 		self.Return += (self.gamma**(self.step_count-1.)) * reward
 
 
@@ -259,9 +262,9 @@ class nac_sarsa(policy_gradient):
 
 	name = "Natural Actor-Critic with Sarsa"
 
-	def __init__(self, **kwargs):
-		sarsa_lambda.sarsa_lambda.__init__(self, **kwargs)
-		self.beta = kwargs.setdefault("beta", 0.001)
+	def init_parameters(self):
+		policy_gradient.init_parameters(self)
+		self.beta = self.params.setdefault("beta", 0.001)
 
 	def agent_init(self,taskSpec):
 		sarsa_lambda.sarsa_lambda.agent_init(self, taskSpec)
