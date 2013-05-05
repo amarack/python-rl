@@ -372,7 +372,7 @@ if __name__=="__main__":
 	addLinearTDArgs(parser)
 	args = parser.parse_args()
 	params = {}
-	params['alpha'] = args.alpha
+	params['alpha'] = args.stepsize
 	params['gamma'] = args.gamma
 	params['lmbda'] = args.lmbda
 
