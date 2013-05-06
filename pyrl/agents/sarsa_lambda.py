@@ -343,12 +343,6 @@ class residual_gradient(sarsa_lambda):
 		self.traces *= self.gamma * self.lmbda
 		self.traces += (phi_t - self.gamma * phi_tp)
 
-	
-
-
-
-AdaSarsa = stepsizes.genAdaptiveAgent(stepsizes.AdagradDiagonal, sarsa_lambda)
-AdaFullSarsa = stepsizes.genAdaptiveAgent(stepsizes.AdagradFull, sarsa_lambda)
 
 def addLinearTDArgs(parser):
 	parser.add_argument("--epsilon", type=float, default=0.1, help="Probability of exploration with epsilon-greedy.")

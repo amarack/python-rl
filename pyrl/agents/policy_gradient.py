@@ -219,6 +219,10 @@ class nac_lstd(policy_gradient):
 	"""
 
 	name = "Natural Actor-Critic with LSTD-Q"
+	def init_parameters(self):
+		policy_gradient.init_parameters(self)
+		self.nac_freq = self.params.setdefault("nac_freq", 200)
+
 	def agent_init(self,taskSpec):
 		sarsa_lambda.sarsa_lambda.agent_init(self, taskSpec)
 		self.traces = numpy.zeros((numpy.prod(self.weights.shape[:-1]) + self.weights.size,))
@@ -240,7 +244,7 @@ class nac_lstd(policy_gradient):
 		self.A = SMInv(self.A, self.traces, phi_hat - self.gamma * phi_tilde, 1.)
 		self.b += self.traces * reward
 		
-		if self.step_count % 10 == 0:
+		if self.step_count % self.nac_freq == 0:
 			parameters = numpy.dot(self.A, self.b)
 			# Update the weights with both a scalar and vector stepsize used
 			self.weights += self.step_sizes * parameters[phi_t.size:].reshape(self.weights.shape)
@@ -265,6 +269,7 @@ class nac_sarsa(policy_gradient):
 	def init_parameters(self):
 		policy_gradient.init_parameters(self)
 		self.beta = self.params.setdefault("beta", 0.001)
+		self.nac_freq = self.params.setdefault("nac_freq", 200)
 
 	def agent_init(self,taskSpec):
 		sarsa_lambda.sarsa_lambda.agent_init(self, taskSpec)
@@ -284,6 +289,6 @@ class nac_sarsa(policy_gradient):
 		self.advantage_weights += self.beta * (delta - numpy.dot(self.advantage_weights, compatFeatures.flatten())) * self.traces[self.value_weights.size:]
 		self.value_weights += self.beta * delta * self.traces[:self.value_weights.size]
 		
-		if self.step_count % 10 == 0:
+		if self.step_count % self.nac_freq == 0:
 			# Update the weights with both a scalar and vector stepsize used
 			self.weights += self.step_sizes * self.advantage_weights.reshape(self.weights.shape) / numpy.linalg.norm(self.advantage_weights)

@@ -285,3 +285,50 @@ class AdagradDiagonal(AdaptiveStepSize):
             non_zeros = numpy.where(self.h != 0.0)
             self.step_sizes[non_zeros] *= numpy.sqrt(self.adagrad_counter) /  numpy.sqrt(self.h[non_zeros])
         return self.step_sizes * descent_direction
+
+class vSGD(AdaptiveStepSize):
+    """vSGD is an adaptive step-size algorithm for noisy quadratic objective functions in 
+    stochastic approximation. 
+
+    From the paper:
+    Tom Schaul, Sixin Zhang, and Yann LeCun, 2013
+    No More Pesky Learning Rates.
+    """
+    name = "vSGD"
+    def init_stepsize(self, weights_shape, params):
+        self.step_sizes = numpy.ones(weights_shape) * self.alpha
+        self.g = numpy.zeros(weights_shape)
+        self.v = numpy.zeros(weights_shape)
+        self.h = numpy.zeros(weights_shape)
+        self.t = numpy.ones(weights_shape) * params.setdefault("vsgd_initmeta", 10.)
+        self.slow_start = params.setdefault("vsgd_slowstart", 50000)
+
+    def randomize_parameters(self, **args):
+        self.params['vsgd_slowstart'] = args.setdefault('vsgd_slowstart', numpy.random.randint(500))
+        self.params['vsgd_initmeta'] = args.setdefault('vsgd_initmeta', float(numpy.random.randint(1000)))
+        return [self.params['vsgd_slowstart'], self.params['vsgd_initmeta']]
+
+    def rescale_update(self, phi_t, phi_tp, delta, reward, descent_direction):
+        # Estimate hessian... somehow..
+        est_hessian = (descent_direction/delta)**2
+        self.g *= -(1./self.t - 1.)
+        self.g += (1./self.t) * descent_direction
+
+        self.v *= -(1./self.t - 1.)
+        self.v += (1./self.t) * descent_direction**2
+
+        self.h *= -(1./self.t - 1.)
+        self.h += (1./self.t) * est_hessian
+        denom = self.h*self.v
+        denom[denom==0] = 1.0
+        self.step_sizes = (self.g**2) / denom
+       
+        if self.slow_start <= 0:
+            self.t *= -(self.g**2 / self.v - 1.)
+            self.t += 1.
+        
+        self.slow_start -= 1
+        return self.step_sizes * descent_direction
+
+
+

@@ -47,6 +47,7 @@ def processFile(filename, style, windowsize, verbose=True):
 
     data[:,0] = movingaverage(data[:,0], windowsize)
     data[:,1] = movingaverage(data[:,1], windowsize)
+
     if verbose:
         print "Processed", numRuns, "runs from", filename
     return data
