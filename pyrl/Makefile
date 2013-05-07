@@ -1,5 +1,5 @@
 
-DIRS = basis/CTiles/build environments/libPOMDP/build
+DIRS = basis/CTiles/build environments/libPOMDP/build environments/mdptetris/build
 
 all:
 	-for d in $(DIRS); do (cd $$d; cmake ..; $(MAKE) ); done

@@ -57,6 +57,11 @@ Game *new_standard_game() {
 
 }
 
+
+int game_get_nb_pieces(Game *game) {
+
+  return game->piece_configuration->nb_pieces;
+}
 /**
  * @brief Creates a game with somes parameters given in a structure CommonParameters.
  *

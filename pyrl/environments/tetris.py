@@ -78,7 +78,7 @@ class Tetris(Environment):
 	# For our default behavior the actions are 2 dimensional, 
 	# but we map it onto a one dimensional discrete action
 	def maxAction(self):
-		return width * 4
+		return self.board_width * 4
 
 	def printBoard(self):
 		mdptetris.game_print()
@@ -86,6 +86,7 @@ class Tetris(Environment):
 	def makeTaskSpec(self):
 		ts = TaskSpecRLGlue.TaskSpec(discount_factor=1.0, reward_range=self.computeRewardRange())
 		ts.addDiscreteAction((0.0, self.maxAction()-1))
+		ts.addDiscreteObservation((0, mdptetris.num_pieces() - 1))
 		if self.original_features:
 			ranges = mdptetris.feature_ranges("original")
 			for rng in ranges:
@@ -100,15 +101,19 @@ class Tetris(Environment):
 		return ts.toTaskSpec()
 
 	def reset(self):
-		mdptetris.game_reset()
+		mdptetris.reset_game()
 
 	def getObservation(self):
-		features = [mdptetris.current_piece()]
+		returnObs = Observation()
+		features = []
 		if self.original_features:
 			features += mdptetris.features_original()
 		if self.dellacherie_features:
 			features += mdptetris.features_dellacherie()
-		return numpy.array(features)
+
+		returnObs.intArray = [mdptetris.current_piece()]
+		returnObs.doubleArray = features
+		return returnObs
 
 	def env_init(self):
 		# Start a game of tetris 
@@ -117,37 +122,36 @@ class Tetris(Environment):
 	
 	def env_start(self):
 		self.reset()
-		returnObs = Observation()
-		returnObs.doubleArray = [self.getObservation()]
+		returnObs = self.getObservation()
 		return returnObs
 		
 	def takeAction(self, intAction):
 		# intAction is interpreted as an index into the 
 		# cross product between columns and rotations.
-		rotation, column = intAction % 4, int(intAction/4)
+		rotation, column = intAction % 4, int(intAction/4)+1
 
 		# Next, the game restricts the rotations and columns based 
 		# on the current piece. So, we map the selected rotation and column appropriately
 		rotation %= mdptetris.num_rotate_actions()
 		column = min(column, mdptetris.num_column_actions(rotation))
-
+		
 		# Take the action
 		lines_cleared = mdptetris.drop_piece(rotation, column)
 		obs = self.getObservation()
 		reward = self.computeReward(lines_cleared)
+		#self.printBoard()
 		return obs, reward
 
 	def env_step(self,thisAction):
 		intAction = thisAction.intArray[0]
 		obs, reward = self.takeAction(intAction)
 
-		theObs = Observation()
-		theObs.doubleArray = [obs]
+		theObs = obs
 		
 		returnRO = Reward_observation_terminal()
 		returnRO.r = reward
 		returnRO.o = theObs
-		returnRO.terminal = 0
+		returnRO.terminal = mdptetris.isgameover()
 
 		return returnRO
 

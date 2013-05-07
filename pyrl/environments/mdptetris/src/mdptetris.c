@@ -142,6 +142,11 @@ static PyObject * mdptetris_NumRotate(PyObject *self, PyObject *args)
     return Py_BuildValue("i", game_get_nb_possible_orientations(tetris_game));
 }
 
+static PyObject * mdptetris_NumPieces(PyObject *self, PyObject *args)
+{
+    return Py_BuildValue("i", game_get_nb_pieces(tetris_game));
+}
+
 static PyObject * mdptetris_NumColumns(PyObject *self, PyObject *args)
 {
     int rotation;
@@ -181,6 +186,7 @@ static PyMethodDef TetrisMethods[] = {
     {"tetris", mdptetris_NewGame, METH_VARARGS,"Start a new game of tetris."},
     {"reset_game", mdptetris_ResetGame, METH_VARARGS,"Reset the tetris game."},
     {"game_print",mdptetris_Print, METH_VARARGS,"Print the tetris game board."},
+    {"num_pieces", mdptetris_NumPieces, METH_VARARGS,"Get the number of possible pieces."},
     {"num_rotate_actions", mdptetris_NumRotate, METH_VARARGS,"Get the number of rotation actions possible."},
     {"num_column_actions",mdptetris_NumColumns, METH_VARARGS,"Get the number of column actions possible."},
     {"drop_piece",mdptetris_DropPiece, METH_VARARGS,"Drop the current piece given a rotation action and column."},

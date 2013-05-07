@@ -11,6 +11,12 @@ try:
 except:
     pass
 
+try:
+    from mdptetris import mdptetris
+    __all__.append("tetris")
+except:
+    pass
+
 
 try:
     import pygame

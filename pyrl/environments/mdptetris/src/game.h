@@ -101,6 +101,7 @@ void free_game(Game *game);
 int game_get_nb_possible_orientations(Game *game);
 int game_get_nb_possible_columns(Game *game, int orientation);
 int game_get_current_piece(Game *game);
+int game_get_nb_pieces(Game *game);
 /**
  * @}
  */
