@@ -1,0 +1,26 @@
+##########################################################################
+# File format describing the pieces
+# number of pieces
+# for each piece:
+# 	number of orientations, height, width (for the first orientation)
+#       piece (with "X")
+##########################################################################
+#
+# Melax's Reduced set of pieces
+# There are 5 pieces:
+5
+#
+1 1 1
+X
+2 1 2
+XX
+2 2 2
+ X
+X 
+4 2 2
+ X
+XX
+1 2 2
+XX
+XX
+# End of File

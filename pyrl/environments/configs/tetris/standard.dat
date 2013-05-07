@@ -1,0 +1,39 @@
+##########################################################################
+# File format describing the pieces
+# number of pieces
+# for each piece:
+# 	number of orientations, height, width (for the first orientation)
+#       piece (with "X")
+##########################################################################
+#
+# Pieces with 4 bricks (standard pieces)
+# There are 7 pieces:
+7
+#
+2 4 1
+X
+X
+X
+X
+1 2 2
+XX
+XX
+4 3 2
+X 
+XX
+X 
+2 3 2
+ X 
+XX
+X 
+2 3 2
+X 
+XX
+ X
+4 2 3
+X  
+XXX 
+4 2 3
+XXX
+X  
+# End of File

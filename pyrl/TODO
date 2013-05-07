@@ -4,7 +4,6 @@ TODO for pyRL project
 
 Implement Environments (in Python) or Convert C/C++ into Module:
 ------------------------------
-Tetris
 Dart Throwing (from Bruno Castro da Silva's paper on parameterized skills)
 Partially Observable Taxi
 Simulated-Simplified Red Room (GDK/S.K.'s work, similar to a more functional continuous playroom)
@@ -19,7 +18,6 @@ Implement "save_trajectory filename numsteps" message support into base class of
 
 Delayed Q-Learning
 TD-delta Pi
-Mirror Descent for RL
 TDC / GTD
 Skill Chaining
 PoWER
@@ -31,3 +29,4 @@ Extensions to Existing Implementations:
 
 Add other exploration bonus methods to the modelbased agents
 Add error bars to the compareParameters visualizer
+Add pygame based viewer for Tetris environment
