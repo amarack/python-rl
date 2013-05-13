@@ -105,7 +105,7 @@ static PyObject * mdptetris_NewGame(PyObject *self, PyObject *args)
     PyObject *sequence = NULL;
     int seq_len;
     int i;
-    if (!PyArg_ParseTuple(args, "iiis|O!", &width, &height, &allow_overflow, &pieces_filename, 
+    if (!PyArg_ParseTuple(args, "iiis|O!", &width, &height, &allow_overflow, &pieces_filename,
                                                     &sequence))
         return NULL;
 
@@ -120,14 +120,14 @@ static PyObject * mdptetris_NewGame(PyObject *self, PyObject *args)
     if (tetris_game != NULL) {
         free_game(tetris_game);
         tetris_game = NULL;
+    } else {
+        MALLOC(original_features, FeaturePolicy);
+        MALLOC(dellacherie_features, FeaturePolicy);
+        create_feature_policy_original(width, original_features);
+        create_feature_policy_dellacherie(width, dellacherie_features);
     }
 
     tetris_game = new_game(0, width, height, allow_overflow, pieces_filename, piece_sequence);
-    MALLOC(original_features, FeaturePolicy);
-    MALLOC(dellacherie_features, FeaturePolicy);
-    create_feature_policy_original(width, original_features);
-    create_feature_policy_dellacherie(width, dellacherie_features);
-    
     return Py_BuildValue("");
 }
 
@@ -172,7 +172,7 @@ static PyObject * mdptetris_DropPiece(PyObject *self, PyObject *args)
     int column;
     int lines_cleared;
     Action action;
- 
+
      if (!PyArg_ParseTuple(args, "ii", &rotation, &column))
         return NULL;
 
@@ -204,8 +204,8 @@ PyMODINIT_FUNC initmdptetris(void)
     PyObject *m;
 
     m = Py_InitModule("mdptetris", TetrisMethods);
-    
+
     if (m == NULL)
         return;
-    
+
 }

@@ -379,7 +379,7 @@ class PinballRLGlue(Environment):
 
     name = "Pinball"
 
-    def __init__(self, configuration=os.path.join(os.path.dirname(__file__), 
+    def __init__(self, configuration=os.path.join(os.path.dirname(__file__),
                                                   'configs', 'pinball', 'pinball_simple_single.cfg')):
         """ This class exposes a Pinball environment over RL-Glue
 
@@ -449,7 +449,6 @@ class PinballRLGlue(Environment):
         returnRO.o = obs
 
         returnRO.terminal = self.pinball.episode_ended()
-
         return returnRO
 
     def env_cleanup(self):

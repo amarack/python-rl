@@ -63,7 +63,7 @@ typedef enum {
   HOLE_DEPTHS_SQUARE = -11,
   HEIGHT_SQUARE = -12,
   NEXT_COLUMN_HEIGHT2 = -13,
-  DIVERSITY = -14, 
+  DIVERSITY = -14,
 
   /*
    * Special feature
@@ -133,7 +133,7 @@ struct Feature {
  * @brief Policy defined from features.
  *
  * This structure describes a feature-based policy with
- * the features, their weights and the reward function. 
+ * the features, their weights and the reward function.
  */
 struct FeaturePolicy {
 
