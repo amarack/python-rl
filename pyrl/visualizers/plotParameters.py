@@ -2,19 +2,19 @@
 # plotParameters.py
 # Author: Will Dabney
 #
-# A script to plot the output of the collected results of a randomized 
-# parameter search experiment. 
-# 
-# Using the --parameter index name, argument you can plot a single parameter or 
-# pair of parameters against their collected performance values. Specifying no 
-# parameter will result in a low dimensionality embedding of all the parameters 
-# to be plotted against their values. 
-# Thus, with one parameter specified we get the usual results graphs used to 
-# illustrate how an algorithm performs as a parameter varries. With two parameters 
-# specified we get this same conceptual view but for the interaction of the two 
-# parameters. And finally with three or more, we get something more interesting 
-# which shows the overal behavior pattern with respect to parameter change that 
-# the algorithm exibits (at least on the given domain). 
+# A script to plot the output of the collected results of a randomized
+# parameter search experiment.
+#
+# Using the --parameter index name, argument you can plot a single parameter or
+# pair of parameters against their collected performance values. Specifying no
+# parameter will result in a low dimensionality embedding of all the parameters
+# to be plotted against their values.
+# Thus, with one parameter specified we get the usual results graphs used to
+# illustrate how an algorithm performs as a parameter varries. With two parameters
+# specified we get this same conceptual view but for the interaction of the two
+# parameters. And finally with three or more, we get something more interesting
+# which shows the overal behavior pattern with respect to parameter change that
+# the algorithm exibits (at least on the given domain).
 #
 # Example: python -m pyrl.visualizers.plotParameters --file exp.dat --parameter 1 alpha
 ################################################################################
@@ -55,7 +55,7 @@ def plotTwoParams(data, title, filename=None, labels=["X", "Y"]):
         data: Two dimensional numpy array. First column gives performance values.
         title: Title for the resulting plot
         (filename=None): Filename to save the figure out as, if None (default) will show the figure.
-        (labels=[X,Y]): List of labels for the two axes. 
+        (labels=[X,Y]): List of labels for the two axes.
     """
 
     stride = 2
@@ -87,7 +87,7 @@ def embededParams(data, title, n_neighbors=2, method='pca', filename=None, label
         (n_neighbors=2): Number of neighbors to use for embeddings requiring it.
         (method=pca): Dimensionality reduction method to use. Defaults to PCA.
         (filename=None): Filename to save the figure out as, if None (default) will show the figure.
-        (labels=[...]): List of labels for the two axes. 
+        (labels=[...]): List of labels for the two axes.
     """
 
     if method == 'pca':
@@ -102,7 +102,7 @@ def embededParams(data, title, n_neighbors=2, method='pca', filename=None, label
     else:
         print "Error unknown method"
         return
-    plotTwoParams(numpy.array([data[:,0].tolist()] + X_pca.T.tolist()).T, 
+    plotTwoParams(numpy.array([data[:,0].tolist()] + X_pca.T.tolist()).T,
                   title, filename=filename, labels=labels)
 
 if __name__=="__main__":
@@ -111,7 +111,7 @@ if __name__=="__main__":
                                          'parameter search experiment.')
     parser.add_argument("--file", type=str, required=True,
                         help="Filename of collected data from experiments.")
-    parser.add_argument("--parameter", type=str, action='append', nargs=2, 
+    parser.add_argument("--parameter", type=str, action='append', nargs=2,
                         help="Name of parameters to plot. If greater than two, names are not " + \
                             "used and instead the first two principal components are used. " + \
                             "Give first the index followed by the label of the parameter. " + \
@@ -120,10 +120,10 @@ if __name__=="__main__":
     parser.add_argument("--method", type=str, default='pca', choices=['pca', 'isomap', 'lle', 'mds'],
                         help="Choose a method for dimensionality reduction. Only used when more " + \
                             "than two parameters, and no parameter flag is given.")
-    parser.add_argument("--title", type=str, help="Title for the figure.", 
+    parser.add_argument("--title", type=str, help="Title for the figure.",
                         default="Parameter Exploration")
     args = parser.parse_args()
-    
+
     # Get the collected data
     data = numpy.genfromtxt(args.file, delimiter=',')
 
@@ -134,11 +134,11 @@ if __name__=="__main__":
         else:
             plotOneParam(data, args.title, "Parameter", filename=args.output)
     else:
-        if len(args.parameter) == 1: 
-            plotOneParam(data[:,(0,int(args.parameter[0][0]))], args.title, 
+        if len(args.parameter) == 1:
+            plotOneParam(data[:,(0,int(args.parameter[0][0]))], args.title,
                          args.parameter[0][1], filename=args.output)
         else: #length is 2
-            plotTwoParams(data[:,tuple([0] + map(lambda k: int(k[0]), args.parameter))], 
-                          args.title, filename=args.output, 
+            plotTwoParams(data[:,tuple([0] + map(lambda k: int(k[0]), args.parameter))],
+                          args.title, filename=args.output,
                           labels=map(lambda k: k[1], args.parameter))
 

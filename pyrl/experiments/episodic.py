@@ -13,7 +13,7 @@ import pyrl.visualizers.plotExperiment as plotExperiment
 class Episodic(object):
     name = "Episodic"
 
-    def __init__(self, agent=None, environment=None, maxsteps=5000, num_episodes=10, 
+    def __init__(self, agent=None, environment=None, maxsteps=5000, num_episodes=10,
                  num_runs=1, timed=True, evaluate='reward'):
         self.maxsteps = maxsteps
         self.num_episodes = num_episodes

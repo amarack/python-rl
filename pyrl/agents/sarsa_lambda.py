@@ -21,7 +21,7 @@ class sarsa_lambda(Agent):
 
 	def __init__(self, **kwargs):
 		"""Initialize Sarsa based agent, or some subclass with given named parameters.
-		
+
 		Args:
 			epsilon=0.1: Exploration rate for epsilon-greedy, or the rescale factor for soft-max policies.
 			alpha=0.01: Step-Size for parameter updates.
@@ -38,10 +38,11 @@ class sarsa_lambda(Agent):
 
 		"""
 
-		self.randGenerator = Random()	
+		self.randGenerator = Random()
 		self.lastAction=Action()
 		self.lastObservation=Observation()
 		self.params = kwargs
+		self.init_parameters()
 
 	def init_parameters(self):
 		# Initialize algorithm parameters
@@ -57,18 +58,18 @@ class sarsa_lambda(Agent):
 		"""Generate parameters randomly, constrained by given named parameters.
 
 		If used, this must be called before agent_init in order to have desired effect.
-		
-		Parameters that fundamentally change the algorithm are not randomized over. For 
-		example, basis and softmax fundamentally change the domain and have very few values 
+
+		Parameters that fundamentally change the algorithm are not randomized over. For
+		example, basis and softmax fundamentally change the domain and have very few values
 		to be considered. They are not randomized over.
 
-		Basis parameters, on the other hand, have many possible values and ARE randomized. 
+		Basis parameters, on the other hand, have many possible values and ARE randomized.
 
 		Args:
 			**args: Named parameters to fix, which will not be randomly generated
 
 		Returns:
-			List of resulting parameters of the class. Will always be in the same order. 
+			List of resulting parameters of the class. Will always be in the same order.
 			Empty list if parameter free.
 
 		"""
@@ -94,7 +95,7 @@ class sarsa_lambda(Agent):
 			self.params['tile_number'] = args.setdefault('tile_number', numpy.random.randint(200))
 			self.params['tile_weights'] = args.setdefault('tile_weights', 2**numpy.random.randint(15))
 			param_list += [self.params['tiles_number'], self.params['tiles_weights']]
-		
+
 		return param_list
 
 	def agent_supported(self, parsedSpec):
@@ -125,7 +126,7 @@ class sarsa_lambda(Agent):
 		if self.agent_supported(TaskSpec):
 			self.numStates=len(TaskSpec.getDoubleObservations())
 			self.discStates = numpy.array(TaskSpec.getIntObservations())
-			self.numDiscStates = int(reduce(lambda a, b: a * (b[1] - b[0] + 1), self.discStates, 1.0)) 
+			self.numDiscStates = int(reduce(lambda a, b: a * (b[1] - b[0] + 1), self.discStates, 1.0))
 			self.numActions=TaskSpec.getIntActions()[0][1]+1;
 
 			if self.numStates == 0:
@@ -137,19 +138,19 @@ class sarsa_lambda(Agent):
 
 			# Set up the function approximation
 			if self.fa_name == 'fourier':
-				self.basis = fourier.FourierBasis(self.numStates, 
-								  self.params.setdefault('fourier_order', 3), 
+				self.basis = fourier.FourierBasis(self.numStates,
+								  self.params.setdefault('fourier_order', 3),
 								  TaskSpec.getDoubleObservations())
 				self.weights = numpy.zeros((self.numDiscStates, self.basis.numTerms, self.numActions))
 			elif self.fa_name == 'rbf':
 				num_functions = self.numStates if self.params.setdefault('rbf_number', 0) == 0 else self.params['rbf_number']
 				self.basis = rbf.RBFBasis(self.numStates,
-							  num_functions, 
-							  self.params.setdefault('rbf_beta', 0.9), 
+							  num_functions,
+							  self.params.setdefault('rbf_beta', 0.9),
 							  TaskSpec.getDoubleObservations())
 				self.weights = numpy.zeros((self.numDiscStates, num_functions, self.numActions))
 			elif self.fa_name == 'tile':
-				self.basis = tilecode.TileCodingBasis(self.params.setdefault('tile_number', 100), 
+				self.basis = tilecode.TileCodingBasis(self.params.setdefault('tile_number', 100),
 								      self.params.setdefault('tile_weights', 2048))
 				self.weights = numpy.zeros((self.numDiscStates, self.params['tile_weights'], self.numActions))
 			else:
@@ -168,7 +169,7 @@ class sarsa_lambda(Agent):
 
 	def getAction(self, state, discState):
 		"""Get the action under the current policy for the given state.
-		
+
 		Args:
 			state: The array of continuous state features
 			discState: The integer representing the current discrete state value
@@ -184,18 +185,18 @@ class sarsa_lambda(Agent):
 
 	def sample_softmax(self, state, discState):
 		Q = None
-		if self.basis is None:			
+		if self.basis is None:
 			Q = numpy.dot(self.weights[discState,:,:].T, state)
 		else:
 			Q = numpy.dot(self.weights[discState,:,:].T, self.basis.computeFeatures(state))
-		Q = numpy.exp(numpy.clip(Q/self.epsilon, -500, 500)) 
+		Q = numpy.exp(numpy.clip(Q/self.epsilon, -500, 500))
 		Q /= Q.sum()
-		
+
 		# Would like to use numpy, but haven't upgraded enough (need 1.7)
 		# numpy.random.choice(self.numActions, 1, p=Q)
 		Q = Q.cumsum()
 		return numpy.where(Q >= numpy.random.random())[0][0]
-		
+
 	def egreedy(self, state, discState):
 		if self.randGenerator.random() < self.epsilon:
 			return self.randGenerator.randint(0,self.numActions-1)
@@ -204,10 +205,10 @@ class sarsa_lambda(Agent):
 			return numpy.dot(self.weights[discState,:,:].T, state).argmax()
 		else:
 			return numpy.dot(self.weights[discState,:,:].T, self.basis.computeFeatures(state)).argmax()
-		
+
 	def getDiscState(self, state):
 		"""Return the integer value representing the current discrete state.
-		
+
 		Args:
 			state: The array of integer state features
 
@@ -244,16 +245,16 @@ class sarsa_lambda(Agent):
 
 		self.lastAction=copy.deepcopy(returnAction)
 		self.lastObservation=copy.deepcopy(observation)
-		
+
 		return returnAction
 
 	def update_traces(self, phi_t, phi_tp):
 		self.traces *= self.gamma * self.lmbda
 		self.traces += phi_t
-		
+
 	def agent_step(self,reward, observation):
 		"""Take one step in an episode for the agent, as the result of taking the last action.
-		
+
 		Args:
 			reward: The reward received for taking the last action from the previous state.
 			observation: The next observation of the episode, which is the consequence of taking the previous action.
@@ -269,19 +270,19 @@ class sarsa_lambda(Agent):
 		newDiscState = self.getDiscState(observation.intArray)
 		lastDiscState = self.getDiscState(self.lastObservation.intArray)
 		newIntAction = self.getAction(newState, newDiscState)
-		
+
 		# Update eligibility traces
 		phi_t = numpy.zeros(self.traces.shape)
 		phi_tp = numpy.zeros(self.traces.shape)
 		phi_t[lastDiscState, :, lastAction] = lastState if self.basis is None else self.basis.computeFeatures(lastState)
 		phi_tp[newDiscState, :, newIntAction] = newState if self.basis is None else self.basis.computeFeatures(newState)
-		
+
 		self.update_traces(phi_t, phi_tp)
 		self.update(phi_t, phi_tp, reward)
 
 		returnAction=Action()
 		returnAction.intArray=[newIntAction]
-		
+
 		self.lastAction=copy.deepcopy(returnAction)
 		self.lastObservation=copy.deepcopy(observation)
 		return returnAction
@@ -303,7 +304,7 @@ class sarsa_lambda(Agent):
 
 	def agent_end(self,reward):
 		"""Receive the final reward in an episode, also signaling the end of the episode.
-		
+
 		Args:
 			reward: The reward received for taking the last action from the previous state.
 		"""
@@ -323,10 +324,10 @@ class sarsa_lambda(Agent):
 	def agent_cleanup(self):
 		"""Perform any clean up operations before the end of an experiment."""
 		pass
-	
+
 	def agent_message(self,inMessage):
 		"""Receive a message from the environment or experiment and respond.
-		
+
 		Args:
 			inMessage: A string message sent by either the environment or experiment to the agent.
 

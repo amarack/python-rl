@@ -23,15 +23,15 @@ class RandomizedTrial(Episodic):
 
         # This only runs locally, because it randomizes agents
         self.agent.randomize_parameters
-        
+
     def run_experiment(self, filename=None, **args):
         parameters = self.agent.randomize_parameters(**args)
         tmp_file = "rndtrial" + str(numpy.random.randint(1.e10)) + ".dat"
         Episodic.run_experiment(self, filename = tmp_file)
-        
+
         # Collect results
-        score = plotExperiment.processFile(tmp_file, self.evaluate, 1, verbose=False)[:,0].sum()
-        line = [score] + parameters
+        score, std = plotExperiment.processFileSum(tmp_file, self.evaluate, 1, verbose=False)
+        line = [score, std] + parameters
         if filename is None:
             print ','.join(map(str, line))
         else:
