@@ -197,7 +197,6 @@ class sarsa_lambda(Agent):
 	def egreedy(self, state, discState):
 		if self.randGenerator.random() < self.epsilon:
 			return self.randGenerator.randint(0,self.numActions-1)
-		print numpy.dot(self.weights[discState,:,:].T, state)
 		if self.basis is None:
 			return numpy.dot(self.weights[discState,:,:].T, state).argmax()
 		else:
