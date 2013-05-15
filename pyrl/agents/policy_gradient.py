@@ -1,6 +1,6 @@
 
 # A collection of Policy Gradient reinforcement learning
-# algorithms. 
+# algorithms.
 
 # Author: Will Dabney
 
@@ -24,7 +24,7 @@ class policy_gradient(sarsa_lambda.sarsa_lambda):
 
 	def agent_step(self,reward, observation):
 		"""Take one step in an episode for the agent, as the result of taking the last action.
-		
+
 		Args:
 			reward: The reward received for taking the last action from the previous state.
 			observation: The next observation of the episode, which is the consequence of taking the previous action.
@@ -56,7 +56,7 @@ class policy_gradient(sarsa_lambda.sarsa_lambda):
 
 	def agent_end(self,reward):
 		"""Receive the final reward in an episode, also signaling the end of the episode.
-		
+
 		Args:
 			reward: The reward received for taking the last action from the previous state.
 		"""
@@ -71,8 +71,8 @@ class policy_gradient(sarsa_lambda.sarsa_lambda):
 		self.update(phi_t, phi_tp, reward, self.getCompatibleFeatures(lastAction, lastState, lastDiscState))
 
 	def getAction(self, state, discState):
-		policy = self.getPolicy(state, discState).cumsum()
-		return numpy.where(policy >= numpy.random.random())[0][0]
+		policy = self.getPolicy(state, discState)
+		return numpy.where(policy.cumsum() >= numpy.random.random())[0][0]
 
 	def getPolicy(self, state, discState):
 		if self.softmax:
@@ -90,7 +90,7 @@ class policy_gradient(sarsa_lambda.sarsa_lambda):
 		features[discState,:] = state if self.basis is None else self.basis.computeFeatures(state)
 		# Compute softmax policy
 		policy = numpy.dot(self.weights[discState,:,:].T, features[discState,:])
-		policy = numpy.exp(numpy.clip(policy/self.epsilon, -500, 500)) 
+		policy = numpy.exp(numpy.clip(policy/self.epsilon, -500, 500))
 		policy /= policy.sum()
 		return policy
 
@@ -100,7 +100,7 @@ class policy_gradient(sarsa_lambda.sarsa_lambda):
 			features[discState,:] = state
 		else:
 			features[discState,:] = self.basis.computeFeatures(state)
-		
+
 		policy = -1.0 * self.getPolicy(state, discState)
 		policy[action] += 1.0
 		features = numpy.repeat(features.reshape((features.size,1)), self.numActions, axis=1)
@@ -109,9 +109,9 @@ class policy_gradient(sarsa_lambda.sarsa_lambda):
 
 @register_agent
 class REINFORCE(policy_gradient):
-	"""REINFORCE policy gradient algorithm. 
+	"""REINFORCE policy gradient algorithm.
 
-	From the paper: 
+	From the paper:
 	Simple Statistical Gradient-Following Algorithms for Connectionist Reinforcement Learning,
 	Ronald Williams, 1992.
 	"""
@@ -154,7 +154,7 @@ class REINFORCE(policy_gradient):
 
 @register_agent
 class twotime_ac(policy_gradient):
-	"""Two-Timescale Actor-Critic algorithm. 
+	"""Two-Timescale Actor-Critic algorithm.
 
 	This is an implementation of Algorithm 1 from the paper:
 	Natural Actor-Critic Algorithms,
@@ -201,63 +201,60 @@ class twotime_nac(twotime_ac):
 		delta = numpy.dot(self.v.flatten(), (self.gamma * phi_tp - phi_t).flatten()) + reward - self.avg_reward
 		self.v += self.lmbda * delta * phi_t
 		self.traces = numpy.dot(numpy.eye(compatFeatures.size) - self.lmbda * numpy.outer(compatFeatures, compatFeatures), self.traces.flatten()).reshape(self.traces.shape)
-		self.traces += self.lmbda * delta * compatFeatures 
+		self.traces += self.lmbda * delta * compatFeatures
 		# Update the weights with both a scalar and vector stepsize used
 		self.weights += self.step_sizes * self.traces
 
 
 @register_agent
 class nac_lstd(policy_gradient):
-	"""Natural Actor-Critic with LSTD-Q algorithm.
+    """Natural Actor-Critic with LSTD-Q algorithm.
 
-	From the paper:
-	Natural Actor-Critic,
-	Jan Peters and Stefan Schaal, 2007.
+    From the paper:
+    Natural Actor-Critic,
+    Jan Peters and Stefan Schaal, 2007.
 
-	This deviates from the pseudo-code given in the paper because it uses the Sheman-Morrison 
-	formula to do incremental updates to the matrix inverse. 
-	"""
+    This deviates from the pseudo-code given in the paper because it uses the Sheman-Morrison
+    formula to do incremental updates to the matrix inverse.
+    """
 
-	name = "Natural Actor-Critic with LSTD-Q"
-	def init_parameters(self):
-		policy_gradient.init_parameters(self)
-		self.nac_freq = self.params.setdefault("nac_freq", 200)
+    name = "Natural Actor-Critic with LSTD-Q"
+    def init_parameters(self):
+        policy_gradient.init_parameters(self)
+        self.nac_freq = self.params.setdefault("nac_freq", 200)
 
-	def agent_init(self,taskSpec):
-		sarsa_lambda.sarsa_lambda.agent_init(self, taskSpec)
-		self.traces = numpy.zeros((numpy.prod(self.weights.shape[:-1]) + self.weights.size,))
-		self.A = numpy.eye(self.traces.size)
-		self.A += numpy.random.random(self.A.shape)*self.params.setdefault('precond', 0.01)
-		self.b = numpy.zeros((self.traces.size,))
+    def agent_init(self,taskSpec):
+        sarsa_lambda.sarsa_lambda.agent_init(self, taskSpec)
+        self.traces = numpy.zeros((numpy.prod(self.weights.shape[:-1]) + self.weights.size,))
+        self.A = numpy.eye(self.traces.size)
+        self.A += numpy.random.random(self.A.shape)*self.params.setdefault('precond', 0.01)
+        self.b = numpy.zeros((self.traces.size,))
 
-	def update(self, phi_t, phi_tp, reward, compatFeatures):
-		phi_tilde = numpy.zeros(self.traces.shape)
-		phi_hat = numpy.zeros(self.traces.shape)
+    def update(self, phi_t, phi_tp, reward, compatFeatures):
+        phi_tilde = numpy.zeros(self.traces.shape)
+        phi_hat = numpy.zeros(self.traces.shape)
+        phi_tilde[:phi_tp.size] = phi_tp.flatten()
+        phi_hat[:phi_t.size] = phi_t.flatten()
+        phi_hat[phi_t.size:] = compatFeatures.flatten()
 
-		phi_tilde[:phi_tp.size] = phi_tp.flatten()
-		phi_hat[:phi_t.size] = phi_t.flatten()
-		phi_hat[phi_t.size:] = compatFeatures.flatten()
-
-		self.traces *= self.lmbda
-		self.traces += phi_hat
-
-		self.A = SMInv(self.A, self.traces, phi_hat - self.gamma * phi_tilde, 1.)
-		self.b += self.traces * reward
-		
-		if self.step_count % self.nac_freq == 0:
-			parameters = numpy.dot(self.A, self.b)
-			# Update the weights with both a scalar and vector stepsize used
-			self.weights += self.step_sizes * parameters[phi_t.size:].reshape(self.weights.shape)
+        self.traces *= self.lmbda
+        self.traces += phi_hat
+        self.A = SMInv(self.A, self.traces, phi_hat - self.gamma * phi_tilde, 1.)
+        self.b += self.traces * reward
+        if self.step_count % self.nac_freq == 0:
+            parameters = numpy.dot(self.A, self.b)
+            # Update the weights with both a scalar and vector stepsize used
+            self.weights += self.step_sizes * parameters[phi_t.size:].reshape(self.weights.shape)
 
 
 @register_agent
 class nac_sarsa(policy_gradient):
 	"""Natural Actor-Critic with SARSA(lambda).
 
-	While fundamentally the same as twotime_nac (Algorithm 3 of BSGL's paper), 
-	this implements NACS which uses a different form of the same update equations. 
-	The main difference is in this algorithm's avoidance of the average reward 
-	accumulator. 
+	While fundamentally the same as twotime_nac (Algorithm 3 of BSGL's paper),
+	this implements NACS which uses a different form of the same update equations.
+	The main difference is in this algorithm's avoidance of the average reward
+	accumulator.
 
 	From the paper:
 	Natural Actor-Critic using Sarsa(lambda),
@@ -265,6 +262,12 @@ class nac_sarsa(policy_gradient):
 	"""
 
 	name = "Natural Actor-Critic with Sarsa"
+	def agent_start(self,observation):
+		if self.has_diverged(self.advantage_weights):
+			print "Agent diverged, exiting."
+			import sys
+			sys.exit(1)
+		return policy_gradient.agent_start(self, observation)
 
 	def init_parameters(self):
 		policy_gradient.init_parameters(self)
@@ -288,7 +291,9 @@ class nac_sarsa(policy_gradient):
 		delta = numpy.dot(self.value_weights, (self.gamma * phi_tp - phi_t).flatten()) + reward
 		self.advantage_weights += self.beta * (delta - numpy.dot(self.advantage_weights, compatFeatures.flatten())) * self.traces[self.value_weights.size:]
 		self.value_weights += self.beta * delta * self.traces[:self.value_weights.size]
-		
+
 		if self.step_count % self.nac_freq == 0:
 			# Update the weights with both a scalar and vector stepsize used
 			self.weights += self.step_sizes * self.advantage_weights.reshape(self.weights.shape) / numpy.linalg.norm(self.advantage_weights)
+
+

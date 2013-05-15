@@ -11,13 +11,18 @@
 
 
 double **get_policy_feature_ranges(Game *game, const FeaturePolicy *feature_policy) {
-  double** theArray;
+  double** theArray = NULL;
+  double* range = NULL;
   int i;
+    MALLOCN(theArray, double*, feature_policy->nb_features);
 
-  theArray = (double**) malloc(feature_policy->nb_features*sizeof(double*));
-  for (i = 0; i < feature_policy->nb_features; i++)
-    theArray[i] = get_feature_range(game, feature_policy->features[i].feature_id);
-
+  for (i = 0; i < feature_policy->nb_features; i++) {
+    MALLOCN(theArray[i], double, 2);
+    range = get_feature_range(game, feature_policy->features[i].feature_id);
+    theArray[i][0] = range[0];
+    theArray[i][1] = range[1];
+    FREE(range);
+    }
   return theArray;
 
 }
@@ -25,8 +30,9 @@ double **get_policy_feature_ranges(Game *game, const FeaturePolicy *feature_poli
 /* This function needs a lot of work, but these are good initial guesses */
 double *get_feature_range(Game *game, FeatureID feature_id) {
   double *range = NULL;
-  range = (double *)malloc(2 * sizeof(double)); 
-  range[0] = 0.0;
+  //range = (double *)malloc(2 * sizeof(double));
+  //range[0] = 0.0;
+  MALLOCN(range, double, 2);
 
   switch (feature_id) {
     case HOLE_DEPTHS:
@@ -183,7 +189,7 @@ double *get_feature_values(Game *game, const FeaturePolicy *feature_policy) {
   double *feature_values;
 
   MALLOCN(feature_values, double, feature_policy->nb_features);
-  
+
   if (feature_policy->update_column_heights_needed) {
     board_update_column_heights(game->board);
   }
@@ -231,7 +237,7 @@ void features_get_best_action(Game *game, const FeaturePolicy *feature_policy, A
 
       /* make the action */
       game_drop_piece(game, &action, 1);
-      
+
       /* compute immediate reward + evaluation of next state */
 
       /* debug
@@ -241,12 +247,12 @@ void features_get_best_action(Game *game, const FeaturePolicy *feature_policy, A
       */
 
       evaluation = feature_policy->reward_description.reward_function(game) + evaluate_features(game, feature_policy);
-      
+
       /*board_print(stdout, game->board);*/
       /*game_print_features(game, feature_policy);*/
       /*printf("orientation %d, column %d: evaluation = %e\n", action.orientation, action.column, evaluation);*/
 
-      
+
 
       if (DOUBLE_GREATER_THAN(evaluation,best_evaluation)) {
 	best_evaluation = evaluation;
@@ -270,7 +276,7 @@ void feature_policy_play_game(const FeaturePolicy *feature_policy, Game *game) {
 
   while (!game->game_over) {
     /* search the best move */
-    features_get_best_action(game, feature_policy, &action); /* use the reward function of 
+    features_get_best_action(game, feature_policy, &action); /* use the reward function of
 								feature_policy to choose the move */
 
     /* play the best move found earlier */
@@ -308,7 +314,7 @@ double feature_policy_play_games(const FeaturePolicy *feature_policy, int nb_gam
       mean_score += game->score;
     }
   }
-  
+
   if (stats != NULL) {
     mean_score = stats->mean;
     games_statistics_end_episode(stats, feature_policy);
@@ -317,7 +323,7 @@ double feature_policy_play_games(const FeaturePolicy *feature_policy, int nb_gam
     mean_score /= nb_games;
   }
 
-  return mean_score;  
+  return mean_score;
 }
 
 void create_feature_policy_dellacherie(int width, FeaturePolicy *feature_policy) {
@@ -334,7 +340,7 @@ void create_feature_policy_dellacherie(int width, FeaturePolicy *feature_policy)
   /* Number of features: 1 (constant) + 1 (wall height) + width (height of columns) + width (relative heights) */
   nb_features = 6;
   MALLOCN(features, Feature, nb_features);
-  
+
   /* read each feature and its weight */
   update_column_heights_needed = 1;
 
@@ -377,24 +383,25 @@ void create_feature_policy_original(int width, FeaturePolicy *feature_policy) {
   reward_function_id = 1;
   gameover_evaluation = 1;
 
-  /* Number of features: 1 (number of holes) + 1 (wall height) + 
+  /* Number of features: 1 (number of holes) + 1 (wall height) +
      width (height of columns) + width (relative heights) */
   nb_features = 2 + 2*width;
+
   MALLOCN(features, Feature, nb_features);
-  
+  // features = (Feature*) malloc(nb_features * sizeof(Feature));
   /* read each feature and its weight */
   update_column_heights_needed = 1;
   for (i = 0; i < width; i++) {
-    features[i].feature_id = NEXT_COLUMN_HEIGHT;
-    features[i].weight = 0.0;
-  }
-
-  for (; i < 2*width; i++) {
     features[i].feature_id = NEXT_COLUMN_HEIGHT_DIFFERENCE;
     features[i].weight = 0.0;
   }
 
-  features[++i].feature_id = HOLES;
+  for (; i < 2*width; i++) {
+    features[i].feature_id = NEXT_COLUMN_HEIGHT;
+    features[i].weight = 0.0;
+  }
+
+  features[i].feature_id = HOLES;
   features[i].weight = 0.0;
 
   features[++i].feature_id = WALL_HEIGHT;
@@ -450,7 +457,7 @@ void load_feature_policy(const char *feature_file_name, FeaturePolicy *feature_p
   /* read the number of features */
   FSCANF(feature_file, "%d", &nb_features);
   MALLOCN(features, Feature, nb_features);
-  
+
   /* read each feature and its weight */
   update_column_heights_needed = 0;
   for (i = 0; i < nb_features; i++) {
@@ -470,11 +477,11 @@ void load_feature_policy(const char *feature_file_name, FeaturePolicy *feature_p
     case NEXT_WALL_DISTANCE_TO_TOP:
     case NEXT_COLUMN_HEIGHT_DIFFERENCE2:
     case NEXT_COLUMN_HEIGHT2:
-    case DIVERSITY:      
+    case DIVERSITY:
       update_column_heights_needed = 1;
     }
   }
-  
+
   fclose(feature_file);
 
   /* load the feature functions */
@@ -556,7 +563,7 @@ void game_print_features(Game *game, const FeaturePolicy *feature_policy) {
   double *feature_values;
 
   printf("Features: ");
-  
+
   feature_values = get_feature_values(game, feature_policy);
 
   for (i = 0; i < feature_policy->nb_features; i++) {

@@ -22,8 +22,9 @@ def printUsage():
     sys.exit(1)
 
 def movingaverage(interval, window_size):
+    interval = numpy.array(interval.tolist() + [interval[-1]]*window_size)
     window = numpy.ones(int(window_size))/float(window_size)
-    return numpy.convolve(interval, window, 'same')
+    return numpy.convolve(interval, window, 'same')[:-window_size]
 
 def processFile(filename, style, windowsize, verbose=True):
     episodes = {}
@@ -47,10 +48,9 @@ def processFile(filename, style, windowsize, verbose=True):
 
     data[:,0] = movingaverage(data[:,0], windowsize)
     data[:,1] = movingaverage(data[:,1], windowsize)
-
     if verbose:
         print "Processed", numRuns, "runs from", filename
-    return data
+    return data[:-1,:]
 
 
 def processFileSum(filename, style, windowsize, verbose=True):
@@ -106,7 +106,7 @@ if __name__=="__main__":
         data = processFile(filename, style, windowsize)
         #plt.errorbar(range(data.shape[0]), data[:,0], yerr=data[:,1])
         plt.fill_between(range(data.shape[0]), data[:,0]-data[:,1], data[:,0]+data[:,1], alpha=0.4, color=colors[indx%len(colors)])
-        plt.plot(data[:,0], linewidth=2, color=colors[indx%len(colors)], linestyle=linestyles[indx%len(linestyles)], marker=markers[indx%len(markers)], markersize=10)
+        plt.plot(data[:,0], linewidth=2, color=colors[indx%len(colors)], linestyle=linestyles[indx%len(linestyles)], marker=markers[indx%len(markers)], markersize=5, markevery=windowsize)
         indx+=1
 
     plt.xlabel("Episodes")

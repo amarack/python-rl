@@ -18,5 +18,5 @@ class FourierBasis:
     def computeFeatures(self, features):
         basisFeatures = numpy.array([self.scale(features[i],i) for i in range(len(features))])
         return numpy.cos(numpy.pi * numpy.dot(self.multipliers, basisFeatures))
-        
+
 

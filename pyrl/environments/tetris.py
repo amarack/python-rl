@@ -73,7 +73,7 @@ class Tetris(Environment):
         return (0, 5)
 
     def computeReward(self, lines_cleared):
-        return 1. + lines_cleared
+        return 1 + lines_cleared
 
     # For our default behavior the actions are 2 dimensional,
     # but we map it onto a one dimensional discrete action
@@ -87,6 +87,7 @@ class Tetris(Environment):
         ts = TaskSpecRLGlue.TaskSpec(discount_factor=1.0, reward_range=self.computeRewardRange())
         ts.addDiscreteAction((0.0, self.maxAction()-1))
         ts.addDiscreteObservation((0, mdptetris.num_pieces() - 1))
+        ts.addContinuousObservation((1.0,1.0))
         if self.original_features:
             ranges = mdptetris.feature_ranges("original")
             for rng in ranges:
@@ -95,7 +96,6 @@ class Tetris(Environment):
             ranges = mdptetris.feature_ranges("dellacherie")
             for rng in ranges:
                 ts.addContinuousObservation(rng)
-
         ts.setEpisodic()
         ts.setExtra(self.domain_name)
         return ts.toTaskSpec()
@@ -105,7 +105,7 @@ class Tetris(Environment):
 
     def getObservation(self):
         returnObs = Observation()
-        features = []
+        features = [1.]
         if self.original_features:
             features += mdptetris.features_original()
         if self.dellacherie_features:
@@ -126,21 +126,20 @@ class Tetris(Environment):
         return returnObs
 
     def takeAction(self, intAction):
-		# intAction is interpreted as an index into the
-		# cross product between columns and rotations.
-		rotation, column = intAction % 4, int(intAction/4)+1
+        # intAction is interpreted as an index into the
+        # cross product between columns and rotations.
+        rotation, column = intAction % 4, int(intAction/4)+1
 
-		# Next, the game restricts the rotations and columns based
-		# on the current piece. So, we map the selected rotation and column appropriately
-		rotation %= mdptetris.num_rotate_actions()
-		column = min(column, mdptetris.num_column_actions(rotation))
+        # Next, the game restricts the rotations and columns based
+        # on the current piece. So, we map the selected rotation and column appropriately
+        rotation %= mdptetris.num_rotate_actions()
+        column = min(column, mdptetris.num_column_actions(rotation))
 
-		# Take the action
-		lines_cleared = mdptetris.drop_piece(rotation, column)
-		obs = self.getObservation()
-		reward = self.computeReward(lines_cleared)
-		#self.printBoard()
-		return obs, reward
+        # Take the action
+        lines_cleared = mdptetris.drop_piece(rotation, column)
+        obs = self.getObservation()
+        reward = self.computeReward(lines_cleared) if not mdptetris.isgameover() else 0.0
+        return obs, reward
 
     def env_step(self,thisAction):
         intAction = thisAction.intArray[0]

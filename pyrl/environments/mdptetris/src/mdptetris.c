@@ -12,8 +12,8 @@
 
 
 Game *tetris_game = NULL;
-FeaturePolicy *original_features;
-FeaturePolicy *dellacherie_features;
+FeaturePolicy *original_features = NULL;
+FeaturePolicy *dellacherie_features = NULL;
 
 /*
 static PyObject * mdptetris_OriginalFeaturesRanges(PyObject *self, PyObject *args)
@@ -42,7 +42,7 @@ static PyObject * mdptetris_FeaturesRanges(PyObject *self, PyObject *args)
 {
     PyObject * features_list = NULL;
     int num_features;
-    char *featureset;
+    char *featureset = NULL;
     int i;
     double **ranges = NULL;
 
@@ -59,8 +59,13 @@ static PyObject * mdptetris_FeaturesRanges(PyObject *self, PyObject *args)
         return Py_BuildValue("");
 
     features_list = PyList_New(num_features);
-    for (i = 0 ; i < num_features; i++)
-        PyList_SetItem(features_list,i,Py_BuildValue("(dd)", ranges[i][0], ranges[i][1]));
+
+    for (i = 0 ; i < num_features; i++) {
+         PyList_SetItem(features_list,i,Py_BuildValue("(dd)", ranges[i][0], ranges[i][1]));
+         free(ranges[i]);
+    }
+    FREE(ranges);
+    fflush(stdout);
     return features_list;
 }
 
@@ -112,7 +117,7 @@ static PyObject * mdptetris_NewGame(PyObject *self, PyObject *args)
     if (sequence != NULL && PyList_Size(sequence) > 0)
     {
         seq_len = PyList_Size(sequence);
-        piece_sequence = (int*)malloc(seq_len*sizeof(int));
+        piece_sequence = (int*)malloc(seq_len * sizeof(int));
         for (i = 0; i < seq_len; i++)
             piece_sequence[i] = PyInt_AsLong(PyList_GetItem(sequence,i));
     }
@@ -126,8 +131,9 @@ static PyObject * mdptetris_NewGame(PyObject *self, PyObject *args)
         create_feature_policy_original(width, original_features);
         create_feature_policy_dellacherie(width, dellacherie_features);
     }
-
     tetris_game = new_game(0, width, height, allow_overflow, pieces_filename, piece_sequence);
+
+
     return Py_BuildValue("");
 }
 

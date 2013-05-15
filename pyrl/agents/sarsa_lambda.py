@@ -9,7 +9,7 @@ from pyrl.rlglue.registry import register_agent
 from random import Random
 import numpy
 import copy
-
+import sys
 import pyrl.basis.fourier as fourier
 import pyrl.basis.rbf as rbf
 import pyrl.basis.tilecode as tilecode
@@ -127,8 +127,7 @@ class sarsa_lambda(Agent):
 			self.numStates=len(TaskSpec.getDoubleObservations())
 			self.discStates = numpy.array(TaskSpec.getIntObservations())
 			self.numDiscStates = int(reduce(lambda a, b: a * (b[1] - b[0] + 1), self.discStates, 1.0))
-			self.numActions=TaskSpec.getIntActions()[0][1]+1;
-
+			self.numActions=TaskSpec.getIntActions()[0][1]+1
 			if self.numStates == 0:
 				# Only discrete states
 				self.numStates = 1
@@ -156,10 +155,8 @@ class sarsa_lambda(Agent):
 			else:
 				self.basis = None
 				self.weights = numpy.zeros((self.numDiscStates, self.numStates, self.numActions))
-
 			self.traces = numpy.zeros(self.weights.shape)
 			self.init_stepsize(self.weights.shape, self.params)
-
 		else:
 			print "Task Spec could not be parsed: "+taskSpecString;
 
@@ -245,7 +242,9 @@ class sarsa_lambda(Agent):
 
 		self.lastAction=copy.deepcopy(returnAction)
 		self.lastObservation=copy.deepcopy(observation)
-
+		if self.has_diverged(self.weights):
+			print "Agent diverged! Exiting."
+			sys.exit(1)
 		return returnAction
 
 	def update_traces(self, phi_t, phi_tp):
@@ -287,6 +286,9 @@ class sarsa_lambda(Agent):
 		self.lastObservation=copy.deepcopy(observation)
 		return returnAction
 
+	def has_diverged(self, values):
+		value = values.sum()
+		return numpy.isnan(value) or numpy.isinf(value)
 
 	def init_stepsize(self, weights_shape, params):
 		self.step_sizes = numpy.ones(weights_shape) * self.alpha

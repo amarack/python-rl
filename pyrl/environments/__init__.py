@@ -1,8 +1,8 @@
 
 # Author: Pierre-Luc Bacon <pierrelucbacon@gmail.com>
 
-__all__ = ["fuelworld", "gridworld", "mountaincar", "acrobot", "cartpole", 
-           "multiroom", "skeleton_environment", "taxi", "windyworld", 
+__all__ = ["fuelworld", "gridworld", "mountaincar", "acrobot", "cartpole",
+           "multiroom", "skeleton_environment", "taxi", "windyworld",
            "batch_replenish", "puddleworld"]
 
 try:
@@ -18,8 +18,8 @@ except:
     pass
 
 
-try:
-    import pygame
-    __all__.append("pinball")
-except:
-    pass
+#try:
+#    import pygame
+#    __all__.append("pinball")
+#except:
+#    pass
