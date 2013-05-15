@@ -7,7 +7,7 @@ from rlglue.utils import TaskSpecVRLGLUE3
 from pyrl.rlglue.registry import register_agent
 
 from random import Random
-import numpy
+import numpy, time
 import copy
 import sys
 import pyrl.basis.fourier as fourier
@@ -155,7 +155,6 @@ class sarsa_lambda(Agent):
 			else:
 				self.basis = None
 				self.weights = numpy.zeros((self.numDiscStates, self.numStates, self.numActions))
-			self.weights = numpy.random.random(self.weights.shape)*10.
 			self.traces = numpy.zeros(self.weights.shape)
 			self.init_stepsize(self.weights.shape, self.params)
 		else:
@@ -189,7 +188,7 @@ class sarsa_lambda(Agent):
 			Q = numpy.dot(self.weights[discState,:,:].T, self.basis.computeFeatures(state))
 		Q = numpy.exp(numpy.clip(Q/self.epsilon, -500, 500))
 		Q /= Q.sum()
-		print Q
+
 		# Would like to use numpy, but haven't upgraded enough (need 1.7)
 		# numpy.random.choice(self.numActions, 1, p=Q)
 		Q = Q.cumsum()
@@ -347,8 +346,28 @@ class residual_gradient(sarsa_lambda):
 		self.traces *= self.gamma * self.lmbda
 		self.traces += (phi_t - self.gamma * phi_tp)
 
-AutoSarsa = stepsizes.genAdaptiveAgent(stepsizes.Autostep, sarsa_lambda)
-ABSarsa = stepsizes.genAdaptiveAgent(stepsizes.AlphaBounds, sarsa_lambda)
+@register_agent
+class fixed_policy(sarsa_lambda):
+	name = "Fixed Policy"
+
+	def init_parameters(self):
+		sarsa_lambda.init_parameters(self)
+		self.policy_seed = self.params.setdefault('seed', int(time.time()))
+
+	def randomize_parameters(self, **args):
+		# Randomize main parameters
+		param_list =sarsa_lambda.randomize_parameters(self, **args)
+		self.policy_seed = args.setdefault('seed', int(time.time()))
+		return param_list + [self.policy_seed]
+
+	def agent_init(self,taskSpec):
+		sarsa_lambda.agent_init(self, taskSpec)
+		numpy.random.seed(self.policy_seed)
+		self.weights = 2.*(numpy.random.random(self.weights.shape) - 0.5)
+
+	def update(self, phi_t, phi_tp, reward):
+		pass
+
 
 def addLinearTDArgs(parser):
 	parser.add_argument("--epsilon", type=float, default=0.1, help="Probability of exploration with epsilon-greedy.")
