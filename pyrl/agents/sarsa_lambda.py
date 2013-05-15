@@ -155,6 +155,7 @@ class sarsa_lambda(Agent):
 			else:
 				self.basis = None
 				self.weights = numpy.zeros((self.numDiscStates, self.numStates, self.numActions))
+			self.weights = numpy.random.random(self.weights.shape)*10.
 			self.traces = numpy.zeros(self.weights.shape)
 			self.init_stepsize(self.weights.shape, self.params)
 		else:
@@ -188,7 +189,7 @@ class sarsa_lambda(Agent):
 			Q = numpy.dot(self.weights[discState,:,:].T, self.basis.computeFeatures(state))
 		Q = numpy.exp(numpy.clip(Q/self.epsilon, -500, 500))
 		Q /= Q.sum()
-
+		print Q
 		# Would like to use numpy, but haven't upgraded enough (need 1.7)
 		# numpy.random.choice(self.numActions, 1, p=Q)
 		Q = Q.cumsum()
@@ -197,7 +198,7 @@ class sarsa_lambda(Agent):
 	def egreedy(self, state, discState):
 		if self.randGenerator.random() < self.epsilon:
 			return self.randGenerator.randint(0,self.numActions-1)
-
+		print numpy.dot(self.weights[discState,:,:].T, state)
 		if self.basis is None:
 			return numpy.dot(self.weights[discState,:,:].T, state).argmax()
 		else:
@@ -346,6 +347,8 @@ class residual_gradient(sarsa_lambda):
 		self.traces *= self.gamma * self.lmbda
 		self.traces += (phi_t - self.gamma * phi_tp)
 
+AutoSarsa = stepsizes.genAdaptiveAgent(stepsizes.Autostep, sarsa_lambda)
+ABSarsa = stepsizes.genAdaptiveAgent(stepsizes.AlphaBounds, sarsa_lambda)
 
 def addLinearTDArgs(parser):
 	parser.add_argument("--epsilon", type=float, default=0.1, help="Probability of exploration with epsilon-greedy.")

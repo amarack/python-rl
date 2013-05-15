@@ -24,19 +24,19 @@ import neurolab as nl
 class sarsa_lambda_ann(Agent):
 	name = "Sarsa ANN"
 
-	def __init__(self, epsilon=0.1, alpha=0.01, gamma=1.0, lmbda=0.7, softmax=False, num_hidden=10, params={}):
+	def __init__(self, **kwargs):#epsilon=0.1, alpha=0.01, gamma=1.0, lmbda=0.7, softmax=False, num_hidden=10, params={}):
 		self.randGenerator = Random()	
 		self.lastAction=Action()
 		self.lastObservation=Observation()
 
-		self.epsilon = epsilon
-		self.lmbda = lmbda
-		self.gamma = gamma
+		self.epsilon = kwargs.setdefault("epsilon", 0.01)
+		self.lmbda = kwargs.setdefault("lmbda", 0.7)
+		self.gamma = kwargs.setdefault("gamma", 1.0)
 		self.net = None
-		self.params = params
-		self.softmax = softmax
-		self.alpha = float(alpha)
-		self.num_hidden = num_hidden
+		self.params = kwargs#params
+		self.softmax = kwargs.setdefault("softmax", False)
+		self.alpha = kwargs.setdefault("alpha", 0.001)
+		self.num_hidden = kwargs.setdefault("num_hidden", 50)
 
 	def agent_init(self,taskSpec):
 		# Parse the task specification and set up the weights and such

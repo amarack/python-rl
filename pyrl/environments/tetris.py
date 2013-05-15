@@ -73,7 +73,7 @@ class Tetris(Environment):
         return (0, 5)
 
     def computeReward(self, lines_cleared):
-        return 1 + lines_cleared
+        return lines_cleared
 
     # For our default behavior the actions are 2 dimensional,
     # but we map it onto a one dimensional discrete action
@@ -137,6 +137,9 @@ class Tetris(Environment):
 
         # Take the action
         lines_cleared = mdptetris.drop_piece(rotation, column)
+        #if lines_cleared > 0:
+        #    print "Cleared!"
+        #print "Action", rotation, column
         obs = self.getObservation()
         reward = self.computeReward(lines_cleared) if not mdptetris.isgameover() else 0.0
         return obs, reward

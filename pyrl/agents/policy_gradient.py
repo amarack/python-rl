@@ -72,6 +72,7 @@ class policy_gradient(sarsa_lambda.sarsa_lambda):
 
 	def getAction(self, state, discState):
 		policy = self.getPolicy(state, discState)
+		print policy
 		return numpy.where(policy.cumsum() >= numpy.random.random())[0][0]
 
 	def getPolicy(self, state, discState):
@@ -245,7 +246,7 @@ class nac_lstd(policy_gradient):
             parameters = numpy.dot(self.A, self.b)
             # Update the weights with both a scalar and vector stepsize used
             self.weights += self.step_sizes * parameters[phi_t.size:].reshape(self.weights.shape)
-
+	    print self.weights.tolist()
 
 @register_agent
 class nac_sarsa(policy_gradient):

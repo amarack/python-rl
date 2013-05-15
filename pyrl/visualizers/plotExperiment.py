@@ -22,9 +22,9 @@ def printUsage():
     sys.exit(1)
 
 def movingaverage(interval, window_size):
-    interval = numpy.array(interval.tolist() + [interval[-1]]*window_size)
+    interval = numpy.array([interval[0]]*window_size + interval.tolist() + [interval[-1]]*window_size)
     window = numpy.ones(int(window_size))/float(window_size)
-    return numpy.convolve(interval, window, 'same')[:-window_size]
+    return numpy.convolve(interval, window, 'same')[window_size:-window_size]
 
 def processFile(filename, style, windowsize, verbose=True):
     episodes = {}
