@@ -351,18 +351,19 @@ class fixed_policy(sarsa_lambda):
 
 	def init_parameters(self):
 		sarsa_lambda.init_parameters(self)
-		self.policy_seed = self.params.setdefault('seed', int(time.time()))
+		self.policy_seed = self.params.setdefault('seed', int(time.time()*10000))
 
 	def randomize_parameters(self, **args):
 		# Randomize main parameters
 		param_list =sarsa_lambda.randomize_parameters(self, **args)
-		self.policy_seed = args.setdefault('seed', int(time.time()))
+		self.policy_seed = args.setdefault('seed', int(time.time()*10000))
 		return param_list + [self.policy_seed]
 
 	def agent_init(self,taskSpec):
 		sarsa_lambda.agent_init(self, taskSpec)
 		numpy.random.seed(self.policy_seed)
 		self.weights = 2.*(numpy.random.random(self.weights.shape) - 0.5)
+		numpy.random.seed(None)
 
 	def update(self, phi_t, phi_tp, reward):
 		pass
