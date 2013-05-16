@@ -50,7 +50,7 @@ def processFile(filename, style, windowsize, verbose=True):
     data[:,1] = movingaverage(data[:,1], windowsize)
     if verbose:
         print "Processed", numRuns, "runs from", filename
-    return data[:-1,:]
+    return data
 
 
 def processFileSum(filename, style, windowsize, verbose=True):
@@ -112,7 +112,7 @@ if __name__=="__main__":
     plt.xlabel("Episodes")
     plt.ylabel(style_str)
     plt.title(mainTitle)
-    plt.legend(labels,loc='best')
+    plt.legend(labels, loc='best')
     plt.savefig(mainTitle + ".pdf")
     #plt.show()
 
