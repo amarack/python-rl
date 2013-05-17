@@ -88,12 +88,9 @@ class CartPole(Environment):
 		return ts.toTaskSpec()
 
 	def reset(self):
+		self.state.fill(0.)
 		if self.random_start:
-                    self.state = numpy.random.random((4,)) 
-                    self.state *= (self.state_range[:,1] - self.state_range[:,0]) + \
-                        self.state_range[:,0]
-		else:
-                    self.state.fill(0.)
+                    self.state[2] = (numpy.random.random()-0.5)/5.
 
 	def env_init(self):
 		return self.makeTaskSpec()

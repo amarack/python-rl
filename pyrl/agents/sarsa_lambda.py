@@ -186,11 +186,10 @@ class sarsa_lambda(Agent):
 			Q = numpy.dot(self.weights[discState,:,:].T, state)
 		else:
 			Q = numpy.dot(self.weights[discState,:,:].T, self.basis.computeFeatures(state))
+		Q -= Q.max()
 		Q = numpy.exp(numpy.clip(Q/self.epsilon, -500, 500))
 		Q /= Q.sum()
 
-		# Would like to use numpy, but haven't upgraded enough (need 1.7)
-		# numpy.random.choice(self.numActions, 1, p=Q)
 		Q = Q.cumsum()
 		return numpy.where(Q >= numpy.random.random())[0][0]
 
