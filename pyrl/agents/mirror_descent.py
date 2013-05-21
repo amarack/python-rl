@@ -21,11 +21,11 @@ def pnorm_linkfunc(weights, order):
 	if (weights==0.0).all():
 		return numpy.zeros(weights.shape)
 	return numpy.sign(weights) * numpy.abs(weights)**(order-1) / numpy.linalg.norm(weights, ord=order)**(order - 2)
-		
+
 
 @register_agent
 class md_qlearn(qlearning.qlearning_agent):
-	"""Sparse Mirror Descent Q-Learning using a p-norm distance generating function. 
+	"""Sparse Mirror Descent Q-Learning using a p-norm distance generating function.
 	Set the sparsity parameter to zero to get Mirror Descent Q-Learning.
 	From the paper:
 
@@ -60,17 +60,17 @@ class md_qlearn(qlearning.qlearning_agent):
 		# Update dual weights
 		dual_weights = self.proj_dual(self.weights)
 		dual_weights += self.step_sizes * delta * self.traces
-		
+
 		# Truncate weights for sparsity
 		dual_weights = numpy.sign(dual_weights) * (numpy.abs(dual_weights) - self.step_sizes * self.sparsity).clip(0.0)
-		
+
 		# Update the weights
 		self.weights = self.proj_primal(dual_weights)
 
-		
+
 @register_agent
 class md_sarsa(sarsa_lambda.sarsa_lambda):
-	"""Sparse Mirror Descent Q-Learning using a p-norm distance generating function. 
+	"""Sparse Mirror Descent Q-Learning using a p-norm distance generating function.
 	Set the sparsity parameter to zero to get Mirror Descent Q-Learning.
 	From the paper:
 
@@ -78,7 +78,7 @@ class md_sarsa(sarsa_lambda.sarsa_lambda):
 	Sridhar Mahadevan and Bo Liu, 2012.
 	"""
 	name = "Sparse Mirror Descent Sarsa"
-	
+
 	def init_parameters(self):
 		sarsa_lambda.sarsa_lambda.init_parameters(self)
 		self.sparsity = self.params.setdefault('sparsity', 0.01)
@@ -102,10 +102,10 @@ class md_sarsa(sarsa_lambda.sarsa_lambda):
 		# Update dual weights
 		dual_weights = self.proj_dual(self.weights)
 		dual_weights += self.step_sizes * delta * self.traces
-		
+
 		# Truncate weights for sparsity
 		dual_weights = numpy.sign(dual_weights) * (numpy.abs(dual_weights) - self.step_sizes * self.sparsity).clip(0.0)
-		
+
 		# Update the weights
 		self.weights = self.proj_primal(dual_weights)
 
@@ -113,7 +113,7 @@ class md_sarsa(sarsa_lambda.sarsa_lambda):
 # NOTE: This agent is not working at all. Not sure yet what is wrong
 @register_agent
 class cmd_sarsa(sarsa_lambda.sarsa_lambda):
-	"""Sparse Mirror Descent Q-Learning using a p-norm distance generating function. 
+	"""Sparse Mirror Descent Q-Learning using a p-norm distance generating function.
 	Set the sparsity parameter to zero to get Mirror Descent Q-Learning.
 	From the paper:
 
@@ -147,62 +147,67 @@ class cmd_sarsa(sarsa_lambda.sarsa_lambda):
 
 @register_agent
 class mdba_qlearn(md_qlearn):
-	"""Sparse Mirror Descent Q-Learning with Non-Linear Basis Adaptation, 
-	using a p-norm distance generating function. Set the sparsity parameter 
-	to zero to get Mirror Descent Q-Learning.
-	From the paper:
+    """Sparse Mirror Descent Q-Learning with Non-Linear Basis Adaptation,
+    using a p-norm distance generating function. Set the sparsity parameter
+    to zero to get Mirror Descent Q-Learning.
+    From the paper:
 
-	Basis Adaptation for Sparse Nonlinear Reinforcement Learning
-	Sridhar Mahadevan, Stephen Giguere, and Nicholas Jacek, 2013.
-	"""
-	name = "Sparse Mirror Descent Q-Learning with Non-Linear Basis Adaptation"	
+    Basis Adaptation for Sparse Nonlinear Reinforcement Learning
+    Sridhar Mahadevan, Stephen Giguere, and Nicholas Jacek, 2013.
+    """
+    name = "Sparse Mirror Descent Q-Learning with Non-Linear Basis Adaptation"
 
-	def init_parameters(self):
-		self.params['basis'] = 'fourier' # Force to use fourier basis for adaptation
-		md_qlearn.init_parameters(self)
-		self.beta = self.params.setdefault('nonlinear_lr', 1.e-6)
+    def init_parameters(self):
+        self.params['basis'] = 'fourier' # Force to use fourier basis for adaptation
+        md_qlearn.init_parameters(self)
+        self.beta = self.params.setdefault('nonlinear_lr', 1.e-6)
 
-	def agent_init(self, taskSpec):
-		md_qlearn.agent_init(self, taskSpec)
-		self.freq_scale = numpy.ones((self.weights.shape[1],))
+    def agent_init(self, taskSpec):
+        md_qlearn.agent_init(self, taskSpec)
+        self.freq_scale = numpy.ones((self.weights.shape[1],))
 
-	def update(self, phi_t, state, discState, reward):
-		qvalues = self.getActionValues(state, discState)
-		a_tp = qvalues.argmax()
+    def basisGradient(self, state):
+        # Derivative of basis features w.r.t. frequency scale
+        sfeatures = numpy.dot(numpy.dot(numpy.diag(1./self.freq_scale), self.basis.multipliers), numpy.array([self.basis.scale(state[i],i) for i in range(len(state))]))
+        return -numpy.pi * sfeatures * numpy.sin(numpy.pi * self.freq_scale * sfeatures)
 
-		if state is not None:
-			# Compute Delta (TD-error)
-			delta = self.gamma*qvalues[a_tp] + reward - numpy.dot(self.weights.flatten(), phi_t.flatten())
-			deltaGrad = numpy.zeros(self.freq_scale.shape)
-			logSumExp = qvalues[a_tp] + numpy.log(numpy.exp(qvalues - qvalues[a_tp]).sum())
-			update_fs = numpy.zeros(self.freq_scale.shape)
+    def update(self, phi_t, state, discState, reward):
+        qvalues = self.getActionValues(state, discState)
+        a_tp = qvalues.argmax()
 
-			approxMaxGrad = numpy.exp(qvalues - logSumExp)
+        if state is not None:
+            lastState = numpy.array(list(self.lastObservation.doubleArray))
+            lastAction = self.lastAction.intArray[0]
+            lastDiscState = self.getDiscState(self.lastObservation.intArray)
+            update_fs = numpy.zeros(self.freq_scale.shape)
+            deltaGrad = numpy.zeros(self.freq_scale.shape)
 
-			sfeatures = numpy.dot(numpy.dot(numpy.diag(1./self.freq_scale), self.basis.multipliers), numpy.array([self.basis.scale(state[i],i) for i in range(len(state))]))
-			fa_grad = -numpy.pi * sfeatures * numpy.sin(numpy.pi * self.freq_scale * sfeatures)
-			for a in range(self.numActions):
-				deltaGrad += approxMaxGrad[a] * (fa_grad * self.weights[discState,:,a]) 
+            # Compute Delta (smoothed TD-error)
+            delta = self.gamma*qvalues[a_tp] + reward - numpy.dot(self.weights.flatten(), phi_t.flatten())
+            # logSumExp is equiv to log( sum[ exp(qvalues) ] )
+            logSumExp = qvalues[a_tp] + numpy.log(numpy.exp(qvalues - qvalues[a_tp]).sum())
+            # approxMaxGrad is equiv to deriv of smoothed max(Q) w.r.t. Q[a]
+            approxMaxGrad = numpy.exp(qvalues - logSumExp)
 
-			lastState = numpy.array(list(self.lastObservation.doubleArray))
-			lastAction = self.lastAction.intArray[0]
-			lastDiscState = self.getDiscState(self.lastObservation.intArray)
+            # Compute gradient of smoothed TD error
+            fa_grad = self.basisGradient(state)
+            for a in range(self.numActions):
+                deltaGrad += approxMaxGrad[a] * (fa_grad * self.weights[discState,:,a])
+            fa_grad = self.basisGradient(lastState)
+            deltaGrad = self.gamma * deltaGrad - (fa_grad * self.weights[lastDiscState, :,lastAction])
 
-			sfeatures = numpy.dot(numpy.dot(numpy.diag(1./self.freq_scale), self.basis.multipliers), numpy.array([self.basis.scale(lastState[i],i) for i in range(len(state))]))
-			fa_grad = -numpy.pi * sfeatures * numpy.sin(numpy.pi * self.freq_scale * sfeatures)
+            # Compute the update to the basis scale features
+            update_fs = self.beta * delta * deltaGrad
+            # Do MDA update for weights
+            md_qlearn.update(self, phi_t, state, discState, reward)
 
-			update_fs = self.beta * delta * (self.gamma * deltaGrad - (fa_grad * self.weights[lastDiscState, :,lastAction]))
-		
-		        # Do MDA update for weights
-			md_qlearn.update(self, phi_t, state, discState, reward)
-
-			# Update frequency scaling
-			update_fs += self.freq_scale
-			# Change scaling on multipliers
-			self.basis.multipliers = numpy.dot(numpy.diag(update_fs/self.freq_scale), self.basis.multipliers)
-			self.freq_scale = update_fs
-		else:
-			md_qlearn.update(self, phi_t, state, discState, reward)
+            # Update frequency scaling
+            update_fs += self.freq_scale
+            # Change scaling on multipliers
+            self.basis.multipliers = numpy.dot(numpy.diag(update_fs/self.freq_scale), self.basis.multipliers)
+            self.freq_scale = update_fs
+        else:
+            md_qlearn.update(self, phi_t, state, discState, reward)
 
 
 
