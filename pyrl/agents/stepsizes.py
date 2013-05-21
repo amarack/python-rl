@@ -28,17 +28,17 @@ def genAdaptiveAgent(stepsize_class, agent_class):
 	def randomize_parameters(self, **args):
 		"""Generate parameters randomly, constrained by given named parameters.
 
-		Parameters that fundamentally change the algorithm are not randomized over. For 
-		example, basis and softmax fundamentally change the domain and have very few values 
+		Parameters that fundamentally change the algorithm are not randomized over. For
+		example, basis and softmax fundamentally change the domain and have very few values
 		to be considered. They are not randomized over.
 
-		Basis parameters, on the other hand, have many possible values and ARE randomized. 
+		Basis parameters, on the other hand, have many possible values and ARE randomized.
 
 		Args:
 			**args: Named parameters to fix, which will not be randomly generated
 
 		Returns:
-			List of resulting parameters of the class. Will always be in the same order. 
+			List of resulting parameters of the class. Will always be in the same order.
 			Empty list if parameter free.
 
 		"""
@@ -59,18 +59,18 @@ class AdaptiveStepSize(object):
 
     def randomize_parameters(self, **args):
         """Generate parameters randomly, constrained by given named parameters.
-        
-        Parameters that fundamentally change the algorithm are not randomized over. For 
-        example, basis and softmax fundamentally change the domain and have very few values 
+
+        Parameters that fundamentally change the algorithm are not randomized over. For
+        example, basis and softmax fundamentally change the domain and have very few values
         to be considered. They are not randomized over.
-        
-        Basis parameters, on the other hand, have many possible values and ARE randomized. 
+
+        Basis parameters, on the other hand, have many possible values and ARE randomized.
 
         Args:
 		**args: Named parameters to fix, which will not be randomly generated
 
         Returns:
-	       	List of resulting parameters of the class. Will always be in the same order. 
+	       	List of resulting parameters of the class. Will always be in the same order.
                 Empty list if parameter free.
 
         """
@@ -81,7 +81,7 @@ class AdaptiveStepSize(object):
 class GHS(AdaptiveStepSize):
     """Generalized Harmonic Stepsize algorithm for scalar step-sizes.
 
-    Follows the equation: a_t = a_0 * (a / a + t - 1), 
+    Follows the equation: a_t = a_0 * (a / a + t - 1),
     for parameters a_0 and a
     """
     name = "GHS"
@@ -130,7 +130,7 @@ class STC(AdaptiveStepSize):
 
     Follows the equation: a_t = a_{t-1} * (1 + (c/a_0) * (t/N)) / (1 + (c/a_0) * (t/N) + N * (t^2/N^2))
     for parameters a_0 the initial stepsize, c the target stepsize, N the pivot point.
-    N (the pivot point) is simply approximately how many steps at which the formula begins to 
+    N (the pivot point) is simply approximately how many steps at which the formula begins to
     converge more rather than search more.
     """
     name = "STC"
@@ -142,7 +142,7 @@ class STC(AdaptiveStepSize):
         self.stc_counter = 0
 
     def rescale_update(self, phi_t, phi_tp, delta, reward, descent_direction):
-        self.alpha *= (1 + (self.stc_c * self.stc_counter)/(self.stc_a0 * self.stc_N)) 
+        self.alpha *= (1 + (self.stc_c * self.stc_counter)/(self.stc_a0 * self.stc_N))
         self.alpha /= (1 + (self.stc_c * self.stc_counter)/(self.stc_a0 * self.stc_N) + self.stc_N*(self.stc_counter**2)/self.stc_N**2)
         self.step_sizes.fill(self.alpha)
         self.stc_counter += 1
@@ -158,10 +158,10 @@ class RProp(AdaptiveStepSize):
     """RProp algorithm for vector step-sizes.
 
     From the paper:
-    Riedmiller, M. and Braun, H. (1993). 
+    Riedmiller, M. and Braun, H. (1993).
     A direct adaptive method for faster backpropagation learning: The RPROP algorithm.
     """
-    name = "RProp"    
+    name = "RProp"
     def init_stepsize(self, weights_shape, params):
         self.step_sizes = numpy.ones(weights_shape) * self.alpha
         self.last_update = numpy.zeros(weights_shape)
@@ -193,7 +193,7 @@ class Autostep(AdaptiveStepSize):
         self.h = numpy.zeros((numpy.prod(weights_shape),))
         self.v = numpy.zeros((numpy.prod(weights_shape),))
         # Autostep should not be used with eligibility traces (in current form)
-        #self.lmbda = 0.0 
+        #self.lmbda = 0.0
         self.mu = params.setdefault('autostep_mu', 1.0e-2)
         self.tau = params.setdefault('autostep_tau', 1.0e4)
 
@@ -201,7 +201,7 @@ class Autostep(AdaptiveStepSize):
         x = phi_t.flatten()
         deltaTerm = delta * x * self.h
         alphas = self.step_sizes.flatten()
-        self.v = numpy.max([numpy.abs(deltaTerm), 
+        self.v = numpy.max([numpy.abs(deltaTerm),
                             self.v + (1.0/self.tau)*alphas*(x**2)*(numpy.abs(deltaTerm) - self.v)],0)
         v_not_zero = self.v != 0.0
         alphas[v_not_zero] = alphas[v_not_zero] * numpy.exp(self.mu * deltaTerm[v_not_zero]/self.v[v_not_zero])
@@ -209,7 +209,7 @@ class Autostep(AdaptiveStepSize):
         self.step_sizes = (alphas / M).reshape(self.step_sizes.shape)
         plus_note = ( 1.0 - self.step_sizes.flatten() * x**2 )
         # This may or may not be used depending on which paper you read
-        #plus_note[plus_note < 0] = 0.0 
+        #plus_note[plus_note < 0] = 0.0
         self.h = self.h * plus_note + self.step_sizes.flatten()*delta*x
         return self.step_sizes * descent_direction
 
@@ -217,7 +217,7 @@ class Autostep(AdaptiveStepSize):
         self.params['autostep_mu'] = args.setdefault('autostep_mu', numpy.random.random())
         self.params['autostep_tau'] = args.setdefault('autostep_tau', numpy.random.random()*1.e6)
         return [self.params['autostep_mu'], self.params['autostep_tau']]
-	
+
 class AlphaBounds(AdaptiveStepSize):
     """AlphaBounds adaptive scalar step-size.
 
@@ -234,11 +234,11 @@ class AlphaBounds(AdaptiveStepSize):
         denomTerm = numpy.dot(self.traces.flatten(), deltaPhi.flatten())
         self.alpha = numpy.min([self.alpha, 1.0/numpy.abs(denomTerm)])
         self.step_sizes.fill(self.alpha)
-        return self.step_sizes * descent_direction	
+        return self.step_sizes * descent_direction
 
 class AdagradFull(AdaptiveStepSize):
-    """ADAGRAD algorithm for adaptive step-sizes, originally for the more general problem 
-    of adaptive proximal functions in subgradient methods. This is an implementation of 
+    """ADAGRAD algorithm for adaptive step-sizes, originally for the more general problem
+    of adaptive proximal functions in subgradient methods. This is an implementation of
     the full matrix variation.
 
     From the paper:
@@ -250,12 +250,12 @@ class AdagradFull(AdaptiveStepSize):
         self.step_sizes = numpy.ones(weights_shape) * self.alpha
         self.h = numpy.eye(self.step_sizes.size) * params.setdefault("adagrad_precond", 0.001)
         self.adagrad_counter = 0.
-            
+
     def rescale_update(self, phi_t, phi_tp, delta, reward, descent_direction):
-        self.adagrad_counter += 1      
-        g = delta * phi_t.flatten()
+        self.adagrad_counter += 1
+        g = descent_direction.flatten()
         self.h = matrix.SMInv(self.h, g, g, 1.)
-        if self.adagrad_counter > 1:
+        if self.adagrad_counter > 0:
             Hinv = numpy.real(scipy.linalg.sqrtm(self.h))
             descent_direction = numpy.dot(Hinv, descent_direction.flatten())
             descent_direction *= numpy.sqrt(self.adagrad_counter)
@@ -263,8 +263,8 @@ class AdagradFull(AdaptiveStepSize):
 
 
 class AdagradDiagonal(AdaptiveStepSize):
-    """ADAGRAD algorithm for adaptive step-sizes, originally for the more general problem 
-    of adaptive proximal functions in subgradient methods. This is an implementation of 
+    """ADAGRAD algorithm for adaptive step-sizes, originally for the more general problem
+    of adaptive proximal functions in subgradient methods. This is an implementation of
     the diagonal matrix variation.
 
     From the paper:
@@ -278,8 +278,8 @@ class AdagradDiagonal(AdaptiveStepSize):
         self.adagrad_counter = 0.
 
     def rescale_update(self, phi_t, phi_tp, delta, reward, descent_direction):
-        self.adagrad_counter += 1        
-        self.h += (delta *  phi_t)**2
+        self.adagrad_counter += 1
+        self.h += descent_direction**2
         if self.adagrad_counter > 1:
             self.step_sizes.fill(self.alpha)
             non_zeros = numpy.where(self.h != 0.0)
@@ -287,8 +287,8 @@ class AdagradDiagonal(AdaptiveStepSize):
         return self.step_sizes * descent_direction
 
 class vSGD(AdaptiveStepSize):
-    """vSGD is an adaptive step-size algorithm for noisy quadratic objective functions in 
-    stochastic approximation. 
+    """vSGD is an adaptive step-size algorithm for noisy quadratic objective functions in
+    stochastic approximation.
 
     From the paper:
     Tom Schaul, Sixin Zhang, and Yann LeCun, 2013
@@ -300,8 +300,8 @@ class vSGD(AdaptiveStepSize):
         self.g = numpy.zeros(weights_shape)
         self.v = numpy.zeros(weights_shape)
         self.h = numpy.zeros(weights_shape)
-        self.t = numpy.ones(weights_shape) * params.setdefault("vsgd_initmeta", 10.)
-        self.slow_start = params.setdefault("vsgd_slowstart", 50000)
+        self.t = numpy.ones(weights_shape) * params.setdefault("vsgd_initmeta", 100.)
+        self.slow_start = params.setdefault("vsgd_slowstart", 50)
 
     def randomize_parameters(self, **args):
         self.params['vsgd_slowstart'] = args.setdefault('vsgd_slowstart', numpy.random.randint(500))
@@ -322,11 +322,11 @@ class vSGD(AdaptiveStepSize):
         denom = self.h*self.v
         denom[denom==0] = 1.0
         self.step_sizes = (self.g**2) / denom
-       
+
         if self.slow_start <= 0:
-            self.t *= -(self.g**2 / self.v - 1.)
+            self.t *= (-((self.g**2 / self.v) - 1.)).clip(1.e-15, 1.)
             self.t += 1.
-        
+
         self.slow_start -= 1
         return self.step_sizes * descent_direction
 
