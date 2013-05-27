@@ -3,7 +3,7 @@
 
 __all__ = ["fuelworld", "gridworld", "mountaincar", "acrobot", "cartpole",
            "multiroom", "skeleton_environment", "taxi", "windyworld",
-           "batch_replenish", "puddleworld"]
+           "batch_replenish", "puddleworld", "neurostim"]
 
 try:
     from libPOMDP import libpomdp

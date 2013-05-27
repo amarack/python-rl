@@ -36,6 +36,9 @@ class skeleton_agent(Agent):
 	lastAction=Action()
 	lastObservation=Observation()
 
+	def __init__(self, **args):
+		pass
+
 	def randomize_parameters(self, **args):
 		"""Generate parameters randomly, constrained by given named parameters.
 
@@ -53,7 +56,8 @@ class skeleton_agent(Agent):
 		#See the sample_sarsa_agent in the mines-sarsa-example project for how to parse the task spec
 		self.lastAction=Action()
 		self.lastObservation=Observation()
-		
+		self.counter = 0
+
 	def agent_start(self,observation):
 		#Generate random action, 0 or 1
 		thisIntAction=self.randGenerator.randint(0,1)
@@ -67,7 +71,11 @@ class skeleton_agent(Agent):
 	
 	def agent_step(self,reward, observation):
 		#Generate random action, 0 or 1
-		thisIntAction=self.randGenerator.randint(0,1)
+		if self.counter % 5 == 0:
+			thisIntAction = 1
+		else:
+			thisIntAction = 0
+		#thisIntAction=self.randGenerator.randint(0,1)
 		returnAction=Action()
 		returnAction.intArray=[thisIntAction]
 		

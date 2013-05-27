@@ -367,6 +367,7 @@ class fixed_policy(sarsa_lambda):
 	def update(self, phi_t, phi_tp, reward):
 		pass
 
+ABSarsa = stepsizes.genAdaptiveAgent(stepsizes.AlphaBounds, sarsa_lambda)
 
 def addLinearTDArgs(parser):
 	parser.add_argument("--epsilon", type=float, default=0.1, help="Probability of exploration with epsilon-greedy.")
