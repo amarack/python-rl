@@ -71,11 +71,7 @@ class skeleton_agent(Agent):
 	
 	def agent_step(self,reward, observation):
 		#Generate random action, 0 or 1
-		if self.counter % 5 == 0:
-			thisIntAction = 1
-		else:
-			thisIntAction = 0
-		#thisIntAction=self.randGenerator.randint(0,1)
+		thisIntAction=self.randGenerator.randint(0,1)
 		returnAction=Action()
 		returnAction.intArray=[thisIntAction]
 		

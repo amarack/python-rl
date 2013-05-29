@@ -6,7 +6,7 @@ class FourierBasis:
         self.numTerms = nterms
         self.order = order
         self.ranges = numpy.array(ranges)
-        iter = itertools.product(''.join(map(str, range(order+1))), repeat=nvars)
+        iter = itertools.product(range(order+1), repeat=nvars)
         self.multipliers = numpy.array([list(map(int,x)) for x in iter])
 
     def scale(self, value, pos):
