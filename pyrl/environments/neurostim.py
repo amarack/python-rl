@@ -108,7 +108,6 @@ class NeuroStim(Environment):
     def reset(self, index=None):
         random_index = tuple(numpy.random.randint(self.N+1, size=2))
         self.state = self.features[random_index, :].mean(0) if index is None else self.features[index, :]
-        self.buffer += [self.state[0]]
 
         # Compute nbr of state
         self.current_neighbor = self.knn.kneighbors(self.state)[1][0,0]
@@ -144,7 +143,6 @@ class NeuroStim(Environment):
 
         # Integrate
         self.state += gradient + s_noise + stim*self.stim_magnitude*self.dstim
-        self.buffer += [self.state[0]]
         # Update KNN
         self.current_neighbor = self.knn.kneighbors(self.state)[1][0,0]
 
