@@ -1,6 +1,16 @@
 import numpy, itertools
 
-class FourierBasis:
+class FourierBasis(object):
+    """Fourier Basis linear function approximation. Requires the ranges for each dimension, and is thus able to
+    use only sine or cosine (and uses cosine). So, this has half the coefficients that a full Fourier approximation
+    would use.
+
+    From the paper:
+    G.D. Konidaris, S. Osentoski and P.S. Thomas.
+    Value Function Approximation in Reinforcement Learning using the Fourier Basis.
+    In Proceedings of the Twenty-Fifth Conference on Artificial Intelligence, pages 380-385, August 2011.
+    """
+
     def __init__(self, nvars, order, ranges):
         nterms = pow(order + 1.0, nvars)
         self.numTerms = nterms
