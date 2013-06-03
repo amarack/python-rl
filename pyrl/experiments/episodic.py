@@ -13,18 +13,17 @@ import pyrl.visualizers.plotExperiment as plotExperiment
 class Episodic(object):
     name = "Episodic"
 
-    def __init__(self, agent=None, environment=None, maxsteps=5000, num_episodes=10,
-                 num_runs=1, timed=True, evaluate='reward'):
-        self.maxsteps = maxsteps
-        self.num_episodes = num_episodes
-        self.num_runs = num_runs
-        self.timed = timed
-        self.evaluate = evaluate
+    def __init__(self, **kwargs):
+        self.maxsteps = kwargs.setdefault('maxsteps', 5000)
+        self.num_episodes = kwargs.setdefault('num_episodes', 10)
+        self.num_runs = kwargs.setdefault('num_runs', 1)
+        self.timed = kwargs.setdefault('timed', True)
+        self.evaluate = kwargs.setdefault('evaluate', 'reward')
 
-        if agent is not None and environment is not None:
-            self.rlglue = RLGlueLocal.LocalGlue(environment, agent)
-            self.agent = agent
-            self.environment = environment
+        if kwargs.has_key('agent') and kwargs.has_key('environment'):
+            self.agent = kwargs['agent']
+            self.environment = kwargs['environment']
+            self.rlglue = RLGlueLocal.LocalGlue(self.environment, self.agent)
         else:
             self.rlglue = rl_glue
 

@@ -17,10 +17,6 @@
 import numpy
 import csv, sys
 
-def printUsage():
-    print "Usage: python -m pyrl.visualizers.plotExperiment title [reward|steps|time] window_size experiment_data1.dat label1 experiment_data2.dat ..."
-    sys.exit(1)
-
 def movingaverage(interval, window_size):
     interval = numpy.array([interval[0]]*window_size + interval.tolist() + [interval[-1]]*window_size)
     window = numpy.ones(int(window_size))/float(window_size)
@@ -80,41 +76,88 @@ def processFileSum(filename, style, windowsize, verbose=True):
 
 if __name__=="__main__":
     import matplotlib.pyplot as plt
-    styles = {"reward": 3, "steps": 1, "time": 2}
+    import argparse
+
+    # Labels used for the y-axis depending on the evaluation metric being plotted
     style_labels = {"reward":"Reward", "steps":"Steps", "time":"Time (Seconds)"}
 
-    # Read filename for experiment dump file from arguments
-    if len(sys.argv) < 6:
-        printUsage()
+    parser = argparse.ArgumentParser(description='Plot the results of a randomized ' + \
+                                         'parameter search experiment. Use --raw to specify data output from an experiment, ' + \
+                                         'or --means if the data has already been processed into means and standard deviations.')
+    parser.add_argument("--raw", type=str, action='append', nargs=2,
+                        help="Filename of raw collected data from experiments.", default=[])
+    parser.add_argument("--means", type=str, action='append', nargs=2,
+                        help="Filename of episode number, means and standard deviations " + \
+                            "for each episode of an experiment. ", default=[])
+    parser.add_argument("--output", type=str, help="Filename to save the resulting figure.")
+    parser.add_argument("--title", type=str, help="Title for the figure.", default="")
+    parser.add_argument("--ylabel", type=str, help="Alternative label of y axis for the figure.")
+    parser.add_argument("--windowsize", type=int, help="Window size for smoothing.", default=1)
+    parser.add_argument("--target", type=str, help="Evaluation target.",
+                        default="reward", choices=style_labels.keys())
+    parser.add_argument("--legend_loc", type=str, help="Legend location",
+                        default="best", choices=["best", "lower right", "lower left",
+                                                 "upper right", "upper left"])
+    parser.add_argument("--nobars", action='store_true', default=False)
+    parser.add_argument("--eplimit", type=int)
+    parser.add_argument("--markevery", type=int)
+    args = parser.parse_args()
 
-    mainTitle = sys.argv[1]
-    style = sys.argv[2].lower()
+    mainTitle = args.title
+    style = args.target
 
     try:
         style_str = style_labels[style]
     except:
         printUsage()
 
-    windowsize = int(sys.argv[3])
-    filenames = [sys.argv[i] for i in range(4, len(sys.argv), 2)]
-    labels = [sys.argv[i] for i in range(5, len(sys.argv), 2)]
+    if args.ylabel is not None:
+        style_str = args.ylabel
+
+    windowsize = args.windowsize
+    labels = []
     colors = ['r', 'b', 'g', 'm']
     linestyles = ['-', '--', '-.']
-    markers = ["*", ".", "o", ">", 'x', '^', 'H', 'd']
+    markers = ["x", ".", "o", ">", '*', '^', 'H', 'd']
     indx = 0
-    for filename in filenames:
-        data = processFile(filename, style, windowsize)
-        #plt.errorbar(range(data.shape[0]), data[:,0], yerr=data[:,1])
-        plt.fill_between(range(data.shape[0]), data[:,0]-data[:,1], data[:,0]+data[:,1], alpha=0.4, color=colors[indx%len(colors)])
-        plt.plot(data[:,0], linewidth=2, color=colors[indx%len(colors)], linestyle=linestyles[indx%len(linestyles)], marker=markers[indx%len(markers)], markersize=5, markevery=windowsize)
+
+    def drawResult(data):
+        mark_freq = windowsize
+        if args.eplimit is not None:
+            data = data[:args.eplimit,:]
+        if args.markevery is not None:
+            mark_freq = args.markevery
+
+        if not args.nobars:
+            plt.fill_between(range(data.shape[0]), data[:,0]-data[:,1], data[:,0]+data[:,1],
+                             alpha=0.4, color=colors[indx%len(colors)])
+        plt.plot(data[:,0], linewidth=3, color=colors[indx%len(colors)],
+                 linestyle=linestyles[indx%len(linestyles)], marker=markers[indx%len(markers)],
+                 markersize=7, markevery=mark_freq)
+
+
+    for file, label in map(tuple, args.raw):
+        labels.append(label)
+        data = processFile(file, style, windowsize)
+        drawResult(data)
+        indx+=1
+
+    for file, label in map(tuple, args.means):
+        labels.append(label)
+        data = numpy.genfromtxt(file)[:,(1,2)]
+        data[:,0] = movingaverage(data[:,0], windowsize)
+        data[:,1] = movingaverage(data[:,1], windowsize)
+        drawResult(data)
         indx+=1
 
     plt.xlabel("Episodes")
     plt.ylabel(style_str)
     plt.title(mainTitle)
-    plt.legend(labels, loc='best')
-    plt.savefig(mainTitle + ".pdf")
-    #plt.show()
+    plt.legend(labels, loc=args.legend_loc)
+    if args.output is not None:
+        plt.savefig(args.output)
+    else:
+        plt.show()
 
 
 

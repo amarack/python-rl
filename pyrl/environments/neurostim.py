@@ -16,7 +16,7 @@ class NeuroStim(Environment):
     name = "Neurostimulation"
 
     def __init__(self, filename=os.path.join(os.path.dirname(__file__),'configs', 'neurostim', 'params.dat'),
-                noise=0.00, stim_penalty=-1.0, seizure_penalty=-40.0):
+                noise=0.00001, stim_penalty=-1.0, seizure_penalty=-40.0):
 
         self.noise = noise
         self.stim_penalty = stim_penalty
