@@ -1,18 +1,25 @@
 
 # Simplest Gaussian RBF implementation ever.
+import numpy, trivial
 
-import numpy
+class RBFBasis(trivial.TrivialBasis):
+    """Radial Basis Functions basis. This implementation is just about as simplistic as it gets.
+    This really could use some work to make it more competitive with state of the art.
+    """
 
-class RBFBasis:
-    def __init__(self, nvars, num_functions, beta, ranges):
+    def __init__(self, nvars, ranges, num_functions=10, beta=0.9):
+        trivial.TrivialBasis.__init__(self, nvars, ranges)
         self.beta = beta
-        ranges = numpy.array(ranges)
-        self.centers = numpy.random.uniform(ranges[:,0], ranges[:,1].T, (num_functions,nvars))
-                                
+        self.num_functions = num_functions
+        self.centers = numpy.random.uniform(self.ranges[:,0], self.ranges[:,1].T, (self.num_functions,self.numTerms))
+
+    def getNumBasisFunctions(self):
+        return self.num_functions
+
     def computeFeatures(self, features):
         features = numpy.array(features)
         return numpy.array([numpy.exp(-self.beta * numpy.linalg.norm(features-c)**2) for c in self.centers])
 
 
-        
+
 

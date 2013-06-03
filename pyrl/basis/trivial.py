@@ -16,6 +16,9 @@ class TrivialBasis(object):
         else:
             return (value - self.ranges[pos,0]) / (self.ranges[pos,1] - self.ranges[pos,0])
 
+    def getNumBasisFunctions(self):
+        return self.numTerms
+
     def computeFeatures(self, features):
         return (numpy.array([self.scale(features[i],i) for i in range(len(features))]) - 0.5)*2.
 

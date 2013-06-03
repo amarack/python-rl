@@ -17,132 +17,132 @@ import stepsizes
 
 
 def pnorm_linkfunc(weights, order):
-	"""Link function induced by the p-norm."""
-	if (weights==0.0).all():
-		return numpy.zeros(weights.shape)
-	return numpy.sign(weights) * numpy.abs(weights)**(order-1) / numpy.linalg.norm(weights, ord=order)**(order - 2)
+    """Link function induced by the p-norm."""
+    if (weights==0.0).all():
+        return numpy.zeros(weights.shape)
+    return numpy.sign(weights) * numpy.abs(weights)**(order-1) / numpy.linalg.norm(weights, ord=order)**(order - 2)
 
 
 @register_agent
 class md_qlearn(qlearning.qlearning_agent):
-	"""Sparse Mirror Descent Q-Learning using a p-norm distance generating function.
-	Set the sparsity parameter to zero to get Mirror Descent Q-Learning.
-	From the paper:
+    """Sparse Mirror Descent Q-Learning using a p-norm distance generating function.
+    Set the sparsity parameter to zero to get Mirror Descent Q-Learning.
+    From the paper:
 
-	Sparse Q-Learning with Mirror Descent,
-	Sridhar Mahadevan and Bo Liu, 2012.
-	"""
-	name = "Sparse Mirror Descent Q-Learning"
+    Sparse Q-Learning with Mirror Descent,
+    Sridhar Mahadevan and Bo Liu, 2012.
+    """
+    name = "Sparse Mirror Descent Q-Learning"
 
-	def init_parameters(self):
-		qlearning.qlearning_agent.init_parameters(self)
-		self.sparsity = self.params.setdefault('sparsity', 0.01)
+    def init_parameters(self):
+        qlearning.qlearning_agent.init_parameters(self)
+        self.sparsity = self.params.setdefault('sparsity', 0.01)
 
-	def agent_start(self,observation):
-		returnAction = qlearning.qlearning_agent.agent_start(self, observation)
-		self.pnorm = 2. * max(1, numpy.log10(numpy.prod(self.weights.shape)))
-		self.qnorm = self.pnorm / (self.pnorm - 1.)
-		return returnAction
+    def agent_start(self,observation):
+        returnAction = qlearning.qlearning_agent.agent_start(self, observation)
+        self.pnorm = 2. * max(1, numpy.log10(numpy.prod(self.weights.shape)))
+        self.qnorm = self.pnorm / (self.pnorm - 1.)
+        return returnAction
 
-	def proj_dual(self, weights):
-		return pnorm_linkfunc(weights.flatten(), self.qnorm).reshape(weights.shape)
+    def proj_dual(self, weights):
+        return pnorm_linkfunc(weights.flatten(), self.qnorm).reshape(weights.shape)
 
-	def proj_primal(self, weights):
-		return pnorm_linkfunc(weights.flatten(), self.pnorm).reshape(weights.shape)
+    def proj_primal(self, weights):
+        return pnorm_linkfunc(weights.flatten(), self.pnorm).reshape(weights.shape)
 
-	def update(self, phi_t, state, discState, reward):
-		qvalues = self.getActionValues(state, discState)
-		a_tp = qvalues.argmax()
+    def update(self, phi_t, state, discState, reward):
+        qvalues = self.getActionValues(state, discState)
+        a_tp = qvalues.argmax()
 
-		# Compute Delta (TD-error)
-		delta = self.gamma*qvalues[a_tp] + reward - numpy.dot(self.weights.flatten(), phi_t.flatten())
+        # Compute Delta (TD-error)
+        delta = self.gamma*qvalues[a_tp] + reward - numpy.dot(self.weights.flatten(), phi_t.flatten())
 
-		# Update dual weights
-		dual_weights = self.proj_dual(self.weights)
-		dual_weights += self.step_sizes * delta * self.traces
+        # Update dual weights
+        dual_weights = self.proj_dual(self.weights)
+        dual_weights += self.step_sizes * delta * self.traces
 
-		# Truncate weights for sparsity
-		dual_weights = numpy.sign(dual_weights) * (numpy.abs(dual_weights) - self.step_sizes * self.sparsity).clip(0.0)
+        # Truncate weights for sparsity
+        dual_weights = numpy.sign(dual_weights) * (numpy.abs(dual_weights) - self.step_sizes * self.sparsity).clip(0.0)
 
-		# Update the weights
-		self.weights = self.proj_primal(dual_weights)
+        # Update the weights
+        self.weights = self.proj_primal(dual_weights)
 
 
 @register_agent
 class md_sarsa(sarsa_lambda.sarsa_lambda):
-	"""Sparse Mirror Descent Q-Learning using a p-norm distance generating function.
-	Set the sparsity parameter to zero to get Mirror Descent Q-Learning.
-	From the paper:
+    """Sparse Mirror Descent Q-Learning using a p-norm distance generating function.
+    Set the sparsity parameter to zero to get Mirror Descent Q-Learning.
+    From the paper:
 
-	Sparse Q-Learning with Mirror Descent,
-	Sridhar Mahadevan and Bo Liu, 2012.
-	"""
-	name = "Sparse Mirror Descent Sarsa"
+    Sparse Q-Learning with Mirror Descent,
+    Sridhar Mahadevan and Bo Liu, 2012.
+    """
+    name = "Sparse Mirror Descent Sarsa"
 
-	def init_parameters(self):
-		sarsa_lambda.sarsa_lambda.init_parameters(self)
-		self.sparsity = self.params.setdefault('sparsity', 0.01)
+    def init_parameters(self):
+        sarsa_lambda.sarsa_lambda.init_parameters(self)
+        self.sparsity = self.params.setdefault('sparsity', 0.01)
 
-	def agent_start(self,observation):
-		returnAction = sarsa_lambda.sarsa_lambda.agent_start(self, observation)
-		self.pnorm = 2. * max(1, numpy.log10(numpy.prod(self.weights.shape)))
-		self.qnorm = self.pnorm / (self.pnorm - 1.)
-		return returnAction
+    def agent_start(self,observation):
+        returnAction = sarsa_lambda.sarsa_lambda.agent_start(self, observation)
+        self.pnorm = 2. * max(1, numpy.log10(numpy.prod(self.weights.shape)))
+        self.qnorm = self.pnorm / (self.pnorm - 1.)
+        return returnAction
 
-	def proj_dual(self, weights):
-		return pnorm_linkfunc(weights.flatten(), self.qnorm).reshape(weights.shape)
+    def proj_dual(self, weights):
+        return pnorm_linkfunc(weights.flatten(), self.qnorm).reshape(weights.shape)
 
-	def proj_primal(self, weights):
-		return pnorm_linkfunc(weights.flatten(), self.pnorm).reshape(weights.shape)
+    def proj_primal(self, weights):
+        return pnorm_linkfunc(weights.flatten(), self.pnorm).reshape(weights.shape)
 
-	def update(self, phi_t, phi_tp, reward):
-		# Compute Delta (TD-error)
-		delta = numpy.dot(self.weights.flatten(), (self.gamma * phi_tp - phi_t).flatten()) + reward
+    def update(self, phi_t, phi_tp, reward):
+        # Compute Delta (TD-error)
+        delta = numpy.dot(self.weights.flatten(), (self.gamma * phi_tp - phi_t).flatten()) + reward
 
-		# Update dual weights
-		dual_weights = self.proj_dual(self.weights)
-		dual_weights += self.step_sizes * delta * self.traces
+        # Update dual weights
+        dual_weights = self.proj_dual(self.weights)
+        dual_weights += self.step_sizes * delta * self.traces
 
-		# Truncate weights for sparsity
-		dual_weights = numpy.sign(dual_weights) * (numpy.abs(dual_weights) - self.step_sizes * self.sparsity).clip(0.0)
+        # Truncate weights for sparsity
+        dual_weights = numpy.sign(dual_weights) * (numpy.abs(dual_weights) - self.step_sizes * self.sparsity).clip(0.0)
 
-		# Update the weights
-		self.weights = self.proj_primal(dual_weights)
+        # Update the weights
+        self.weights = self.proj_primal(dual_weights)
 
 
 # NOTE: This agent is not working at all. Not sure yet what is wrong
 @register_agent
 class cmd_sarsa(sarsa_lambda.sarsa_lambda):
-	"""Sparse Mirror Descent Q-Learning using a p-norm distance generating function.
-	Set the sparsity parameter to zero to get Mirror Descent Q-Learning.
-	From the paper:
+    """Sparse Mirror Descent Q-Learning using a p-norm distance generating function.
+    Set the sparsity parameter to zero to get Mirror Descent Q-Learning.
+    From the paper:
 
-	Sparse Q-Learning with Mirror Descent,
-	Sridhar Mahadevan and Bo Liu, 2012.
-	"""
-	name = "Composite Mirror Descent Sarsa"
+    Sparse Q-Learning with Mirror Descent,
+    Sridhar Mahadevan and Bo Liu, 2012.
+    """
+    name = "Composite Mirror Descent Sarsa"
 
-	def init_parameters(self):
-		sarsa_lambda.sarsa_lambda.init_parameters(self)
-		self.sparsity = self.params.setdefault('sparsity', 0.01)
-		self.covariance = None
+    def init_parameters(self):
+        sarsa_lambda.sarsa_lambda.init_parameters(self)
+        self.sparsity = self.params.setdefault('sparsity', 0.01)
+        self.covariance = None
 
-	def update(self, phi_t, phi_tp, reward):
-		# Compute Delta (TD-error)
-		delta = numpy.dot(self.weights.flatten(), (self.gamma * phi_tp - phi_t).flatten()) + reward
+    def update(self, phi_t, phi_tp, reward):
+        # Compute Delta (TD-error)
+        delta = numpy.dot(self.weights.flatten(), (self.gamma * phi_tp - phi_t).flatten()) + reward
 
-		if self.covariance is None:
-			self.covariance = numpy.zeros(phi_t.shape)
+        if self.covariance is None:
+            self.covariance = numpy.zeros(phi_t.shape)
 
-		self.covariance += phi_t**2
+        self.covariance += phi_t**2
 
-		H = numpy.sqrt(self.covariance)
-		H[H == 0.0] = 1.0
-		nobis_term = self.step_sizes / H
+        H = numpy.sqrt(self.covariance)
+        H[H == 0.0] = 1.0
+        nobis_term = self.step_sizes / H
 
-		# Update the weights
-		update = self.weights - nobis_term * delta * self.traces
-		self.weights = numpy.sign(update) * (numpy.abs(update) - nobis_term * self.sparsity)
+        # Update the weights
+        update = self.weights - nobis_term * delta * self.traces
+        self.weights = numpy.sign(update) * (numpy.abs(update) - nobis_term * self.sparsity)
 
 
 @register_agent

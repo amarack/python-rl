@@ -13,6 +13,7 @@ import sys
 import pyrl.basis.fourier as fourier
 import pyrl.basis.rbf as rbf
 import pyrl.basis.tilecode as tilecode
+import pyrl.basis.trivial as trivial
 import stepsizes
 
 @register_agent
@@ -140,24 +141,21 @@ class sarsa_lambda(Agent):
 
         # Set up the function approximation
         if self.fa_name == 'fourier':
-            self.basis = fourier.FourierBasis(self.numStates,
-                                self.params.setdefault('fourier_order', 3),
-                                    TaskSpec.getDoubleObservations())
-            self.weights = numpy.zeros((self.numDiscStates, self.basis.numTerms, self.numActions))
+            self.basis = fourier.FourierBasis(self.numStates, TaskSpec.getDoubleObservations(),
+                                    order=self.params.setdefault('fourier_order', 3))
         elif self.fa_name == 'rbf':
             num_functions = self.numStates if self.params.setdefault('rbf_number', 0) == 0 else self.params['rbf_number']
-            self.basis = rbf.RBFBasis(self.numStates,
-                                    num_functions,
-                                    self.params.setdefault('rbf_beta', 0.9),
-                                    TaskSpec.getDoubleObservations())
-            self.weights = numpy.zeros((self.numDiscStates, num_functions, self.numActions))
+            self.basis = rbf.RBFBasis(self.numStates, TaskSpec.getDoubleObservations(),
+                                    num_functions=num_functions,
+                                    beta=self.params.setdefault('rbf_beta', 0.9))
         elif self.fa_name == 'tile':
-            self.basis = tilecode.TileCodingBasis(self.params.setdefault('tile_number', 100),
-                                    self.params.setdefault('tile_weights', 2048))
-            self.weights = numpy.zeros((self.numDiscStates, self.params['tile_weights'], self.numActions))
+            self.basis = tilecode.TileCodingBasis(self.numStates, TaskSpec.getDoubleObservations(),
+                                    num_tiles=self.params.setdefault('tile_number', 100),
+                                    num_weights=self.params.setdefault('tile_weights', 2048))
         else:
-            self.basis = None
-            self.weights = numpy.zeros((self.numDiscStates, self.numStates, self.numActions))
+            self.basis = trivial.TrivialBasis(self.numStates, TaskSpec.getDoubleObservations())
+
+        self.weights = numpy.zeros((self.numDiscStates, self.basis.getNumBasisFunctions(), self.numActions))
         self.traces = numpy.zeros(self.weights.shape)
         self.init_stepsize(self.weights.shape, self.params)
 
@@ -183,10 +181,7 @@ class sarsa_lambda(Agent):
 
     def sample_softmax(self, state, discState):
         Q = None
-        if self.basis is None:
-            Q = numpy.dot(self.weights[discState,:,:].T, state)
-        else:
-            Q = numpy.dot(self.weights[discState,:,:].T, self.basis.computeFeatures(state))
+        Q = numpy.dot(self.weights[discState,:,:].T, self.basis.computeFeatures(state))
         Q -= Q.max()
         Q = numpy.exp(numpy.clip(Q/self.epsilon, -500, 500))
         Q /= Q.sum()
@@ -197,10 +192,7 @@ class sarsa_lambda(Agent):
     def egreedy(self, state, discState):
         if self.randGenerator.random() < self.epsilon:
             return self.randGenerator.randint(0,self.numActions-1)
-        if self.basis is None:
-            return numpy.dot(self.weights[discState,:,:].T, state).argmax()
-        else:
-            return numpy.dot(self.weights[discState,:,:].T, self.basis.computeFeatures(state)).argmax()
+        return numpy.dot(self.weights[discState,:,:].T, self.basis.computeFeatures(state)).argmax()
 
     def getDiscState(self, state):
         """Return the integer value representing the current discrete state.
@@ -272,8 +264,8 @@ class sarsa_lambda(Agent):
         # Update eligibility traces
         phi_t = numpy.zeros(self.traces.shape)
         phi_tp = numpy.zeros(self.traces.shape)
-        phi_t[lastDiscState, :, lastAction] = lastState if self.basis is None else self.basis.computeFeatures(lastState)
-        phi_tp[newDiscState, :, newIntAction] = newState if self.basis is None else self.basis.computeFeatures(newState)
+        phi_t[lastDiscState, :, lastAction] = self.basis.computeFeatures(lastState)
+        phi_tp[newDiscState, :, newIntAction] = self.basis.computeFeatures(newState)
 
         self.update_traces(phi_t, phi_tp)
         self.update(phi_t, phi_tp, reward)
@@ -317,7 +309,7 @@ class sarsa_lambda(Agent):
         # Update eligibility traces
         phi_t = numpy.zeros(self.traces.shape)
         phi_tp = numpy.zeros(self.traces.shape)
-        phi_t[lastDiscState, :, lastAction] = lastState if self.basis is None else self.basis.computeFeatures(lastState)
+        phi_t[lastDiscState, :, lastAction] = self.basis.computeFeatures(lastState)
 
         self.update_traces(phi_t, phi_tp)
         self.update(phi_t, phi_tp, reward)
@@ -340,6 +332,14 @@ class sarsa_lambda(Agent):
 
 @register_agent
 class residual_gradient(sarsa_lambda):
+    """Residual Gradient(lambda) algorithm. This RL algorithm is essentially what Sarsa(labmda)
+    would be if you were actually doing gradient descent on the squared Bellman error.
+
+    From the paper (original):
+    Residual Algorithms: Reinforcement Learning with Function Approximation.
+    Leemon Baird. 1995.
+    """
+
     name = "Residual Gradient"
     def update_traces(self, phi_t, phi_tp):
         self.traces *= self.gamma * self.lmbda
@@ -347,6 +347,12 @@ class residual_gradient(sarsa_lambda):
 
 @register_agent
 class fixed_policy(sarsa_lambda):
+    """This agent takes a seed from which it generates the weights for the
+    state-action value function. It then behaves just like Sarsa but with a
+    learning rate of zero (0). Thus, it has a fixed state-action value function
+    and thus a fixed policy (which has been randomly generated).
+    """
+
     name = "Fixed Policy"
 
     def init_parameters(self):

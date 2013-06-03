@@ -1,97 +1,125 @@
-# 
-# Copyright (C) 2008, Brian Tanner
-# 
-# http://rl-glue-ext.googlecode.com/
 #
-# Modified by Will Dabney, 2013
+# A random agent, and very simple example of the core methods needed for
+# an RL-Glue/pyRL agent. The RL-Glue methods all begin with "agent_",
+# and pyRL expects __init__ and randomize_parameters of the form shown
+# here.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
+# This was based upon the skeleton_agent that comes with the RL-Glue
+# python codec (Brian Tanner, 2008), but now it really is just the simplest
+# random agent that fits into this framework.
 
-import random
+from random import Random
 import copy
 from rlglue.agent.Agent import Agent
 from rlglue.agent import AgentLoader as AgentLoader
 from rlglue.types import Action
 from rlglue.types import Observation
+from rlglue.utils import TaskSpecVRLGLUE3
+
 from pyrl.rlglue.registry import register_agent
 
-from random import Random
 
 @register_agent
 class skeleton_agent(Agent):
-	name = "Skeleton agent"
-	
-	randGenerator=Random()
-	lastAction=Action()
-	lastObservation=Observation()
+    name = "Skeleton agent"
 
-	def __init__(self, **args):
-		pass
+    def __init__(self, **args):
+        self.randGenerator = Random()
+        lastAction = Action()
+        lastObservation = Observation()
 
-	def randomize_parameters(self, **args):
-		"""Generate parameters randomly, constrained by given named parameters.
+    def randomize_parameters(self, **args):
+        """Generate parameters randomly, constrained by given named parameters.
 
-		Args:
-			**args: Named parameters to fix, which will not be randomly generated
+        Args:
+            **args: Named parameters to fix, which will not be randomly generated
 
-		Returns:
-			List of resulting parameters of the class. Will always be in the same order. 
-			Empty list if parameter free.
+        Returns:
+            List of resulting parameters of the class. Will always be in the same order.
+            Empty list if parameter free.
 
-		"""
-		return []
+        """
+        return []
 
-	def agent_init(self,taskSpec):
-		#See the sample_sarsa_agent in the mines-sarsa-example project for how to parse the task spec
-		self.lastAction=Action()
-		self.lastObservation=Observation()
-		self.counter = 0
+    def agent_init(self,taskSpec):
+        """Initialize the RL agent.
 
-	def agent_start(self,observation):
-		#Generate random action, 0 or 1
-		thisIntAction=self.randGenerator.randint(0,1)
-		returnAction=Action()
-		returnAction.intArray=[thisIntAction]
-		
-		lastAction=copy.deepcopy(returnAction)
-		lastObservation=copy.deepcopy(observation)
+        Args:
+            taskSpec: The RLGlue task specification string.
+        """
+        # Consider looking at sarsa_lambda agent for a good example of filling out these methods
+        TaskSpec = TaskSpecVRLGLUE3.TaskSpecParser(taskSpec)
+        assert len(TaskSpec.getIntActions())==1
+        self.numActions = TaskSpec.getIntActions()[0][1]+1
 
-		return returnAction
-	
-	def agent_step(self,reward, observation):
-		#Generate random action, 0 or 1
-		thisIntAction=self.randGenerator.randint(0,1)
-		returnAction=Action()
-		returnAction.intArray=[thisIntAction]
-		
-		lastAction=copy.deepcopy(returnAction)
-		lastObservation=copy.deepcopy(observation)
+        self.lastAction = Action()
+        self.lastObservation = Observation()
+        self.counter = 0
 
-		return returnAction
-	
-	def agent_end(self,reward):
-		pass
-	
-	def agent_cleanup(self):
-		pass
-	
-	def agent_message(self,inMessage):
-		if inMessage=="what is your name?":
-			return "my name is skeleton_agent, Python edition!";
-		else:
-			return "I don't know how to respond to your message";
+    def agent_start(self,observation):
+        """Start an episode for the RL agent.
+
+        Args:
+            observation: The first observation of the episode. Should be an RLGlue Observation object.
+
+        Returns:
+            The first action the RL agent chooses to take, represented as an RLGlue Action object.
+        """
+
+        # Generate a random action
+        thisIntAction = self.randGenerator.randint(0,self.numActions-1)
+        returnAction = Action()
+        returnAction.intArray = [thisIntAction]
+
+        lastAction = copy.deepcopy(returnAction)
+        lastObservation = copy.deepcopy(observation)
+
+        return returnAction
+
+    def agent_step(self,reward, observation):
+        """Take one step in an episode for the agent, as the result of taking the last action.
+
+        Args:
+            reward: The reward received for taking the last action from the previous state.
+            observation: The next observation of the episode, which is the consequence of taking the previous action.
+
+        Returns:
+            The next action the RL agent chooses to take, represented as an RLGlue Action object.
+        """
+
+        # Generate a random action
+        thisIntAction = self.randGenerator.randint(0,self.numActions-1)
+        returnAction = Action()
+        returnAction.intArray = [thisIntAction]
+
+        lastAction = copy.deepcopy(returnAction)
+        lastObservation = copy.deepcopy(observation)
+
+        return returnAction
+
+    def agent_end(self,reward):
+        """Receive the final reward in an episode, also signaling the end of the episode.
+
+        Args:
+            reward: The reward received for taking the last action from the previous state.
+        """
+        pass
+
+    def agent_cleanup(self):
+        """Perform any clean up operations before the end of an experiment."""
+        pass
+
+    def agent_message(self,inMessage):
+        """Receive a message from the environment or experiment and respond.
+
+        Args:
+            inMessage: A string message sent by either the environment or experiment to the agent.
+
+        Returns:
+            A string response message.
+        """
+        return "Agent does not understand your message."
 
 
 if __name__=="__main__":
-	AgentLoader.loadAgent(skeleton_agent())
+    AgentLoader.loadAgent(skeleton_agent())
