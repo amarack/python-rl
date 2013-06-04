@@ -22,29 +22,29 @@ def genAdaptiveAgent(stepsize_class, agent_class):
     @register_agent
     class AdaptiveAgent(stepsize_class, agent_class):
         name = "Adaptive (" + stepsize_class.name + ") " + agent_class.name
-	def __init__(self, **args):
+        def __init__(self, **args):
             agent_class.__init__(self, **args)
 
-	def randomize_parameters(self, **args):
-		"""Generate parameters randomly, constrained by given named parameters.
+        def randomize_parameters(self, **args):
+            """Generate parameters randomly, constrained by given named parameters.
 
-		Parameters that fundamentally change the algorithm are not randomized over. For
-		example, basis and softmax fundamentally change the domain and have very few values
-		to be considered. They are not randomized over.
+            Parameters that fundamentally change the algorithm are not randomized over. For
+            example, basis and softmax fundamentally change the domain and have very few values
+            to be considered. They are not randomized over.
 
-		Basis parameters, on the other hand, have many possible values and ARE randomized.
+            Basis parameters, on the other hand, have many possible values and ARE randomized.
 
-		Args:
-			**args: Named parameters to fix, which will not be randomly generated
+            Args:
+                **args: Named parameters to fix, which will not be randomly generated
 
-		Returns:
-			List of resulting parameters of the class. Will always be in the same order.
-			Empty list if parameter free.
+            Returns:
+                List of resulting parameters of the class. Will always be in the same order.
+                Empty list if parameter free.
 
-		"""
-		param_list = agent_class.randomize_parameters(self, **args)
-                param_list += stepsize_class.randomize_parameters(self, **args)
-		return param_list
+            """
+            param_list = agent_class.randomize_parameters(self, **args)
+            param_list += stepsize_class.randomize_parameters(self, **args)
+            return param_list
 
     return AdaptiveAgent
 
@@ -67,10 +67,10 @@ class AdaptiveStepSize(object):
         Basis parameters, on the other hand, have many possible values and ARE randomized.
 
         Args:
-		**args: Named parameters to fix, which will not be randomly generated
+        **args: Named parameters to fix, which will not be randomly generated
 
         Returns:
-	       	List of resulting parameters of the class. Will always be in the same order.
+               List of resulting parameters of the class. Will always be in the same order.
                 Empty list if parameter free.
 
         """
@@ -285,6 +285,41 @@ class AdagradDiagonal(AdaptiveStepSize):
             non_zeros = numpy.where(self.h != 0.0)
             self.step_sizes[non_zeros] *= numpy.sqrt(self.adagrad_counter) /  numpy.sqrt(self.h[non_zeros])
         return self.step_sizes * descent_direction
+
+class AlmeidaAdaptive(AdaptiveStepSize):
+    """Adaptive vector step-size.
+
+    From the paper:
+    Luis B. Almeida, Thibault Langlois, Jose D. Amaral, and Alexander Plakhov. 1999.
+    Parameter adaptation in stochastic optimization
+    """
+    name = "Almeida"
+    def init_stepsize(self, weights_shape, params):
+        self.step_sizes = numpy.ones(weights_shape) * self.alpha
+        self.prev_grad = None
+        self.v = numpy.ones((numpy.prod(weights_shape),))
+        self.almeida_gamma = params.setdefault('almeida_gamma', 0.999)
+        self.almeida_stepsize = params.setdefault('almeida_stepsize', 0.00001)
+
+    def rescale_update(self, phi_t, phi_tp, delta, reward, descent_direction):
+        self.v *= self.almeida_gamma
+        self.v += (1. - self.almeida_gamma) * (descent_direction**2).ravel()
+
+        if self.prev_grad is None:
+            self.prev_grad = descent_direction.flatten()
+        else:
+            vbar = self.v.copy()
+            vbar[vbar == 0] = 1.0
+            self.step_sizes *= (1. + self.almeida_stepsize * numpy.dot(self.prev_grad, descent_direction.ravel()) / vbar).reshape(self.step_sizes.shape)
+            self.prev_grad = descent_direction.flatten()
+
+        return self.step_sizes * descent_direction
+
+    def randomize_parameters(self, **args):
+        self.params['almeida_gamma'] = args.setdefault('almeida_gamma', numpy.random.random())
+        self.params['almeida_stepsize'] = args.setdefault('almeida_stepsize', numpy.random.random())
+        return [self.params['almeida_gamma'], self.params['almeida_stepsize']]
+
 
 class vSGD(AdaptiveStepSize):
     """vSGD is an adaptive step-size algorithm for noisy quadratic objective functions in

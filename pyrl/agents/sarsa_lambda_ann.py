@@ -24,7 +24,7 @@ import neurolab as nl
 class sarsa_lambda_ann(Agent):
     name = "Sarsa ANN"
 
-    def __init__(self, **kwargs):#epsilon=0.1, alpha=0.01, gamma=1.0, lmbda=0.7, softmax=False, num_hidden=10, params={}):
+    def __init__(self, **kwargs):
         self.randGenerator = Random()
         self.lastAction=Action()
         self.lastObservation=Observation()
@@ -33,7 +33,7 @@ class sarsa_lambda_ann(Agent):
         self.lmbda = kwargs.setdefault("lmbda", 0.7)
         self.gamma = kwargs.setdefault("gamma", 1.0)
         self.net = None
-        self.params = kwargs#params
+        self.params = kwargs
         self.softmax = kwargs.setdefault("softmax", False)
         self.alpha = kwargs.setdefault("alpha", 0.001)
         self.num_hidden = kwargs.setdefault("num_hidden", 50)
@@ -140,7 +140,7 @@ class sarsa_lambda_ann(Agent):
         deltaQ = Q_t.copy()
         delta = self.gamma*Q_tp + reward - Q_t[a_t]
         deltaQ[a_t] = self.gamma*Q_tp + reward
-
+#        print delta
         grad = nl.tool.ff_grad_step(self.net, Q_t, deltaQ)
         self.updateTraces(grad, delta)
 

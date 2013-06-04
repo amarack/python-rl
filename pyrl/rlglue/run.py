@@ -33,11 +33,11 @@ def fromjson(filename):
     # Process the experiment
     experiment = rlglue_registry.experiments[config['experiment']['name']]
     experiment_params = config['experiment']['params']
-    
+
     return agent, agent_params, environment, environment_params, experiment, experiment_params
 
 def tojson(agent, a_args, env, env_args, exp, exp_args, local=None):
-    config = {'agent': {'name': agent.name, 'params': a_args}, 
+    config = {'agent': {'name': agent.name, 'params': a_args},
               'environment': {'name': env.name, 'params': env_args},
               'experiment': {'name': exp.name, 'params': exp_args}}
     return json.dumps(config)
@@ -49,7 +49,7 @@ def fromuser():
     experiment = interactive_choose(rlglue_registry.experiments,
                                     "Choose an experiment.")
     return agent, {}, environment, {}, experiment, {}
-    
+
 
 def interactive_choose(choices, prompt):
     print(prompt)
