@@ -18,7 +18,6 @@ class Episodic(object):
         self.num_episodes = kwargs.setdefault('num_episodes', 10)
         self.num_runs = kwargs.setdefault('num_runs', 1)
         self.timed = kwargs.setdefault('timed', True)
-        self.evaluate = kwargs.setdefault('evaluate', 'reward')
 
         if kwargs.has_key('agent') and kwargs.has_key('environment'):
             self.agent = kwargs['agent']
