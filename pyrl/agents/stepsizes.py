@@ -366,4 +366,57 @@ class vSGD(AdaptiveStepSize):
         return self.step_sizes * descent_direction
 
 
+class InvMaxEigen(AdaptiveStepSize):
+    """The optimal scalar step-size can be proven, under certain assumptions,
+    to be one over the maximum eigenvalue of the Hessian of objective function.
+    This step-size algorithm is derived by combining the Taylor expansion of the
+    objective function, and the power method for extracting eigenvectors.
+
+    From the paper:
+    Yann LeCun, Patrice Simard, and Barak Pearlmutter. 1993.
+    Automatic learning rate maximization by on-line estimation of the Hessian's eigenvectors.
+    """
+    name = "InvMaxEigen"
+    def init_stepsize(self, weights_shape, params):
+        self.step_sizes = numpy.ones(weights_shape) * self.alpha
+        self.est_eigvector = numpy.random.normal(size=weights_shape) # Initialize randomly and normalize
+        self.est_eigvector /= numpy.linalg.norm(self.est_eigvector.ravel())
+        self.lecun_gamma = params.setdefault('lecun_gamma', 0.01) # Convergence rate / accuracy trade off
+        self.lecun_alpha = params.setdefault('lecun_alpha', 0.01) # Small -> better estimate, but possible numerical instability
+        self.stability_threshold = params.setdefault('lecun_threshold', 0.001)
+
+    def randomize_parameters(self, **args):
+        self.params['lecun_gamma'] = args.setdefault('lecun_gamma', numpy.random.random())
+        self.params['lecun_alpha'] = args.setdefault('lecun_alpha', numpy.random.random())
+        return [self.params['lecun_gamma'], self.params['lecun_alpha']]
+
+
+    def rescale_update(self, phi_t, phi_tp, delta, reward, descent_direction):
+        # Previous Max Eigen Value Estimate
+        prevEigValue = numpy.linalg.norm(self.est_eigvector.ravel())
+
+        # Computing the perterbed gradient estiamte
+        perterb_weights = (self.weights + self.lecun_alpha * (self.est_eigvector / prevEigValue))
+        perterbed_delta = numpy.dot(perterb_weights.ravel(), (self.gamma * phi_tp - phi_t).ravel()) + reward
+        # desc_dir / delta gives just the vector part of the gradient, which doesn't change
+        # But, note that descent_direction is already the negative gradient, so
+        # we need to switch it back to being the gradient.
+        pert_gradient = -perterbed_delta * (phi_t - self.gamma * phi_tp)
+        gradient = -descent_direction
+
+        # Update the eigenvector estimate and test for stability
+        self.est_eigvector *= (1.0 - self.lecun_gamma)
+        self.est_eigvector += (self.lecun_gamma / self.lecun_alpha) * (pert_gradient - gradient)
+        update_ratio = numpy.abs(prevEigValue - numpy.linalg.norm(self.est_eigvector.ravel())) / prevEigValue
+
+        if update_ratio <= self.stability_threshold:
+            # Update the step-sizes with our newly converged max eigenvalue
+            self.step_sizes.fill(1./numpy.linalg.norm(self.est_eigvector.ravel()))
+
+            # Reset the estimated eigenvector and star the process again.
+            self.est_eigvector = numpy.random.normal(size=self.est_eigvector.shape)
+            self.est_eigvector /= numpy.linalg.norm(self.est_eigvector.ravel())
+
+        return self.step_sizes * descent_direction
+
 
