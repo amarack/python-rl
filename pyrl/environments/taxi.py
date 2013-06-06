@@ -1,6 +1,6 @@
-# 
+#
 # Copyright (C) 2013, Will Dabney
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -42,7 +42,7 @@ class Taxi(Environment):
 				print "Must include at least two landmarks"
 				sys.exit(1)
 
-		# Walls are specified by giving the x-coor. where they are located and 
+		# Walls are specified by giving the x-coor. where they are located and
 		# how far up from the bottom (y > 0) or down from the top (y < 0) they extend.
 		if walls is None:
 			self.walls = numpy.array([[1.0, 2.0], [2.0, -2.0], [3.0, 2.0]])
@@ -58,7 +58,7 @@ class Taxi(Environment):
 		self.pos = numpy.zeros((2,))
 		self.fudge = fudge
 		self.domain_name = "Continuous Taxi Domain by Will Dabney"
-		
+
 	def makeTaskSpec(self):
 		ts = TaskSpecRLGlue.TaskSpec(discount_factor=1.0, reward_range=(-20.0, 20.0))
 		if self.fuel_loc is not None:
@@ -70,7 +70,7 @@ class Taxi(Environment):
 		if self.fuel_loc is not None:
 			ts.addContinuousObservation((-1.0, 12.0)) # Fuel level
 		ts.addDiscreteObservation((-1, len(self.landmarks)-1)) # Passenger location
-		ts.addDiscreteObservation((0, len(self.landmarks)-1)) # Passenger destination		
+		ts.addDiscreteObservation((0, len(self.landmarks)-1)) # Passenger destination
 		ts.setEpisodic()
 		ts.setExtra(self.domain_name)
 		return ts.toTaskSpec()
@@ -90,14 +90,14 @@ class Taxi(Environment):
 			returnObs.doubleArray += [self.fuel]
 		returnObs.intArray = [self.pass_loc, self.pass_dest]
 		return returnObs
-		
+
 	def env_init(self):
 		return self.makeTaskSpec()
-	
+
 	def env_start(self):
 		self.reset()
 		return self.makeObservation()
-		
+
 
 	def atPoint(self, point):
 		return numpy.linalg.norm(self.pos -point) < self.fudge
@@ -134,7 +134,7 @@ class Taxi(Environment):
 		elif self.fuel_loc is not None and intAction == 4: # Refuel
 			if self.atPoint(self.fuel_loc):
 				self.fuel = 12.0
-		
+
 		if self.noise > 0:
 			self.pos += numpy.random.normal(scale=self.noise, size=(2,))
 
@@ -147,7 +147,7 @@ class Taxi(Environment):
 			self.pass_dest = random.choice(self.lm_list)
 
 		return reward
-		
+
 	def hitsWall(self, old_pos, new_pos, sign):
 		return (((self.walls[:,0]*sign >= old_pos[0]*sign) & (self.walls[:,0]*sign < new_pos[0]*sign)) \
 				& ((self.walls[:,1] > old_pos[1]) | ((self.size[1]-1)+self.walls[:,1] < old_pos[1]))).any()
@@ -156,7 +156,7 @@ class Taxi(Environment):
 		episodeOver = 0
 		theReward = -1.0
 		intAction = thisAction.intArray[0]
-		
+
 		theReward = self.takeAction(intAction)
 
 		if self.isAtGoal() or (self.fuel_loc is not None and self.fuel) < 0:

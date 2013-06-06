@@ -20,6 +20,8 @@ class TrivialBasis(object):
         return self.numTerms
 
     def computeFeatures(self, features):
+        if len(features) == 0:
+            return numpy.ones((1,))
         return (numpy.array([self.scale(features[i],i) for i in range(len(features))]) - 0.5)*2.
 
 

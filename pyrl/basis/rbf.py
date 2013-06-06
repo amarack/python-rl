@@ -17,6 +17,8 @@ class RBFBasis(trivial.TrivialBasis):
         return self.num_functions
 
     def computeFeatures(self, features):
+        if len(features) == 0:
+            return numpy.ones((1,))
         features = numpy.array(features)
         return numpy.array([numpy.exp(-self.beta * numpy.linalg.norm(features-c)**2) for c in self.centers])
 

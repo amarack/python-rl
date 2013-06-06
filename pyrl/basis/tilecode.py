@@ -17,6 +17,8 @@ class TileCodingBasis(trivial.TrivialBasis):
         return self.mem_size
 
     def computeFeatures(self, features):
+        if len(features) == 0:
+            return numpy.ones((1,))
         features = list(trivial.TrivialBasis.computeFeatures(self, features))
         indices = tiles.tiles(self.num_tiles, self.mem_size, features)
         result = numpy.zeros((self.mem_size,))

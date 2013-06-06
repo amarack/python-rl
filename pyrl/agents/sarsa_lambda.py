@@ -209,6 +209,7 @@ class sarsa_lambda(Agent):
             mxs = self.discStates[:,1] - self.discStates[:,0] + 1
             mxs = numpy.array(list(mxs[:0:-1].cumprod()[::-1]) + [1])
             x = numpy.array(state) - self.discStates[:,0]
+            #print (x*mxs).sum()
             return (x * mxs).sum()
         else:
             return 0

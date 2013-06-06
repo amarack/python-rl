@@ -21,6 +21,8 @@ class FourierBasis(trivial.TrivialBasis):
         self.multipliers = numpy.array([list(map(int,x)) for x in iter])
 
     def computeFeatures(self, features):
+        if len(features) == 0:
+            return numpy.ones((1,))
         basisFeatures = numpy.array([self.scale(features[i],i) for i in range(len(features))])
         return numpy.cos(numpy.pi * numpy.dot(self.multipliers, basisFeatures))
 
