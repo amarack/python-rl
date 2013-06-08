@@ -3,7 +3,8 @@
 
 __all__ = ["fuelworld", "gridworld", "mountaincar", "acrobot", "cartpole",
            "multiroom", "skeleton_environment", "taxi", "windyworld",
-           "batch_replenish", "puddleworld", "neurostim", "marble_maze"]
+           "batch_replenish", "puddleworld", "neurostim", "marble_maze",
+           "bicycle"]
 
 try:
     from libPOMDP import libpomdp
@@ -18,8 +19,8 @@ except:
     pass
 
 
-#try:
-#    import pygame
-#    __all__.append("pinball")
-#except:
-#    pass
+try:
+    import pygame
+    __all__.append("pinball")
+except:
+    pass

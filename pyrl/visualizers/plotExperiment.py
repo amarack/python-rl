@@ -161,7 +161,7 @@ if __name__=="__main__":
     for file, label in map(tuple, args.raw):
         labels.append(label)
         locs, means, stdvs = processFile(file, style, windowsize=windowsize)
-        drawResult(numpy.array([means, stdvs]))
+        drawResult(numpy.array([means, stdvs]).T)
         indx+=1
 
     for file, label in map(tuple, args.means):
