@@ -17,7 +17,7 @@ import pyrl.basis.trivial as trivial
 import stepsizes
 
 @register_agent
-class sarsa_lambda(Agent):
+class sarsa_lambda(Agent,object):
     name = "Sarsa"
 
     def __init__(self, **kwargs):

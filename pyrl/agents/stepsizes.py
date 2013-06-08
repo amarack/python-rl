@@ -345,7 +345,7 @@ class vSGD(AdaptiveStepSize):
 
     def rescale_update(self, phi_t, phi_tp, delta, reward, descent_direction):
         # Estimate hessian... somehow..
-        est_hessian = (descent_direction/delta)**2
+        est_hessian = (self.gamma * phi_tp - phi_t)**2
         self.g *= -(1./self.t - 1.)
         self.g += (1./self.t) * descent_direction
 
@@ -356,13 +356,13 @@ class vSGD(AdaptiveStepSize):
         self.h += (1./self.t) * est_hessian
         denom = self.h*self.v
         denom[denom==0] = 1.0
-        self.step_sizes = (self.g**2) / denom
+        self.step_sizes = ((self.g**2) / denom).clip(max=1.0)
 
         if self.slow_start <= 0:
             self.t *= (-((self.g**2 / self.v) - 1.)).clip(1.e-15, 1.)
             self.t += 1.
-
         self.slow_start -= 1
+
         return self.step_sizes * descent_direction
 
 
