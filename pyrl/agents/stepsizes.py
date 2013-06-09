@@ -227,6 +227,7 @@ class AlphaBounds(AdaptiveStepSize):
     """
     name = "AlphaBound"
     def init_stepsize(self, weights_shape, params):
+        self.alpha = 1.0
         self.step_sizes = numpy.ones(weights_shape) * self.alpha
 
     def rescale_update(self, phi_t, phi_tp, delta, reward, descent_direction):
@@ -340,7 +341,7 @@ class vSGD(AdaptiveStepSize):
 
     def randomize_parameters(self, **args):
         self.params['vsgd_slowstart'] = args.setdefault('vsgd_slowstart', numpy.random.randint(500))
-        self.params['vsgd_initmeta'] = args.setdefault('vsgd_initmeta', float(numpy.random.randint(1000)))
+        self.params['vsgd_initmeta'] = args.setdefault('vsgd_initmeta', float(numpy.random.randint(1000)+10))
         return [self.params['vsgd_slowstart'], self.params['vsgd_initmeta']]
 
     def rescale_update(self, phi_t, phi_tp, delta, reward, descent_direction):
@@ -388,7 +389,8 @@ class InvMaxEigen(AdaptiveStepSize):
     def randomize_parameters(self, **args):
         self.params['lecun_gamma'] = args.setdefault('lecun_gamma', numpy.random.random())
         self.params['lecun_alpha'] = args.setdefault('lecun_alpha', numpy.random.random())
-        return [self.params['lecun_gamma'], self.params['lecun_alpha']]
+        self.params['lecun_threshold'] = args.setdefault('lecun_threshold', numpy.random.random()*.1)
+        return [self.params['lecun_gamma'], self.params['lecun_alpha'], self.params['lecun_threshold']]
 
 
     def rescale_update(self, phi_t, phi_tp, delta, reward, descent_direction):
