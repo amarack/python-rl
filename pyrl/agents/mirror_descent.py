@@ -112,7 +112,7 @@ class md_sarsa(sarsa_lambda.sarsa_lambda):
 
 # NOTE: This agent is not working at all. Not sure yet what is wrong
 @register_agent
-class cmd_sarsa(sarsa_lambda.sarsa_lambda):
+class cmd_qlearn(md_qlearn):
     """Sparse Mirror Descent Q-Learning using a p-norm distance generating function.
     Set the sparsity parameter to zero to get Mirror Descent Q-Learning.
     From the paper:
@@ -120,22 +120,23 @@ class cmd_sarsa(sarsa_lambda.sarsa_lambda):
     Sparse Q-Learning with Mirror Descent,
     Sridhar Mahadevan and Bo Liu, 2012.
     """
-    name = "Composite Mirror Descent Sarsa"
+    name = "Composite Mirror Descent Q-Learning"
 
     def init_parameters(self):
-        sarsa_lambda.sarsa_lambda.init_parameters(self)
-        self.sparsity = self.params.setdefault('sparsity', 0.01)
+        super(cmd_qlearn,self).init_parameters()
         self.covariance = None
 
-    def update(self, phi_t, phi_tp, reward):
+    def update(self, phi_t, state, discState, reward):
+        qvalues = self.getActionValues(state, discState)
+        a_tp = qvalues.argmax()
+
         # Compute Delta (TD-error)
-        delta = numpy.dot(self.weights.flatten(), (self.gamma * phi_tp - phi_t).flatten()) + reward
+        delta = self.gamma*qvalues[a_tp] + reward - numpy.dot(self.weights.flatten(), phi_t.flatten())
 
         if self.covariance is None:
             self.covariance = numpy.zeros(phi_t.shape)
 
         self.covariance += phi_t**2
-
         H = numpy.sqrt(self.covariance)
         H[H == 0.0] = 1.0
         nobis_term = self.step_sizes / H

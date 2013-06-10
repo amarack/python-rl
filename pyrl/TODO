@@ -16,7 +16,6 @@ Implement Agents (in Python) or Convert C/C++ into Module:
 
 Implement "save_trajectory filename numsteps" message support into base class of existing agents
 
-Delayed Q-Learning
 TD-delta Pi
 TDC / GTD
 Skill Chaining
@@ -28,5 +27,9 @@ Extensions to Existing Implementations:
 ------------------------------
 
 Add other exploration bonus methods to the modelbased agents
-Add error bars to the compareParameters visualizer
 Add pygame based viewer for Tetris environment
+Provide reasonable 'working' parameters for every agent algorithm. Currently missing:
+	Sarsa ANN
+	REINFORCE
+	Delayed Q-Learning
+	Composite Mirror Descent

@@ -151,9 +151,9 @@ if __name__=="__main__":
             mark_freq = args.markevery
 
         if not args.nobars:
-            plt.fill_between(range(data.shape[0]), data[:,0]-data[:,1], data[:,0]+data[:,1],
+            plt.fill_between(data[:,0], data[:,1]-data[:,2], data[:,1]+data[:,2],
                              alpha=0.4, color=colors[indx%len(colors)])
-        plt.plot(data[:,0], linewidth=3, color=colors[indx%len(colors)],
+        plt.plot(data[:,0], data[:,1], linewidth=3, color=colors[indx%len(colors)],
                  linestyle=linestyles[indx%len(linestyles)], marker=markers[indx%len(markers)],
                  markersize=7, markevery=mark_freq)
 
@@ -161,14 +161,14 @@ if __name__=="__main__":
     for file, label in map(tuple, args.raw):
         labels.append(label)
         locs, means, stdvs = processFile(file, style, windowsize=windowsize)
-        drawResult(numpy.array([means, stdvs]).T)
+        drawResult(numpy.array([locs, means, stdvs]).T)
         indx+=1
 
     for file, label in map(tuple, args.means):
         labels.append(label)
-        data = numpy.genfromtxt(file)[:,(1,2)]
-        data[:,0] = movingaverage(data[:,0], windowsize)
+        data = numpy.genfromtxt(file, delimiter=',')
         data[:,1] = movingaverage(data[:,1], windowsize)
+        data[:,2] = movingaverage(data[:,2], windowsize)
         drawResult(data)
         indx+=1
 

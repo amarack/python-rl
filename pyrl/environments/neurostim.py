@@ -68,6 +68,7 @@ class NeuroStim(Environment):
 
         ts.setContinuing()
         ts.setExtra(self.name)
+        print ts.toTaskSpec()
         return ts.toTaskSpec()
 
     def env_init(self):

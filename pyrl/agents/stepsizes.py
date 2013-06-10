@@ -357,8 +357,8 @@ class vSGD(AdaptiveStepSize):
         self.h += (1./self.t) * est_hessian
         denom = self.h*self.v
         denom[denom==0] = 1.0
-        self.step_sizes = ((self.g**2) / denom).clip(max=1.0)
-
+        self.step_sizes = ((self.g**2) / denom).clip(max=self.alpha)
+        #print self.step_sizes
         if self.slow_start <= 0:
             self.t *= (-((self.g**2 / self.v) - 1.)).clip(1.e-15, 1.)
             self.t += 1.

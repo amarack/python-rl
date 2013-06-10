@@ -1,0 +1,5 @@
+{
+    "environment": {"params": {}, "name": "Mountain Car"},
+    "experiment": {"params": {"num_episodes": 30}, "name": "Episodic"},
+    "agent": {"params": {"basis": "fourier"}, "name": "Adaptive (InvMaxEigen) Sarsa"}
+}

@@ -1,0 +1,15 @@
+{
+	"environment": {
+		 "params": {
+			}, "name": "Mountain Car"}, 
+	"experiment": {
+		 "params": {
+		 	   "num_episodes": 50
+			}, "name": "Episodic"}, 
+	"agent": {
+		 "params": {
+		 	   "planner_params": {"basis": "fourier", "regressor": "ridge", "iterations": 1000, "support_size": 50, "resample": 15},
+			   "model_params": {"update_freq": 20, "known_threshold": 0.95, "max_experiences": 700},
+	   		   "gamma": 0.99
+			}, "name": "Model Based Agent"}
+}

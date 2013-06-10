@@ -8,13 +8,12 @@
 			}, "name": "Episodic"}, 
 	"agent": {
 		 "params": {
-		 	   "nonlinear_lr": 0.000001,
-		 	   "sparsity": 0.0001,
+		 	   "beta": 0.001,
 			   "epsilon": 0.01,
 			   "gamma": 0.99,
 			   "lmbda": 0.7,
-			   "alpha": 0.007,
+			   "alpha": 0.0001,
 			   "basis": "fourier",
 			   "fourier_order": 3
-			}, "name": "Sparse Mirror Descent Q-Learning with Non-Linear Basis Adaptation"}
+			}, "name": "Two-Timescale Actor-Critic"}
 }

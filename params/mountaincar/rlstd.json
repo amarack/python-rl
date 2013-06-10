@@ -8,13 +8,9 @@
 			}, "name": "Episodic"}, 
 	"agent": {
 		 "params": {
-		 	   "nonlinear_lr": 0.000001,
-		 	   "sparsity": 0.0001,
+		 	   "rlstd_delta": 1.0,
 			   "epsilon": 0.01,
-			   "gamma": 0.99,
-			   "lmbda": 0.7,
-			   "alpha": 0.007,
 			   "basis": "fourier",
 			   "fourier_order": 3
-			}, "name": "Sparse Mirror Descent Q-Learning with Non-Linear Basis Adaptation"}
+			}, "name": "Recursive Least Squares TD"}
 }

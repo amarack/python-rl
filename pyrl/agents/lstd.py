@@ -153,7 +153,6 @@ class iLSTD(LSTD):
             self.weights.flat[j] += self.alpha * self.step_sizes[j]
             self.step_sizes -= self.alpha * self.step_sizes[j] * self.A.T[:,j]
 
-
 @register_agent
 class RLSTD(sarsa_lambda.sarsa_lambda):
 
