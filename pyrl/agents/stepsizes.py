@@ -198,7 +198,7 @@ class Autostep(AdaptiveStepSize):
         self.tau = params.setdefault('autostep_tau', 1.0e4)
 
     def rescale_update(self, phi_t, phi_tp, delta, reward, descent_direction):
-        x = phi_t.flatten()
+        x = self.traces.flatten()
         deltaTerm = delta * x * self.h
         alphas = self.step_sizes.flatten()
         self.v = numpy.max([numpy.abs(deltaTerm),
