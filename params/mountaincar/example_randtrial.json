@@ -1,0 +1,12 @@
+{
+    "environment": {"params": {}, "name": "Mountain Car"},
+    "experiment": {"params": {"num_trials": 30, "num_runs": 10, "num_episodes": 1}, "name": "Randomized Trial"},
+    "agent": {
+        "params":
+        {
+            "alpha": 0.1, 
+	    "lmbda": 0.7, 
+	    "gamma": 1.0, 
+	    "softmax": true
+        }, "name": "Fixed Policy"}
+}
