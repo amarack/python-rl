@@ -22,10 +22,10 @@ class delayed_qlearning(qlearning.qlearning_agent):
     name = "Delayed Q-Learning"
 
     def init_parameters(self):
-        self.params.setdefault('gamma', 0.7)
+        self.params.setdefault('gamma', 0.99)
         self.params.setdefault('epsilon', 0.1)
         super(delayed_qlearning, self).init_parameters()
-        self.m = self.params.setdefault('m', 200)
+        self.m = self.params.setdefault('m', 100)
 
     def randomize_parameters(self, **args):
         """Generate parameters randomly, constrained by given named parameters.
@@ -80,11 +80,12 @@ class delayed_qlearning(qlearning.qlearning_agent):
         self.last_update = 0
         self.step_count = 0
         # Compute the 'correct' m to use (from the paper)
-        k = 1./((1. - self.gamma)*self.epsilon)
-        delta = 0.1
-        self.m = numpy.log(3. * self.numDiscStates * self.numActions * (1. + self.numDiscStates * self.numActions * k) / delta)
-        self.m /= 2. * self.epsilon**2 * (1. - self.gamma)**2
-        self.m = int(self.m)
+        # But tends to be so large as to be impractical
+        #k = 1./((1. - self.gamma)*self.epsilon)
+        #delta = 0.1
+        #self.m = numpy.log(3. * self.numDiscStates * self.numActions * (1. + self.numDiscStates * self.numActions * k) / delta)
+        #self.m /= 2. * self.epsilon**2 * (1. - self.gamma)**2
+        #self.m = int(self.m)
         #print self.m
 
     def getAction(self, state, discState):

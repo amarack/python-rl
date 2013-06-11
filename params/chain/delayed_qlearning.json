@@ -1,0 +1,9 @@
+{
+	"environment": {"params": {}, "name": "Chain"}, 
+	"experiment": {"params": {"num_episodes": 10, "maxsteps":1000, "num_runs": 10}, "name": "Episodic"}, 
+	"agent": {"params": {
+		 "m": 10,
+		 "gamma": 0.99,
+		 "epsilon": 0.1
+		 }, "name": "Delayed Q-Learning"}
+}
