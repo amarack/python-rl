@@ -1,0 +1,5 @@
+{
+	"environment": {"params": {}, "name": "Mountain Car"}, 
+	"experiment": {"params": {"num_episodes": 50}, "name": "Episodic"}, 
+	"agent": {"params": {"lstd_update_freq": 500, "lstd_num_samples": 500, "lstd_precond": 0.1, "basis": "fourier"}, "name": "LSTD-Q"}
+}

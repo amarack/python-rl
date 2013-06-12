@@ -1,0 +1,5 @@
+{
+	"environment": {"params": {}, "name": "Mountain Car"}, 
+	"experiment": {"params": {"num_episodes": 50}, "name": "Episodic"}, 
+	"agent": {"params": {"gamma": 1.0, "lspi_threshold": 0.001, "lstd_update_freq": 700, "lstd_num_samples": 700, "lstd_precond": 0.001}, "name": "LSPI"}
+}
