@@ -78,13 +78,15 @@ def run(agent, a_args, env, env_args, exp, exp_args, local=None, result_file=Non
         else:
             local = False
 
+    config = {'agent': {'name': agent.name, 'params': a_args},
+              'environment': {'name': env.name, 'params': env_args},
+              'experiment': {'name': exp.name, 'params': exp_args}}
     if local:
-        experiment = exp(agent=agent(**a_args),
-                         environment=env(**env_args),
-                         **exp_args)
-        experiment.run_experiment(filename=result_file, **a_args)
+        experiment = exp(config, agent=agent(**a_args),
+                         environment=env(**env_args), **exp_args)
+        experiment.run_experiment(filename=result_file)
     else:
-        experiment = exp(**exp_args)
+        experiment = exp(config, **exp_args)
         # TODO: Figure out if rl_glue is running, don't start it in that case
         rlglue_p = Popen('rl_glue')
         agent_p = Process(target=AgentLoader.loadAgent,

@@ -42,9 +42,8 @@ def genAdaptiveAgent(stepsize_class, agent_class):
                 Empty list if parameter free.
 
             """
-            param_list = agent_class.randomize_parameters(self, **args)
-            param_list += stepsize_class.randomize_parameters(self, **args)
-            return param_list
+            args = agent_class.randomize_parameters(self, **args)
+            return stepsize_class.randomize_parameters(self, **args)
 
     return AdaptiveAgent
 
@@ -56,6 +55,16 @@ class AdaptiveStepSize(object):
 
     def rescale_update(self, phi_t, phi_tp, delta, reward, descent_direction):
         return self.step_sizes * descent_direction
+
+    def randParameter(self, param_key, args, sample=numpy.random.random()):
+        """A utility function for use inside randomize_parameters. Takes a parameter
+        key (name), the named arguments passed to randomize_parameters, and optionally
+        the sampled random value to set in case the key does not exist in the arguments.
+
+        This will then set it (if not already present) in args and assign which ever value
+        args ends up with into params.
+        """
+        self.params[param_key] = args.setdefault(param_key, sample)
 
     def randomize_parameters(self, **args):
         """Generate parameters randomly, constrained by given named parameters.
@@ -74,7 +83,7 @@ class AdaptiveStepSize(object):
                 Empty list if parameter free.
 
         """
-        return []
+        return args
 
 
 
@@ -97,8 +106,8 @@ class GHS(AdaptiveStepSize):
         return self.step_sizes * descent_direction
 
     def randomize_parameters(self, **args):
-        self.params['ghs_a'] = args.setdefault('ghs_a', numpy.random.random()*10000.)
-        return [self.params['ghs_a']]
+        self.randParameter('ghs_a', args, sample=numpy.random.random()*10000.)
+        return args
 
 class McClains(AdaptiveStepSize):
     """McClain's formula for scalar step-size
@@ -122,8 +131,8 @@ class McClains(AdaptiveStepSize):
         return self.step_sizes * descent_direction
 
     def randomize_parameters(self, **args):
-        self.params['mcclain_a'] = args.setdefault('mcclain_a', numpy.random.random()*self.alpha)
-        return [self.params['mcclain_a']]
+        self.randParameter('mcclain_a', args, sample=numpy.random.random()*self.params['alpha'])
+        return args
 
 class STC(AdaptiveStepSize):
     """Search-Then-Converge formula for scalar step-size
@@ -149,9 +158,9 @@ class STC(AdaptiveStepSize):
         return self.step_sizes * descent_direction
 
     def randomize_parameters(self, **args):
-        self.params['stc_c'] = args.setdefault('stc_c', numpy.random.random()*1.e10)
-        self.params['stc_N'] = args.setdefault('stc_N', numpy.random.random()*1.e6)
-        return [self.params['stc_c'], self.params['stc_N']]
+        self.randParameter('stc_c', args, sample=numpy.random.random()*1.e10)
+        self.randParameter('stc_N', args, sample=numpy.random.random()*1.e6)
+        return args
 
 
 class RProp(AdaptiveStepSize):
@@ -175,9 +184,9 @@ class RProp(AdaptiveStepSize):
         return self.step_sizes * descent_direction
 
     def randomize_parameters(self, **args):
-        self.params['rprop_eta_high'] = args.setdefault('rprop_eta_high', numpy.random.random()*2.)
-        self.params['rprop_eta_low'] = args.setdefault('rprop_eta_low', numpy.random.random()*self.params['rprop_eta_high'])
-        return [self.params['rprop_eta_low'], self.params['rprop_eta_high']]
+        self.randParameter('rprop_eta_high', args, sample=numpy.random.random()*2.)
+        self.randParameter('rprop_eta_low', args, sample=numpy.random.random()*self.params['rprop_eta_high'])
+        return args
 
 
 class Autostep(AdaptiveStepSize):
@@ -214,9 +223,10 @@ class Autostep(AdaptiveStepSize):
         return self.step_sizes * descent_direction
 
     def randomize_parameters(self, **args):
-        self.params['autostep_mu'] = args.setdefault('autostep_mu', numpy.random.random())
-        self.params['autostep_tau'] = args.setdefault('autostep_tau', numpy.random.random()*1.e6)
-        return [self.params['autostep_mu'], self.params['autostep_tau']]
+        self.randParameter('autostep_mu', args)
+        self.randParameter('autostep_tau', args, sample=numpy.random.random()*1.e6)
+        return args
+
 
 class AlphaBounds(AdaptiveStepSize):
     """AlphaBounds adaptive scalar step-size.
@@ -317,9 +327,9 @@ class AlmeidaAdaptive(AdaptiveStepSize):
         return self.step_sizes * descent_direction
 
     def randomize_parameters(self, **args):
-        self.params['almeida_gamma'] = args.setdefault('almeida_gamma', numpy.random.random())
-        self.params['almeida_stepsize'] = args.setdefault('almeida_stepsize', numpy.random.random())
-        return [self.params['almeida_gamma'], self.params['almeida_stepsize']]
+        self.randParameter('almeida_gamma', args)
+        self.randParameter('almeida_stepsize', args)
+        return args
 
 
 class vSGD(AdaptiveStepSize):
@@ -339,10 +349,11 @@ class vSGD(AdaptiveStepSize):
         self.t = numpy.ones(weights_shape) * params.setdefault("vsgd_initmeta", 100.)
         self.slow_start = params.setdefault("vsgd_slowstart", 50)
 
+
     def randomize_parameters(self, **args):
-        self.params['vsgd_slowstart'] = args.setdefault('vsgd_slowstart', numpy.random.randint(500))
-        self.params['vsgd_initmeta'] = args.setdefault('vsgd_initmeta', float(numpy.random.randint(1000)+10))
-        return [self.params['vsgd_slowstart'], self.params['vsgd_initmeta']]
+        self.randParameter('vsgd_slowstart', args, sample=numpy.random.randint(500))
+        self.randParameter('vsgd_initmeta', args, sample=float(numpy.random.randint(1000)+10))
+        return args
 
     def rescale_update(self, phi_t, phi_tp, delta, reward, descent_direction):
         # Estimate hessian... somehow..
@@ -386,12 +397,12 @@ class InvMaxEigen(AdaptiveStepSize):
         self.lecun_alpha = params.setdefault('lecun_alpha', 0.01) # Small -> better estimate, but possible numerical instability
         self.stability_threshold = params.setdefault('lecun_threshold', 0.001)
 
-    def randomize_parameters(self, **args):
-        self.params['lecun_gamma'] = args.setdefault('lecun_gamma', numpy.random.random())
-        self.params['lecun_alpha'] = args.setdefault('lecun_alpha', numpy.random.random())
-        self.params['lecun_threshold'] = args.setdefault('lecun_threshold', numpy.random.random()*.1)
-        return [self.params['lecun_gamma'], self.params['lecun_alpha'], self.params['lecun_threshold']]
 
+    def randomize_parameters(self, **args):
+        self.randParameter('lecun_gamma', args)
+        self.randParameter('lecun_alpha', args)
+        self.randParameter('lecun_threshold', args, sample=numpy.random.random()*0.1)
+        return args
 
     def rescale_update(self, phi_t, phi_tp, delta, reward, descent_direction):
         # Previous Max Eigen Value Estimate

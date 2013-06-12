@@ -22,8 +22,8 @@ class delayed_qlearning(qlearning.qlearning_agent):
     name = "Delayed Q-Learning"
 
     def init_parameters(self):
-        self.params.setdefault('gamma', 0.99)
-        self.params.setdefault('epsilon', 0.1)
+        self.gamma = self.params.setdefault('gamma', 0.99)
+        self.epsilon = self.params.setdefault('epsilon', 0.1)
         super(delayed_qlearning, self).init_parameters()
         self.m = self.params.setdefault('m', 100)
 
@@ -48,11 +48,10 @@ class delayed_qlearning(qlearning.qlearning_agent):
         """
 
         # Randomize main parameters
-        self.epsilon = self.params.setdefault('epsilon', numpy.random.random())
-        self.gamma = self.params.setdefault('gamma', numpy.random.random())
-        self.m = self.params.setdefault('m', numpy.random.randint(1000))
-        param_list = [self.epsilon, self.gamma, self.m]
-        return param_list
+        self.randParameter('epsilon', args)
+        self.randParameter('gamma', args)
+        self.randParameter('m', args, sample=numpy.random.randint(1000))
+        return args
 
     def agent_supported(self, parsedSpec):
         if parsedSpec.valid:

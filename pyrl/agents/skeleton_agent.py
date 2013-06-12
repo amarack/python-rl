@@ -9,7 +9,7 @@
 # random agent that fits into this framework.
 
 from random import Random
-import copy
+import copy, numpy
 from rlglue.agent.Agent import Agent
 from rlglue.agent import AgentLoader as AgentLoader
 from rlglue.types import Action
@@ -20,13 +20,33 @@ from pyrl.rlglue.registry import register_agent
 
 
 @register_agent
-class skeleton_agent(Agent):
+class skeleton_agent(Agent, object):
     name = "Skeleton agent"
 
     def __init__(self, **args):
         self.randGenerator = Random()
         lastAction = Action()
         lastObservation = Observation()
+        self.params = args
+        self.init_parameters()
+
+    def init_parameters(self):
+        """Initialize algorithm parameters. Will be called by constructor, and at the
+        start of each new run. Parameters' initial values should be stored in
+        self.params, and here instances of them should be copied into object variables
+        which may or may not change during a particular run of the algorithm.
+        """
+        pass
+
+    def randParameter(self, param_key, args, sample=numpy.random.random()):
+        """A utility function for use inside randomize_parameters. Takes a parameter
+        key (name), the named arguments passed to randomize_parameters, and optionally
+        the sampled random value to set in case the key does not exist in the arguments.
+
+        This will then set it (if not already present) in args and assign which ever value
+        args ends up with into params.
+        """
+        self.params[param_key] = args.setdefault(param_key, sample)
 
     def randomize_parameters(self, **args):
         """Generate parameters randomly, constrained by given named parameters.
@@ -39,7 +59,7 @@ class skeleton_agent(Agent):
             Empty list if parameter free.
 
         """
-        return []
+        return args
 
     def agent_init(self,taskSpec):
         """Initialize the RL agent.
@@ -47,6 +67,7 @@ class skeleton_agent(Agent):
         Args:
             taskSpec: The RLGlue task specification string.
         """
+        self.init_parameters()
         # Consider looking at sarsa_lambda agent for a good example of filling out these methods
         TaskSpec = TaskSpecVRLGLUE3.TaskSpecParser(taskSpec)
         assert len(TaskSpec.getIntActions())==1

@@ -1,7 +1,7 @@
 
 # Author: Will Dabney
 
-import csv, os, json, numpy
+import csv, os, json, numpy, copy
 from pyrl.misc.timer import Timer
 from pyrl.rlglue import RLGlueLocal as RLGlueLocal
 from pyrl.rlglue.registry import register_experiment
@@ -13,7 +13,7 @@ import pyrl.visualizers.plotExperiment as plotExperiment
 class RandomizedTrial(Episodic):
     name = "Randomized Trial"
 
-    def __init__(self, **kwargs):
+    def __init__(self, config, **kwargs):
         if not kwargs.has_key('agent') or not kwargs.has_key('environment'):
             print "ERROR: RandomizedTrial must be run locally in order to randomize parameters."
             import sys
@@ -23,27 +23,27 @@ class RandomizedTrial(Episodic):
         self.evaluate = kwargs.setdefault('evaluate', 'reward') #reward, steps, time
         self.eval_reduce = kwargs.setdefault('evaluate_reduce', 'sum') # None, 'sum', 'final', 'kmeans'
         self.k = kwargs.setdefault('kmeans_k', 10)
-        Episodic.__init__(self, **kwargs)
+        Episodic.__init__(self, config, **kwargs)
 
-    def run_experiment(self, filename=None, **args):
+    def run_experiment(self, filename=None):
         for trial in range(self.num_trials):
-            parameters = self.agent.randomize_parameters(**args)
+            parameters = self.agent.randomize_parameters(**copy.deepcopy(self.configuration['agent']['params']))
+
             tmp_file = "rndtrial" + str(numpy.random.randint(1.e10)) + ".dat"
             Episodic.run_experiment(self, filename = tmp_file)
 
             # Collect results
             locs, means, std = plotExperiment.processFile(tmp_file, self.evaluate, verbose=False, method=self.eval_reduce, kmeans_k=self.k)
+            json_out = copy.deepcopy(self.configuration)
+            json_out['agent']['params'] = parameters
+            json_out['experiment']['episodes'] = locs.tolist()
+            json_out['experiment']['returns'] = means.tolist()
+            json_out['experiment']['deviations'] = std.tolist()
 
-            # Line = NumDataPoints, [index, mean, std for each in numdatapoints], parameters
-            line = [len(locs)]
-            for i in range(len(locs)):
-                line += [locs[i], means[i], std[i]]
-            line += parameters
             if filename is None:
-                print ','.join(map(str, line))
+                print json.dumps(json_out)
             else:
                 with open(filename, "a") as f:
-                    csvwrite = csv.writer(f)
-                    csvwrite.writerow(line)
+                    f.write(json.dumps(json_out) + "\n")
             os.remove(tmp_file)
 

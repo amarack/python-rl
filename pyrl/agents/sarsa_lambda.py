@@ -15,35 +15,11 @@ import pyrl.basis.rbf as rbf
 import pyrl.basis.tilecode as tilecode
 import pyrl.basis.trivial as trivial
 import stepsizes
+import skeleton_agent
 
 @register_agent
-class sarsa_lambda(Agent,object):
+class sarsa_lambda(skeleton_agent.skeleton_agent):
     name = "Sarsa"
-
-    def __init__(self, **kwargs):
-        """Initialize Sarsa based agent, or some subclass with given named parameters.
-
-        Args:
-            epsilon=0.1: Exploration rate for epsilon-greedy, or the rescale factor for soft-max policies.
-            alpha=0.01: Step-Size for parameter updates.
-            gamma=1.0: Discount factor for learning, also viewed as a planning/learning horizon.
-            lmbda=0.7: Eligibility decay rate.
-            softmax=False: True to use soft-max style policies, false to use epsilon-greedy policies.
-            basis='trivial': Name of basis functions to use. [trivial, fourier, rbf, tile]
-            fourier_order=3: Order of fourier basis to use if using fourier basis.
-            rbf_number=0: Number of radial basis functions to use if doing rbf basis. Defaults to 0 for dim of states.
-            rbf_beta=1.0: Beta parameter for rbf basis.
-            tile_number=100: Number of tilings to use with tile coding basis.
-            tile_weights=2048: Number of weights to use with tile coding.
-            **kwargs: Additional named arguments
-
-        """
-
-        self.randGenerator = Random()
-        self.lastAction=Action()
-        self.lastObservation=Observation()
-        self.params = kwargs
-        self.init_parameters()
 
     def init_parameters(self):
         # Initialize algorithm parameters
@@ -76,28 +52,23 @@ class sarsa_lambda(Agent,object):
         """
 
         # Randomize main parameters
-        self.epsilon = args.setdefault('epsilon', numpy.random.random())
-        self.alpha = args.setdefault('alpha', numpy.random.random())
-        self.gamma = args.setdefault('gamma', numpy.random.random())
-        self.lmbda = args.setdefault('lmbda', numpy.random.random())
-        self.softmax = args.setdefault('softmax', self.softmax)
-        self.fa_name = args.setdefault('basis', self.fa_name)
-        param_list = [self.epsilon, self.alpha, self.gamma, self.lmbda, int(self.softmax)]
+        self.randParameter('epsilon', args)
+        self.randParameter('alpha', args)
+        self.randParameter('gamma', args)
+        self.randParameter('lmbda', args)
+        self.randParameter('softmax', args, sample=self.softmax)
+        self.randParameter('basis', args, sample=self.fa_name)
 
         # Randomize basis parameters
         if self.fa_name == 'fourier':
-            self.params['fourier_order'] = args.setdefault('fourier_order', numpy.random.choice([3,5,7,9]))
-            param_list.append(self.params['fourier_order'])
+            self.randParameter('fourier_order', args, sample=numpy.random.randint(1,5)*2 + 1)
         elif self.fa_name == 'rbf':
-            self.params['rbf_number'] = args.setdefault('rbf_number', numpy.random.randint(100))
-            self.params['rbf_beta'] = args.setdefault('rbf_beta', numpy.random.random())
-            param_list += [self.params['rbf_number'], self.params['rbf_beta']]
+            self.randParameter('rbf_number', args, sample=numpy.random.randint(100))
+            self.randParameter('rbf_beta', args)
         elif self.fa_name == 'tile':
-            self.params['tile_number'] = args.setdefault('tile_number', numpy.random.randint(200))
-            self.params['tile_weights'] = args.setdefault('tile_weights', 2**numpy.random.randint(15))
-            param_list += [self.params['tiles_number'], self.params['tiles_weights']]
-
-        return param_list
+            self.randParameter('tile_number', args, sample=numpy.random.randint(200))
+            self.randParameter('tile_weights', args, sample=2**numpy.random.randint(15))
+        return args
 
     def agent_supported(self, parsedSpec):
         if parsedSpec.valid:

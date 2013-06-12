@@ -11,12 +11,13 @@ from pyrl.rlglue.registry import register_agent
 from random import Random
 import numpy
 import copy
+import skeleton_agent
 
 from pyrl.agents.models import batch_model
 from pyrl.agents.planners import fitted_qiteration
 
 @register_agent
-class ModelBasedAgent(Agent):
+class ModelBasedAgent(skeleton_agent.skeleton_agent):
     """
     ModelBasedAgent provides a reinforcement learning agent which plans, using the planner class provided,
     over a model of the domain, learned by the model learning class provided. So, essentially this class is
@@ -25,20 +26,6 @@ class ModelBasedAgent(Agent):
 
     name = "Model Based Agent"
 
-    def __init__(self, **kwargs):
-        """Inits ModelBasedAgent with discount factor, model/planner classes, and parameters for these classes.
-
-        Args:
-            gamma=1.0: The discount factor for the domain
-            model=KNNBatchModel: The model learner class
-            planner=FittedQIteration: The planner class which will interface with the model
-            model_params={}: Parameters for the model class
-            planner_params={}: Parameters for the planner class
-        """
-        self.randGenerator = Random()
-        self.lastAction=Action()
-        self.lastObservation=Observation()
-        self.params = kwargs
 
     def init_parameters(self):
         model_class = self.params.setdefault('model_class', batch_model.KNNBatchModel)
@@ -53,10 +40,9 @@ class ModelBasedAgent(Agent):
         randomized parameters concatenated.
 
         """
-        param_list = self.model.randomize_parameters(**args) + self.planner.randomize_parameters(**args)
-        self.params['model_params'] = self.model.params
-        self.params['planner_params'] = self.planner.params
-        return param_list
+        self.params['model_params'] = args['model_params'] = self.model.randomize_parameters(**(args['model_params']))
+        self.params['planner_params'] = args['planner_params'] = self.planner.randomize_parameters(**(args['planner_params']))
+        return args
 
     def agent_supported(self, parsedSpec):
         if parsedSpec.valid:

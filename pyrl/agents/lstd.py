@@ -45,12 +45,13 @@ class LSTD(sarsa_lambda.sarsa_lambda):
 
         """
         # LSTD does not use alpha, so we remove it from the list
-        param_list = sarsa_lambda.sarsa_lambda.randomize_parameters(**args)
-        self.update_freq = self.params.setdefault('lstd_update_freq', numpy.random.randint(200))
-        return param_list[:1] + param_list[2:] + [self.update_freq]
+        self.randParameter('lstd_update_freq', args, sample=numpy.random.randint(200))
+        parameters = super(LSTD, self).randomize_parameters(**args)
+        parameters.pop("alpha", None) # LSTD does not use alpha, so we remove it
+        return parameters
 
     def init_parameters(self):
-        sarsa_lambda.sarsa_lambda.init_parameters(self)
+        super(LSTD, self).init_parameters()
         self.lstd_gamma = self.gamma
         self.update_freq = int(self.params.setdefault('lstd_update_freq', 100))
         self.gamma = 1.0
@@ -94,10 +95,14 @@ class oLSTD(sarsa_lambda.sarsa_lambda):
     name = "Online Least Squares TD"
 
     def init_parameters(self):
-        sarsa_lambda.sarsa_lambda.init_parameters(self)
+        super(oLSTD, self).init_parameters()
         self.lstd_gamma = self.gamma
         self.gamma = 1.0
 
+    def randomize_parameters(self, **args):
+        parameters = super(oLSTD, self).randomize_parameters(**args)
+        parameters.pop("alpha", None) # oLSTD does not use alpha, so we remove it
+        return parameters
 
     def init_stepsize(self, weights_shape, params):
         """Initializes the step-size variables, in this case meaning the A matrix and b vector.
@@ -126,7 +131,7 @@ class iLSTD(LSTD):
     name = "Incremental Least Squares TD"
 
     def init_parameters(self):
-        LSTD.init_parameters(self)
+        super(iLSTD, self).init_parameters()
         self.num_sweeps = int(self.params.setdefault('ilstd_sweeps', 1))
 
     def randomize_parameters(self, **args):
@@ -148,9 +153,9 @@ class iLSTD(LSTD):
             Empty list if parameter free.
 
         """
-        param_list = sarsa_lambda.sarsa_lambda.randomize_parameters(**args)
-        self.num_sweeps = int(args.setdefault('ilstd_sweeps', numpy.random.randint(99)+1))
-        return param_list + [self.num_sweeps]
+        self.randParameter('ilstd_sweeps', args, sample=numpy.random.randint(99)+1)
+        parameters = super(iLSTD, self).randomize_parameters(**args)
+        return parameters
 
     def update(self, phi_t, phi_tp, reward):
         #iLSTD
@@ -170,7 +175,7 @@ class RLSTD(sarsa_lambda.sarsa_lambda):
 
     def init_parameters(self):
         self.params.setdefault('alpha', 1.0)
-        sarsa_lambda.sarsa_lambda.init_parameters(self)
+        super(RLSTD, self).init_parameters()
         self.delta = self.params.setdefault('rlstd_delta', 1.0)
 
     def randomize_parameters(self, **args):
@@ -192,9 +197,9 @@ class RLSTD(sarsa_lambda.sarsa_lambda):
             Empty list if parameter free.
 
         """
-        param_list = sarsa_lambda.sarsa_lambda.randomize_parameters(**args)
-        self.delta = args.setdefault('rlstd_delta', numpy.random.randint(1000)+1)
-        return param_list + [self.delta]
+        self.randParameter('rlstd_delta', args, sample=numpy.random.randint(1000)+1)
+        parameters = super(RLSTD, self).randomize_parameters(**args)
+        return parameters
 
     def init_stepsize(self, weights_shape, params):
         self.A = numpy.eye(numpy.prod(weights_shape)) * self.delta
@@ -245,11 +250,11 @@ class LSTDQ(qlearning.qlearning_agent):
 
         """
         # LSTD does not use alpha, so we remove it from the list
-        param_list = super(LSTDQ, self).randomize_parameters(**args)
-        self.update_freq = self.params.setdefault('lstd_update_freq', numpy.random.randint(200))
-        self.num_samples = self.params.setdefault('lstd_num_samples', numpy.random.randint(5000))
-        self.precond = self.params.setdefault('lstd_precond', numpy.random.random())
-        return param_list[:1] + param_list[2:] + [self.update_freq, self.num_samples, self.precond]
+        self.randParameter('lstd_num_samples', args, sample=numpy.random.randint(5000))
+        self.randParameter('lstd_precond', args)
+        parameters = super(LSTDQ, self).randomize_parameters(**args)
+        parameters.pop("alpha", None) # LSTDQ does not use alpha, so we remove it
+        return parameters
 
     def init_parameters(self):
         super(LSTDQ, self).init_parameters()
@@ -313,10 +318,9 @@ class LSPI(LSTDQ):
 
     name = "LSPI"
     def randomize_parameters(self, **args):
-        param_list = super(LSPI, self).randomize_parameters(**args)
-        self.threshold = self.params.setdefault('lspi_threshold', numpy.random.random())
-        return param_list + [self.threshold]
-
+        self.randParameter('lspi_threshold', args)
+        parameters = super(LSPI, self).randomize_parameters(**args)
+        return parameters
 
     def init_parameters(self):
         super(LSPI, self).init_parameters()

@@ -13,11 +13,12 @@ import pyrl.visualizers.plotExperiment as plotExperiment
 class Episodic(object):
     name = "Episodic"
 
-    def __init__(self, **kwargs):
+    def __init__(self, config, **kwargs):
         self.maxsteps = kwargs.setdefault('maxsteps', 5000)
         self.num_episodes = kwargs.setdefault('num_episodes', 10)
         self.num_runs = kwargs.setdefault('num_runs', 1)
         self.timed = kwargs.setdefault('timed', True)
+        self.configuration = config
 
         if kwargs.has_key('agent') and kwargs.has_key('environment'):
             self.agent = kwargs['agent']
@@ -54,7 +55,7 @@ class Episodic(object):
                     csvwrite.writerow([i, steps, runtime, reward, term])
         self.rlglue.RL_cleanup()
 
-    def run_experiment(self, filename=None, **args):
+    def run_experiment(self, filename=None):
         if filename is None:
             print 'trial, number of steps, runtime, accumulated reward, termination'
         for run in range(self.num_runs):

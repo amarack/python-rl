@@ -31,5 +31,9 @@ Add pygame based viewer for Tetris environment
 Provide reasonable 'working' parameters for every agent algorithm. Currently missing:
 	Sarsa ANN
 	REINFORCE
-	Delayed Q-Learning
 	Composite Mirror Descent
+By having working parameters for every algorithm on at least one domain, and 
+every domain for at least one algorithm, I plan to build a script which uses 
+them as tests. This should ensure that I don't break things accidentally. 
+Actual unit tests on RL agents and environments would be great, but until 
+inspiration hits, this is probably the best approach.

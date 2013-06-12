@@ -93,7 +93,7 @@ def processFile(filename, style, verbose=True, method=None, windowsize=1, kmeans
 
     if verbose:
         print "Processed", numRuns, "runs from", filename
-    return locs, means, stdevs
+    return numpy.array(locs), numpy.array(means), numpy.array(stdevs)
 
 
 if __name__=="__main__":

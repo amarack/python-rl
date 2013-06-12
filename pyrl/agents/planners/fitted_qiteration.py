@@ -66,26 +66,18 @@ class FittedQIteration(Planner):
             Empty list if parameter free.
 
         """
-        param_list = Planner.randomize_parameters(self, **args)
-        self.params['iterations'] = args.setdefault('iterations', numpy.random.randint(500))
-        self.params['support_size'] = args.setdefault('support_size', numpy.random.randint(500))
-        param_list += [self.params['iterations'], self.params['support_size']]
-
+        self.randParameter('iterations', args, sample=numpy.random.randint(500))
+        self.randParameter('support_size', args, sample=numpy.random.randint(500))
         # Randomize basis parameters
         if self.fa_name == 'fourier':
-            self.params['fourier_order'] = args.setdefault('fourier_order', numpy.random.choice([3,5,7,9]))
-            param_list.append(self.params['fourier_order'])
+            self.randParameter('fourier_order', args, sample=numpy.random.randint(1,5)*2 + 1)
         elif self.fa_name == 'rbf':
-            self.params['rbf_number'] = args.setdefault('rbf_number', numpy.random.randint(100))
-            self.params['rbf_beta'] = args.setdefault('rbf_beta', numpy.random.random())
-            param_list += [self.params['rbf_number'], self.params['rbf_beta']]
+            self.randParameter('rbf_number', args, sample=numpy.random.randint(100))
+            self.randParameter('rbf_beta', args)
         elif self.fa_name == 'tile':
-            self.params['tile_number'] = args.setdefault('tile_number', numpy.random.randint(200))
-            self.params['tile_weights'] = args.setdefault('tile_weights', 2**numpy.random.randint(15))
-            param_list += [self.params['tiles_number'], self.params['tiles_weights']]
-
-        return param_list
-
+            self.randParameter('tile_number', args, sample=numpy.random.randint(200))
+            self.randParameter('tile_weights', args, sample=2**numpy.random.randint(15))
+        return super(FittedQIteration,self).randomize_parameters(**args)
 
     def planner_init(self, numDiscStates, contFeatureRanges, numActions, rewardRange):
         self.has_plan = False

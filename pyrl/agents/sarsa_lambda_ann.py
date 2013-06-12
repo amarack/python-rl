@@ -9,6 +9,7 @@ from pyrl.rlglue.registry import register_agent
 from random import Random
 import numpy
 import copy
+import skeleton_agent
 
 import neurolab as nl
 
@@ -21,24 +22,40 @@ import neurolab as nl
 # variations on the NN theme, neurolab has them implemented, tested and
 # working.
 @register_agent
-class sarsa_lambda_ann(Agent):
+class sarsa_lambda_ann(skeleton_agent.skeleton_agent):
     name = "Sarsa ANN"
 
-    def __init__(self, **kwargs):
-        self.randGenerator = Random()
-        self.lastAction=Action()
-        self.lastObservation=Observation()
-
-        self.epsilon = kwargs.setdefault("epsilon", 0.01)
-        self.lmbda = kwargs.setdefault("lmbda", 0.7)
-        self.gamma = kwargs.setdefault("gamma", 1.0)
+    def init_parameters(self):
+        self.epsilon = self.params.setdefault("epsilon", 0.01)
+        self.lmbda = self.params.setdefault("lmbda", 0.7)
+        self.gamma = self.params.setdefault("gamma", 1.0)
         self.net = None
-        self.params = kwargs
-        self.softmax = kwargs.setdefault("softmax", False)
-        self.alpha = kwargs.setdefault("alpha", 0.001)
-        self.num_hidden = kwargs.setdefault("num_hidden", 50)
+        self.params = self.params
+        self.softmax = self.params.setdefault("softmax", False)
+        self.alpha = self.params.setdefault("alpha", 0.001)
+        self.num_hidden = self.params.setdefault("num_hidden", 50)
+
+    def randomize_parameters(self, **args):
+        """Generate parameters randomly, constrained by given named parameters.
+
+        Args:
+            **args: Named parameters to fix, which will not be randomly generated
+
+        Returns:
+            List of resulting parameters of the class. Will always be in the same order.
+            Empty list if parameter free.
+
+        """
+        self.randParameter('epsilon', args)
+        self.randParameter('alpha', args)
+        self.randParameter('gamma', args)
+        self.randParameter('lmbda', args)
+        self.randParameter('softmax', args, sample=self.softmax)
+        self.randParameter('num_hidden', args, sample=numpy.random.randint(200)+2)
+        return args
 
     def agent_init(self,taskSpec):
+        self.init_parameters()
         # Parse the task specification and set up the weights and such
         TaskSpec = TaskSpecVRLGLUE3.TaskSpecParser(taskSpec)
         if TaskSpec.valid:

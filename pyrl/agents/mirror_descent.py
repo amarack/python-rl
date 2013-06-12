@@ -38,6 +38,30 @@ class md_qlearn(qlearning.qlearning_agent):
         qlearning.qlearning_agent.init_parameters(self)
         self.sparsity = self.params.setdefault('sparsity', 0.01)
 
+    def randomize_parameters(self, **args):
+        """Generate parameters randomly, constrained by given named parameters.
+
+        If used, this must be called before agent_init in order to have desired effect.
+
+        Parameters that fundamentally change the algorithm are not randomized over. For
+        example, basis and softmax fundamentally change the domain and have very few values
+        to be considered. They are not randomized over.
+
+        Basis parameters, on the other hand, have many possible values and ARE randomized.
+
+        Args:
+            **args: Named parameters to fix, which will not be randomly generated
+
+        Returns:
+            List of resulting parameters of the class. Will always be in the same order.
+            Empty list if parameter free.
+
+        """
+        # LSTD does not use alpha, so we remove it from the list
+        self.randParameter('sparsity', args)
+        parameters = super(md_qlearn, self).randomize_parameters(**args)
+        return parameters
+
     def agent_start(self,observation):
         returnAction = qlearning.qlearning_agent.agent_start(self, observation)
         self.pnorm = 2. * max(1, numpy.log10(numpy.prod(self.weights.shape)))
@@ -82,6 +106,30 @@ class md_sarsa(sarsa_lambda.sarsa_lambda):
     def init_parameters(self):
         sarsa_lambda.sarsa_lambda.init_parameters(self)
         self.sparsity = self.params.setdefault('sparsity', 0.01)
+
+    def randomize_parameters(self, **args):
+        """Generate parameters randomly, constrained by given named parameters.
+
+        If used, this must be called before agent_init in order to have desired effect.
+
+        Parameters that fundamentally change the algorithm are not randomized over. For
+        example, basis and softmax fundamentally change the domain and have very few values
+        to be considered. They are not randomized over.
+
+        Basis parameters, on the other hand, have many possible values and ARE randomized.
+
+        Args:
+            **args: Named parameters to fix, which will not be randomly generated
+
+        Returns:
+            List of resulting parameters of the class. Will always be in the same order.
+            Empty list if parameter free.
+
+        """
+        # LSTD does not use alpha, so we remove it from the list
+        self.randParameter('sparsity', args)
+        parameters = super(md_sarsa, self).randomize_parameters(**args)
+        return parameters
 
     def agent_start(self,observation):
         returnAction = sarsa_lambda.sarsa_lambda.agent_start(self, observation)
@@ -162,6 +210,31 @@ class mdba_qlearn(md_qlearn):
         self.params['basis'] = 'fourier' # Force to use fourier basis for adaptation
         md_qlearn.init_parameters(self)
         self.beta = self.params.setdefault('nonlinear_lr', 1.e-6)
+
+    def randomize_parameters(self, **args):
+        """Generate parameters randomly, constrained by given named parameters.
+
+        If used, this must be called before agent_init in order to have desired effect.
+
+        Parameters that fundamentally change the algorithm are not randomized over. For
+        example, basis and softmax fundamentally change the domain and have very few values
+        to be considered. They are not randomized over.
+
+        Basis parameters, on the other hand, have many possible values and ARE randomized.
+
+        Args:
+            **args: Named parameters to fix, which will not be randomly generated
+
+        Returns:
+            List of resulting parameters of the class. Will always be in the same order.
+            Empty list if parameter free.
+
+        """
+        # LSTD does not use alpha, so we remove it from the list
+        self.randParameter('nonlinear_lr', args)
+        args['basis'] = 'fourier'
+        parameters = super(mdba_qlearn, self).randomize_parameters(**args)
+        return parameters
 
     def agent_init(self, taskSpec):
         md_qlearn.agent_init(self, taskSpec)

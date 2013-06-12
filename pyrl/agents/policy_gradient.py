@@ -119,20 +119,19 @@ class REINFORCE(policy_gradient):
     name = "REINFORCE"
 
     def agent_init(self,taskSpec):
-        policy_gradient.agent_init(self,taskSpec)
+        super(REINFORCE, self).agent_init(self,taskSpec)
         self.baseline_numerator = numpy.zeros(self.weights.shape)
         self.baseline_denom = numpy.zeros(self.weights.shape)
         self.gradient_estimate = numpy.zeros(self.weights.shape)
         self.ep_count = 0
 
     def init_parameters(self):
-        policy_gradient.init_parameters(self)
+        super(REINFORCE, self).init_parameters(self)
         self.num_rollouts = self.params.setdefault('num_rollouts', 5)
 
     def randomize_parameters(self, **args):
-        param_list = super(REINFORCE, self).randomize_parameters(**args)
-        self.num_rollouts = args.setdefault('num_rollouts', numpy.random.randint(30)+1)
-        return param_list + [self.num_rollouts]
+        self.randParameter('num_rollouts', args, sample=numpy.random.randint(30)+1)
+        return super(REINFORCE, self).randomize_parameters(**args)
 
     def agent_start(self,observation):
         if self.ep_count > 0:
@@ -150,7 +149,7 @@ class REINFORCE(policy_gradient):
 
         self.ep_count += 1
         self.Return = 0.0
-        return policy_gradient.agent_start(self, observation)
+        return super(REINFORCE, self).agent_start(self, observation)
 
     def update(self, phi_t, phi_tp, reward, compatFeatures):
         self.traces += compatFeatures
@@ -181,9 +180,8 @@ class twotime_ac(policy_gradient):
         self.beta = self.params.setdefault("beta", 0.001)
 
     def randomize_parameters(self, **args):
-        param_list = super(twotime_ac, self).randomize_parameters(**args)
-        self.beta = args.setdefault('beta', numpy.random.random())
-        return param_list + [self.beta]
+        self.randParameter('beta', args)
+        return super(twotime_ac, self).randomize_parameters(**args)
 
     def update(self, phi_t, phi_tp, reward, compatFeatures):
         if self.avg_reward is None:
@@ -239,10 +237,9 @@ class nac_lstd(policy_gradient):
         self.nac_precond = self.params.setdefault('precond', 0.01)
 
     def randomize_parameters(self, **args):
-        param_list = super(nac_lstd, self).randomize_parameters(**args)
-        self.nac_freq = args.setdefault('nac_freq', numpy.random.randint(1000))
-        self.nac_precond = args.setdefault('precond', numpy.random.random())
-        return param_list + [self.nac_freq, self.nac_precond]
+        self.randParameter('nac_freq', args, sample=numpy.random.randint(1000))
+        self.randParameter('precond', args)
+        return super(nac_lstd, self).randomize_parameters(**args)
 
     def agent_init(self,taskSpec):
         sarsa_lambda.sarsa_lambda.agent_init(self, taskSpec)
@@ -295,10 +292,9 @@ class nac_sarsa(policy_gradient):
         self.nac_freq = self.params.setdefault("nac_freq", 200)
 
     def randomize_parameters(self, **args):
-        param_list = super(nac_lstd, self).randomize_parameters(**args)
-        self.nac_freq = args.setdefault('nac_freq', numpy.random.randint(1000))
-        self.beta = args.setdefault('beta', numpy.random.random())
-        return param_list + [self.nac_freq, self.beta]
+        self.randParameter('nac_freq', args, sample=numpy.random.randint(1000))
+        self.randParameter('beta', args)
+        return super(nac_sarsa, self).randomize_parameters(**args)
 
     def agent_init(self,taskSpec):
         sarsa_lambda.sarsa_lambda.agent_init(self, taskSpec)
