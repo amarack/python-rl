@@ -221,9 +221,6 @@ class LSTDQ(qlearning.qlearning_agent):
     From the paper:
     Least-Squares Policy Iteration. 2003.
     Michail Lagoudakis and Ronald Parr.
-
-    This might have a bug in it. The algorithm does not appear to work whenever
-    the update frequency != num samples. No idea why.
     """
 
     name = "LSTD-Q"
@@ -257,7 +254,6 @@ class LSTDQ(qlearning.qlearning_agent):
     def init_parameters(self):
         super(LSTDQ, self).init_parameters()
         self.lstd_gamma = self.gamma
-        self.update_freq = int(self.params.setdefault('lstd_update_freq', 500))
         self.num_samples = int(self.params.setdefault('lstd_num_samples', 500))
         self.precond = self.params.setdefault('lstd_precond', 0.1)
         self.gamma = 1.0
@@ -276,14 +272,14 @@ class LSTDQ(qlearning.qlearning_agent):
 
     def shouldUpdate(self):
         self.lstd_counter += 1
-        return self.lstd_counter % self.update_freq == 0
+        return self.lstd_counter % self.num_samples == 0
 
     def extractSample(self, sample):
         s = sample[:self.weights.size]
         state = sample[self.weights.size:self.weights.size+self.numStates]
         discState = sample[-2]
         qvalues = self.getActionValues(state, discState)
-        a_p = qvalues.argmax()
+        a_p = self.getAction(state, discState)#values.argmax()
         s_p = numpy.zeros(self.weights.shape)
         s_p[discState, :, a_p] = self.basis.computeFeatures(state)
         return s, s_p.flatten(), sample[-1]
@@ -313,7 +309,6 @@ class LSPI(LSTDQ):
     From the paper:
     Least-Squares Policy Iteration. 2003.
     Michail Lagoudakis and Ronald Parr.
-
     """
 
     name = "LSPI"
@@ -333,6 +328,7 @@ class LSPI(LSTDQ):
         while (prev_weights is None) or numpy.linalg.norm(prev_weights - self.weights.ravel()) >= self.threshold:
             prev_weights = self.weights.flatten()
             super(LSPI, self).updateWeights()
+
 
 if __name__=="__main__":
     import argparse
