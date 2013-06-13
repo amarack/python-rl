@@ -195,6 +195,10 @@ class ModelBasedAgent(skeleton_agent.skeleton_agent):
         """Perform any clean up operations before the end of an experiment."""
         pass
 
+    def has_diverged(self, values):
+        value = values.sum()
+        return numpy.isnan(value) or numpy.isinf(value)
+
     def agent_message(self,inMessage):
         """Receive a message from the environment or experiment and respond.
 
@@ -204,7 +208,11 @@ class ModelBasedAgent(skeleton_agent.skeleton_agent):
         Returns:
             A string response message.
         """
-        return name + " does not understand your message."
+        if inMessage.lower() == "agent_diverged?": # If we find that this is needed, we can fill it in later
+            return "False" #str(self.has_diverged(self.weights))
+        else:
+            return name + " does not understand your message."
+
 
 # If executed as a standalone script this will default to RLGlue network mode.
 # Some parameters can be passed at the command line to customize behavior.

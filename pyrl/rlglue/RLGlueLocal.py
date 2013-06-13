@@ -1,6 +1,6 @@
-# 
+#
 # Copyright (C) 2013, Will Dabney
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -28,8 +28,8 @@ from rlglue.types import Observation_action
 from rlglue.types import Reward_observation_action_terminal
 from rlglue.types import Reward_observation_terminal
 
-# This class provides a seemless way of running python RLGlue experiments locally without 
-# the use of sockets/network. I have no idea why this was not included in the python codec, 
+# This class provides a seemless way of running python RLGlue experiments locally without
+# the use of sockets/network. I have no idea why this was not included in the python codec,
 # but I really need this functionality. Maybe it will help you as well.
 class LocalGlue:
 	def __init__(self,theEnvironment,theAgent):

@@ -1,0 +1,11 @@
+{
+	"environment": {"params": {}, "name": "Mountain Car"}, 
+	"experiment": {"params": {"num_episodes": 100}, "name": "Episodic"}, 
+	"agent": {"params": {
+		 	    "num_hidden": 5,
+			    "epsilon": 0.01,
+			    "gamma": 1.0,
+			    "lmbda": 0.9,
+			    "alpha": 0.0001
+		 }, "name": "Sarsa ANN"}
+}

@@ -30,6 +30,10 @@ class Episodic(object):
     def run_episode(self):
         terminal = 0
         runtime = 0
+        # Query the agent whether or not it has diverged
+        if self.hasAgentDiverged():
+            return 0, -1, 0.0, 0.0 # -1 number of steps, signals that divergence.
+
         if self.timed:
             timer = Timer()
             with timer:
@@ -60,6 +64,18 @@ class Episodic(object):
             print 'trial, number of steps, runtime, accumulated reward, termination'
         for run in range(self.num_runs):
             self.run_trial(filename=filename)
+
+    def hasAgentDiverged(self):
+        """Sends an rl-glue message to the agent asking if it has diverged or not.
+        The message is exactly: agent_diverged?
+        The expected response is: True (if it has), False (if it has not)
+        The responses are not case sensitive, and anything other than true or false
+        will be treated as a false (to support agents which do not have this implemented).
+        """
+        return self.rlglue.RL_agent_message("agent_diverged?").lower() == "true"
+
+
+
 
 
 

@@ -205,9 +205,6 @@ class sarsa_lambda(skeleton_agent.skeleton_agent):
 
         self.lastAction=copy.deepcopy(returnAction)
         self.lastObservation=copy.deepcopy(observation)
-        if self.has_diverged(self.weights):
-            print "Agent diverged! Exiting."
-            sys.exit(1)
         return returnAction
 
     def update_traces(self, phi_t, phi_tp):
@@ -249,9 +246,6 @@ class sarsa_lambda(skeleton_agent.skeleton_agent):
         self.lastObservation=copy.deepcopy(observation)
         return returnAction
 
-    def has_diverged(self, values):
-        value = values.sum()
-        return numpy.isnan(value) or numpy.isinf(value)
 
     def init_stepsize(self, weights_shape, params):
         self.step_sizes = numpy.ones(weights_shape) * self.alpha
@@ -290,6 +284,10 @@ class sarsa_lambda(skeleton_agent.skeleton_agent):
         """Perform any clean up operations before the end of an experiment."""
         pass
 
+    def has_diverged(self, values):
+        value = values.sum()
+        return numpy.isnan(value) or numpy.isinf(value)
+
     def agent_message(self,inMessage):
         """Receive a message from the environment or experiment and respond.
 
@@ -299,7 +297,10 @@ class sarsa_lambda(skeleton_agent.skeleton_agent):
         Returns:
             A string response message.
         """
-        return name + " does not understand your message."
+        if inMessage.lower() == "agent_diverged?":
+            return str(self.has_diverged(self.weights))
+        else:
+            return name + " does not understand your message."
 
 
 @register_agent
