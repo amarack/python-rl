@@ -279,12 +279,10 @@ class nac_sarsa(policy_gradient):
     """
 
     name = "Natural Actor-Critic with Sarsa"
-    def agent_start(self,observation):
-        if self.has_diverged(self.advantage_weights):
-            print "Agent diverged, exiting."
-            import sys
-            sys.exit(1)
-        return policy_gradient.agent_start(self, observation)
+
+    def has_diverged(self):
+        value = self.advantage_weights.sum() + self.value_weights.sum()
+        return numpy.isnan(value) or numpy.isinf(value) or super(nac_sarsa, self).has_diverged()
 
     def init_parameters(self):
         policy_gradient.init_parameters(self)

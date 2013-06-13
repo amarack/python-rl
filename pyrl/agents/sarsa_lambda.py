@@ -284,23 +284,9 @@ class sarsa_lambda(skeleton_agent.skeleton_agent):
         """Perform any clean up operations before the end of an experiment."""
         pass
 
-    def has_diverged(self, values):
-        value = values.sum()
+    def has_diverged(self):
+        value = self.weights.sum()
         return numpy.isnan(value) or numpy.isinf(value)
-
-    def agent_message(self,inMessage):
-        """Receive a message from the environment or experiment and respond.
-
-        Args:
-            inMessage: A string message sent by either the environment or experiment to the agent.
-
-        Returns:
-            A string response message.
-        """
-        if inMessage.lower() == "agent_diverged?":
-            return str(self.has_diverged(self.weights))
-        else:
-            return name + " does not understand your message."
 
 
 @register_agent
