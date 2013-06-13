@@ -15,7 +15,8 @@
 ################################################################################
 
 import numpy
-import csv, sys
+import csv, sys, json
+from pyrl.misc.json import convert
 
 def movingaverage(interval, window_size):
     interval = numpy.array([interval[0]]*window_size + interval.tolist() + [interval[-1]]*window_size)
@@ -108,6 +109,8 @@ if __name__=="__main__":
                                          'or --means if the data has already been processed into means and standard deviations.')
     parser.add_argument("--raw", type=str, action='append', nargs=2,
                         help="Filename of raw collected data from experiments.", default=[])
+    parser.add_argument("--json", type=str, action='append',
+                        help="Filename of json output from randomized experiments.", default=[])
     parser.add_argument("--means", type=str, action='append', nargs=2,
                         help="Filename of episode number, means and standard deviations " + \
                             "for each episode of an experiment. ", default=[])
@@ -171,6 +174,17 @@ if __name__=="__main__":
         data[:,2] = movingaverage(data[:,2], windowsize)
         drawResult(data)
         indx+=1
+
+    for file in args.json:
+        with open(file, 'r') as f:
+            for json_line in f:
+                result = json.loads(json_line, object_hook=convert)
+                data = numpy.array([result['experiment']['episodes'],
+                                    result['experiment']['returns'],
+                                    result['experiment']['deviations']]).T
+                labels.append(result['agent']['name'])
+                drawResult(data)
+                indx+=1
 
     plt.xlabel("Episodes")
     plt.ylabel(style_str)
