@@ -36,7 +36,7 @@ def processFile(filename, style, verbose=True, method=None, windowsize=1, kmeans
             episodes.setdefault(int(line[0]), []).append(float(line[style]))
             maxEp = max(maxEp, int(line[0]))
 
-    numRuns = len(episodes[0])
+    numRuns = len(episodes[maxEp])
     data = numpy.zeros((maxEp+1,numRuns))
     for k in episodes.keys():
         current = numpy.array(episodes[k])
