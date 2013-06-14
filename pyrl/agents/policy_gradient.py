@@ -241,12 +241,16 @@ class nac_lstd(policy_gradient):
         self.A += numpy.random.random(self.A.shape)*self.nac_precond
         self.b = numpy.zeros((self.traces.size,))
 
-    def update(self, phi_t, phi_tp, reward, compatFeatures):
+    def appendBaseline(self, phi_t, phi_tp, compatFeatures):
         phi_tilde = numpy.zeros(self.traces.shape)
         phi_hat = numpy.zeros(self.traces.shape)
         phi_tilde[:phi_tp.size] = phi_tp.flatten()
         phi_hat[:phi_t.size] = phi_t.flatten()
         phi_hat[phi_t.size:] = compatFeatures.flatten()
+        return phi_hat, phi_tilde
+
+    def update(self, phi_t, phi_tp, reward, compatFeatures):
+        phi_hat, phi_tilde = self.appendBaseline(phi_t, phi_tp, compatFeatures)
 
         self.traces *= self.lmbda
         self.traces += phi_hat
