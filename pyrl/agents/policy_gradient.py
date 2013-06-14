@@ -38,16 +38,16 @@ class policy_gradient(sarsa_lambda.sarsa_lambda):
         lastAction = self.lastAction.intArray[0]
         newDiscState = self.getDiscState(observation.intArray)
         lastDiscState = self.getDiscState(self.lastObservation.intArray)
+        newIntAction = self.getAction(newState, newDiscState)
 
         phi_t = numpy.zeros((self.weights.shape[0], self.weights.shape[1]))
         phi_tp = numpy.zeros((self.weights.shape[0], self.weights.shape[1]))
-        phi_t[lastDiscState, :] = lastState if self.basis is None else self.basis.computeFeatures(lastState)
-        phi_tp[newDiscState, :] = newState if self.basis is None else self.basis.computeFeatures(newState)
+        phi_t[lastDiscState, :] = self.basis.computeFeatures(lastState)
+        phi_tp[newDiscState, :] = self.basis.computeFeatures(newState)
 
         self.step_count += 1
-        self.update(phi_t, phi_tp, reward, self.getCompatibleFeatures(lastAction, lastState, lastDiscState))
+        self.update(phi_t, phi_tp, reward, self.getCompatibleFeatures(phi_t, lastAction, reward, phi_tp, newIntAction))
 
-        newIntAction = self.getAction(newState, newDiscState)
         returnAction=Action()
         returnAction.intArray=[newIntAction]
         self.lastAction=copy.deepcopy(returnAction)
@@ -66,42 +66,35 @@ class policy_gradient(sarsa_lambda.sarsa_lambda):
 
         phi_t = numpy.zeros((self.weights.shape[0], self.weights.shape[1]))
         phi_tp = numpy.zeros((self.weights.shape[0], self.weights.shape[1]))
-        phi_t[lastDiscState, :] = lastState if self.basis is None else self.basis.computeFeatures(lastState)
+        phi_t[lastDiscState, :] = self.basis.computeFeatures(lastState)
 
-        self.update(phi_t, phi_tp, reward, self.getCompatibleFeatures(lastAction, lastState, lastDiscState))
+        self.update(phi_t, phi_tp, reward, self.getCompatibleFeatures(phi_t, lastAction, reward, phi_tp, 0))
 
     def getAction(self, state, discState):
-        policy = self.getPolicy(state, discState)
+        features = numpy.zeros(self.weights.shape[:-1])
+        features[discState, :] = self.basis.computeFeatures(state)
+        policy = self.getPolicy(features)
         return numpy.where(policy.cumsum() >= numpy.random.random())[0][0]
 
-    def getPolicy(self, state, discState):
+    def getPolicy(self, features):
         if self.softmax:
-            return self.softmax_policy(state, discState)
+            return self.softmax_policy(features)
         else:
-            return self.gauss_policy(state, discState)
+            return self.gauss_policy(features)
 
-    def gauss_policy(self, state, discState):
+    def gauss_policy(self, features):
         # Not currently supported...
-        return self.softmax_policy(state, discState)
+        return self.softmax_policy(features)
 
-    def softmax_policy(self, state, discState):
-        # Compute full feature vector
-        features = numpy.zeros(self.weights.shape[:-1]) # Drop actions dimension
-        features[discState,:] = state if self.basis is None else self.basis.computeFeatures(state)
+    def softmax_policy(self, features):
         # Compute softmax policy
-        policy = numpy.dot(self.weights[discState,:,:].T, features[discState,:])
+        policy = numpy.dot(self.weights.reshape((features.size,self.numActions)).T, features.ravel())
         policy = numpy.exp(numpy.clip(policy/self.epsilon, -500, 500))
         policy /= policy.sum()
         return policy
 
-    def getCompatibleFeatures(self, action, state, discState):
-        features = numpy.zeros((self.weights.shape[0], self.weights.shape[1]))
-        if self.basis is None:
-            features[discState,:] = state
-        else:
-            features[discState,:] = self.basis.computeFeatures(state)
-
-        policy = -1.0 * self.getPolicy(state, discState)
+    def getCompatibleFeatures(self, features, action, reward, next_features, next_action):
+        policy = -1.0 * self.getPolicy(features)
         policy[action] += 1.0
         features = numpy.repeat(features.reshape((features.size,1)), self.numActions, axis=1)
         return numpy.dot(features, numpy.diag(policy)) # This is probably a slow way to do it
