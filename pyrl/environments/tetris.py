@@ -141,7 +141,7 @@ class Tetris(Environment):
         #    print "Cleared!"
         #print "Action", rotation, column
         obs = self.getObservation()
-        reward = self.computeReward(lines_cleared) if not mdptetris.isgameover() else 0.0
+        reward = self.computeReward(lines_cleared) if not mdptetris.isgameover() else -1.0
         return obs, reward
 
     def env_step(self,thisAction):

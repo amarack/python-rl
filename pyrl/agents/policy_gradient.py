@@ -237,8 +237,8 @@ class nac_lstd(policy_gradient):
     def agent_init(self,taskSpec):
         sarsa_lambda.sarsa_lambda.agent_init(self, taskSpec)
         self.traces = numpy.zeros((numpy.prod(self.weights.shape[:-1]) + self.weights.size,))
-        self.A = numpy.eye(self.traces.size)
-        self.A += numpy.random.random(self.A.shape)*self.nac_precond
+        self.A = numpy.eye(self.traces.size)*self.nac_precond
+#        self.A += numpy.random.random(self.A.shape)*self.nac_precond
         self.b = numpy.zeros((self.traces.size,))
 
     def appendBaseline(self, phi_t, phi_tp, compatFeatures):
