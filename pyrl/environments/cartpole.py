@@ -26,9 +26,18 @@ from pyrl.rlglue.registry import register_environment
 
 @register_environment
 class CartPole(Environment):
+    """Cart Pole environment. This implementation alows multiple poles,
+    noisy action, and random starts. It has been checked repeatedly for
+    'correctness', specifically the direction of gravity. Some implementations of
+    cart pole on the internet have the gravity constant inverted. The way to check is to
+    limit the force to be zero, start from a valid random start state and watch how long
+    it takes for the pole to fall. If the pole falls almost immediately, you're all set. If it takes
+    tens or hundreds of steps then you have gravity inverted. It will tend to still fall because
+    of round off errors that cause the oscillations to grow until it eventually falls.
+    """
     name = "Cart Pole"
 
-    def __init__(self, mode='easy', pole_scales=[1.], noise=0.0, random_start=False):
+    def __init__(self, mode='easy', pole_scales=[1.], noise=0.0, random_start=True):
         self.noise = noise
         self.random_start = random_start
         self.cart_location = 0.0

@@ -1,0 +1,15 @@
+{
+	"environment": {"params": {"pole_scales": [1.0, 0.1]}, "name": "Cart Pole"},
+	"experiment": {"params": {"num_episodes": 10000, "num_runs": 10}, "name": "Episodic"},
+	"agent": {
+		 "params": {
+		 	   "basis": "fourier",
+			   "fourier_order": 5,
+			   "alpha": 0.00001,
+			   "gamma": 0.99,
+			   "lmbda": 0.7,
+			   "epsilon": 0.01
+		},
+		"name": "Sarsa"
+		}
+}
