@@ -56,7 +56,7 @@ class AdaptiveStepSize(object):
     def rescale_update(self, phi_t, phi_tp, delta, reward, descent_direction):
         return self.step_sizes * descent_direction
 
-    def randParameter(self, param_key, args, sample=numpy.random.random()):
+    def randParameter(self, param_key, args, sample=None):
         """A utility function for use inside randomize_parameters. Takes a parameter
         key (name), the named arguments passed to randomize_parameters, and optionally
         the sampled random value to set in case the key does not exist in the arguments.
@@ -64,6 +64,8 @@ class AdaptiveStepSize(object):
         This will then set it (if not already present) in args and assign which ever value
         args ends up with into params.
         """
+        if sample is None:
+            sample = numpy.random.random()
         self.params[param_key] = args.setdefault(param_key, sample)
 
     def randomize_parameters(self, **args):
