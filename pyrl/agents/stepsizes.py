@@ -426,7 +426,8 @@ class InvMaxEigen(AdaptiveStepSize):
 
         if update_ratio <= self.stability_threshold:
             # Update the step-sizes with our newly converged max eigenvalue
-            self.step_sizes.fill(1./numpy.linalg.norm(self.est_eigvector.ravel()))
+            self.alpha = 1./numpy.linalg.norm(self.est_eigvector.ravel())
+            self.step_sizes.fill(self.alpha)
 
             # Reset the estimated eigenvector and star the process again.
             self.est_eigvector = numpy.random.normal(size=self.est_eigvector.shape)
