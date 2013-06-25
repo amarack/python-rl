@@ -8,6 +8,8 @@ from pyrl.rlglue.registry import register_experiment
 import rlglue.RLGlue as rl_glue
 from pyrl.experiments.episodic import Episodic
 import pyrl.visualizers.plotExperiment as plotExperiment
+from pyrl.misc.parameter import *
+
 
 @register_experiment
 class RandomizedTrial(Episodic):
@@ -26,9 +28,19 @@ class RandomizedTrial(Episodic):
         Episodic.__init__(self, config, **kwargs)
 
     def run_experiment(self, filename=None):
+        param_parser = self.agent.agent_get_parameters()
+        param_parser.print_help()
         for trial in range(self.num_trials):
-            parameters = self.agent.randomize_parameters(**copy.deepcopy(self.configuration['agent']['params']))
+            parameters = copy.deepcopy(self.configuration['agent']['params'])
+            # Randomize the parameters, those marked not optimizable get their default
+            for name, value in randomize_parameters(param_parser):
+                # Then, set the parameter value, but only if not already set
+                parameters.setdefault(name, value)
 
+            # Set params for current agent
+            self.agent.params = parameters
+
+            # Run a trial...
             tmp_file = "rndtrial" + str(numpy.random.randint(1.e10)) + ".dat"
             Episodic.run_experiment(self, filename = tmp_file)
 

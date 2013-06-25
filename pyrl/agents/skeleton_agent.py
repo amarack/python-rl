@@ -17,7 +17,7 @@ from rlglue.types import Observation
 from rlglue.utils import TaskSpecVRLGLUE3
 
 from pyrl.rlglue.registry import register_agent
-
+from pyrl.misc.parameter import *
 
 @register_agent
 class skeleton_agent(Agent, object):
@@ -62,6 +62,10 @@ class skeleton_agent(Agent, object):
 
         """
         return args
+
+    def agent_get_parameters(self):
+        return parameter_set(self.name, description="Parameters required for running an RL agent algorithm.")
+        #add_parameter(parser, name, min=0., max=1.0, **kwargs)
 
     def agent_init(self,taskSpec):
         """Initialize the RL agent.

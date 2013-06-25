@@ -13,6 +13,7 @@ from pyrl.rlglue.registry import register_agent
 from pyrl.misc.matrix import vector_angle, SMInv
 import sarsa_lambda
 import stepsizes
+from pyrl.misc.parameter import *
 
 class policy_gradient(sarsa_lambda.sarsa_lambda):
     def agent_start(self,observation):
@@ -122,6 +123,11 @@ class REINFORCE(policy_gradient):
         super(REINFORCE, self).init_parameters(self)
         self.num_rollouts = self.params.setdefault('num_rollouts', 5)
 
+    def agent_get_parameters(self):
+        param_set = super(REINFORCE, self).agent_get_parameters()
+        add_parameter(param_set, "num_rollouts", default=5, type=int, min=1, max=50)
+        return param_set
+
     def randomize_parameters(self, **args):
         self.randParameter('num_rollouts', args, sample=numpy.random.randint(30)+1)
         return super(REINFORCE, self).randomize_parameters(**args)
@@ -171,6 +177,11 @@ class twotime_ac(policy_gradient):
     def init_parameters(self):
         policy_gradient.init_parameters(self)
         self.beta = self.params.setdefault("beta", 0.001)
+
+    def agent_get_parameters(self):
+        param_set = super(twotime_ac, self).agent_get_parameters()
+        add_parameter(param_set, "beta", default=0.001)
+        return param_set
 
     def randomize_parameters(self, **args):
         self.randParameter('beta', args)
@@ -229,6 +240,12 @@ class nac_lstd(policy_gradient):
         self.nac_freq = self.params.setdefault("nac_freq", 200)
         self.nac_precond = self.params.setdefault('precond', 0.01)
 
+    def agent_get_parameters(self):
+        param_set = super(nac_lstd, self).agent_get_parameters()
+        add_parameter(param_set, "nac_freq", default=200, type=int, min=1, max=1000)
+        add_parameter(param_set, "precond", default=0.01)
+        return param_set
+
     def randomize_parameters(self, **args):
         self.randParameter('nac_freq', args, sample=numpy.random.randint(1000))
         self.randParameter('precond', args)
@@ -285,6 +302,12 @@ class nac_sarsa(policy_gradient):
         policy_gradient.init_parameters(self)
         self.beta = self.params.setdefault("beta", 0.001)
         self.nac_freq = self.params.setdefault("nac_freq", 200)
+
+    def agent_get_parameters(self):
+        param_set = super(nac_sarsa, self).agent_get_parameters()
+        add_parameter(param_set, "nac_freq", default=200, type=int, min=1, max=1000)
+        add_parameter(param_set, "beta", default=0.001)
+        return param_set
 
     def randomize_parameters(self, **args):
         self.randParameter('nac_freq', args, sample=numpy.random.randint(1000))

@@ -15,10 +15,12 @@ import pyrl.basis.rbf as rbf
 import pyrl.basis.tilecode as tilecode
 import pyrl.basis.trivial as trivial
 import stepsizes
-import skeleton_agent
+
+from skeleton_agent import *
+
 
 @register_agent
-class sarsa_lambda(skeleton_agent.skeleton_agent):
+class sarsa_lambda(skeleton_agent):
     name = "Sarsa"
 
     def init_parameters(self):
@@ -30,6 +32,24 @@ class sarsa_lambda(skeleton_agent.skeleton_agent):
         self.fa_name = self.params.setdefault('basis', 'trivial')
         self.softmax = self.params.setdefault('softmax', False)
         self.basis = None
+
+    def agent_get_parameters(self):
+        param_set = super(sarsa_lambda, self).agent_get_parameters()
+        add_parameter(param_set, "alpha", default=0.01)
+        add_parameter(param_set, "epsilon", default=0.1)
+        add_parameter(param_set, "gamma", default=1.0)
+        add_parameter(param_set, "lmbda", default=0.7)
+
+        # Parameters *NOT* used in parameter optimization
+        add_parameter(param_set, "softmax", optimize=False, type=bool, default=False)
+        add_parameter(param_set, "basis", optimize=False, type=str,
+                    choices=['trivial', 'fourier', 'rbf', 'tile'], default='trivial')
+        add_parameter(param_set, "fourier_order", optimize=False, default=3, type=int, min=1, max=15)
+        add_parameter(param_set, "rbf_number", optimize=False, default=0, type=int, min=0, max=500)
+        add_parameter(param_set, "rbf_beta", optimize=False, default=0.9)
+        add_parameter(param_set, "tile_number", optimize=False, default=100, type=int, min=0, max=500)
+        add_parameter(param_set, "tile_weights", optimize=False, default=2**11, type=int, min=1, max=2**15)
+        return param_set
 
     def randomize_parameters(self, **args):
         """Generate parameters randomly, constrained by given named parameters.
@@ -317,6 +337,11 @@ class fixed_policy(sarsa_lambda):
     def init_parameters(self):
         sarsa_lambda.init_parameters(self)
         self.policy_seed = self.params.setdefault('seed', int(time.time()*10000))
+
+    def agent_get_parameters(self):
+        param_set = super(fixed_policy, self).agent_get_parameters()
+        add_parameter(param_set, "seed", type=int, default=int(time.time()*10000), min=1, max=int(1.4e13))
+        return param_set
 
     def randomize_parameters(self, **args):
         # Randomize main parameters

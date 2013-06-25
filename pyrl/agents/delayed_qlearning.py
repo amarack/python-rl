@@ -27,6 +27,13 @@ class delayed_qlearning(qlearning.qlearning_agent):
         super(delayed_qlearning, self).init_parameters()
         self.m = self.params.setdefault('m', 100)
 
+    def agent_get_parameters(self):
+        param_set = parameter_set(self.name, description="Parameters required for running an RL agent algorithm.")
+        add_parameter(param_set, "epsilon", default=0.1)
+        add_parameter(param_set, "gamma", default=0.99)
+        add_parameter(param_set, "m", default=100, type=int, min=1, max=1000)
+        return param_set
+
     def randomize_parameters(self, **args):
         """Generate parameters randomly, constrained by given named parameters.
 

@@ -1,4 +1,4 @@
 
-__all__ = ["matrix", "timer"]
+__all__ = ["matrix", "timer", "json", "parameter"]
 
 

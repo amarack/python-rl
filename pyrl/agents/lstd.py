@@ -8,6 +8,7 @@ from pyrl.rlglue.registry import register_agent
 
 import pyrl.misc.matrix as matrix
 import sarsa_lambda, qlearning
+from pyrl.misc.parameter import *
 
 @register_agent
 class LSTD(sarsa_lambda.sarsa_lambda):
@@ -24,6 +25,12 @@ class LSTD(sarsa_lambda.sarsa_lambda):
     """
 
     name = "Least Squares Temporal Difference Learning"
+
+    def agent_get_parameters(self):
+        param_set = super(LSTD, self).agent_get_parameters()
+        add_parameter(param_set, "lstd_update_freq", default=100, type=int, min=1, max=5000)
+        remove_parameter(param_set, "alpha")
+        return param_set
 
     def randomize_parameters(self, **args):
         """Generate parameters randomly, constrained by given named parameters.
@@ -99,6 +106,11 @@ class oLSTD(sarsa_lambda.sarsa_lambda):
         self.lstd_gamma = self.gamma
         self.gamma = 1.0
 
+    def agent_get_parameters(self):
+        param_set = super(oLSTD, self).agent_get_parameters()
+        remove_parameter(param_set, "alpha")
+        return param_set
+
     def randomize_parameters(self, **args):
         parameters = super(oLSTD, self).randomize_parameters(**args)
         parameters.pop("alpha", None) # oLSTD does not use alpha, so we remove it
@@ -133,6 +145,11 @@ class iLSTD(LSTD):
     def init_parameters(self):
         super(iLSTD, self).init_parameters()
         self.num_sweeps = int(self.params.setdefault('ilstd_sweeps', 1))
+
+    def agent_get_parameters(self):
+        param_set = super(iLSTD, self).agent_get_parameters()
+        add_parameter(param_set, "ilstd_sweeps", default=1, type=int, min=1, max=100)
+        return param_set
 
     def randomize_parameters(self, **args):
         """Generate parameters randomly, constrained by given named parameters.
@@ -177,6 +194,11 @@ class RLSTD(sarsa_lambda.sarsa_lambda):
         self.params.setdefault('alpha', 1.0)
         super(RLSTD, self).init_parameters()
         self.delta = self.params.setdefault('rlstd_delta', 1.0)
+
+    def agent_get_parameters(self):
+        param_set = super(RLSTD, self).agent_get_parameters()
+        add_parameter(param_set, "rlstd_delta", default=1, type=int, min=1, max=1000)
+        return param_set
 
     def randomize_parameters(self, **args):
         """Generate parameters randomly, constrained by given named parameters.
@@ -229,6 +251,13 @@ class LSTDQ(qlearning.qlearning_agent):
     """
 
     name = "LSTD-Q"
+
+    def agent_get_parameters(self):
+        param_set = super(LSTDQ, self).agent_get_parameters()
+        add_parameter(param_set, "lstd_num_samples", default=500, type=int, min=1, max=5000)
+        add_parameter(param_set, "lstd_precond", default=0.1)
+        remove_parameter(param_set, "alpha")
+        return param_set
 
     def randomize_parameters(self, **args):
         """Generate parameters randomly, constrained by given named parameters.
@@ -317,6 +346,12 @@ class LSPI(LSTDQ):
     """
 
     name = "LSPI"
+
+    def agent_get_parameters(self):
+        param_set = super(LSPI, self).agent_get_parameters()
+        add_parameter(param_set, "lspi_threshold", default=0.001)
+        return param_set
+
     def randomize_parameters(self, **args):
         self.randParameter('lspi_threshold', args)
         parameters = super(LSPI, self).randomize_parameters(**args)

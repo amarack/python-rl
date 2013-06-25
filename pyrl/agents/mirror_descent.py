@@ -14,7 +14,7 @@ from pyrl.rlglue.registry import register_agent
 
 import sarsa_lambda, qlearning
 import stepsizes
-
+from pyrl.misc.parameter import *
 
 def pnorm_linkfunc(weights, order):
     """Link function induced by the p-norm."""
@@ -37,6 +37,11 @@ class md_qlearn(qlearning.qlearning_agent):
     def init_parameters(self):
         qlearning.qlearning_agent.init_parameters(self)
         self.sparsity = self.params.setdefault('sparsity', 0.01)
+
+    def agent_get_parameters(self):
+        param_set = super(md_qlearn, self).agent_get_parameters()
+        add_parameter(param_set, "sparsity", default=0.01)
+        return param_set
 
     def randomize_parameters(self, **args):
         """Generate parameters randomly, constrained by given named parameters.
@@ -106,6 +111,11 @@ class md_sarsa(sarsa_lambda.sarsa_lambda):
     def init_parameters(self):
         sarsa_lambda.sarsa_lambda.init_parameters(self)
         self.sparsity = self.params.setdefault('sparsity', 0.01)
+
+    def agent_get_parameters(self):
+        param_set = super(md_sarsa, self).agent_get_parameters()
+        add_parameter(param_set, "sparsity", default=0.01)
+        return param_set
 
     def randomize_parameters(self, **args):
         """Generate parameters randomly, constrained by given named parameters.
@@ -210,6 +220,12 @@ class mdba_qlearn(md_qlearn):
         self.params['basis'] = 'fourier' # Force to use fourier basis for adaptation
         md_qlearn.init_parameters(self)
         self.beta = self.params.setdefault('nonlinear_lr', 1.e-6)
+
+    def agent_get_parameters(self):
+        param_set = super(mdba_qlearn, self).agent_get_parameters()
+        add_parameter(param_set, "nonlinear_lr", default=1.e-6)
+        add_parameter(param_set, "basis", optimize=False, type=str, choices=['fourier'], default='fourier')
+        return param_set
 
     def randomize_parameters(self, **args):
         """Generate parameters randomly, constrained by given named parameters.

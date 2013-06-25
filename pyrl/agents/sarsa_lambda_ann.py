@@ -9,7 +9,7 @@ from pyrl.rlglue.registry import register_agent
 from random import Random
 import numpy
 import copy
-import skeleton_agent
+from skeleton_agent import *
 
 import neurolab as nl
 
@@ -22,7 +22,7 @@ import neurolab as nl
 # variations on the NN theme, neurolab has them implemented, tested and
 # working.
 @register_agent
-class sarsa_lambda_ann(skeleton_agent.skeleton_agent):
+class sarsa_lambda_ann(skeleton_agent):
     name = "Sarsa ANN"
 
     def init_parameters(self):
@@ -34,6 +34,18 @@ class sarsa_lambda_ann(skeleton_agent.skeleton_agent):
         self.softmax = self.params.setdefault("softmax", False)
         self.alpha = self.params.setdefault("alpha", 0.001)
         self.num_hidden = self.params.setdefault("num_hidden", 50)
+
+    def agent_get_parameters(self):
+        param_set = super(sarsa_lambda_ann, self).agent_get_parameters()
+        add_parameter(param_set, "alpha", default=0.01)
+        add_parameter(param_set, "epsilon", default=0.1)
+        add_parameter(param_set, "gamma", default=1.0)
+        add_parameter(param_set, "lmbda", default=0.7)
+        add_parameter(param_set, "num_hidden", default=10, type=int, min=1, max=500)
+
+        # Parameters *NOT* used in parameter optimization
+        add_parameter(param_set, "softmax", optimize=False, type=bool, default=False)
+        return param_set
 
     def randomize_parameters(self, **args):
         """Generate parameters randomly, constrained by given named parameters.
