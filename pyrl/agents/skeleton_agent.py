@@ -38,34 +38,16 @@ class skeleton_agent(Agent, object):
         """
         pass
 
-    def randParameter(self, param_key, args, sample=None):
-        """A utility function for use inside randomize_parameters. Takes a parameter
-        key (name), the named arguments passed to randomize_parameters, and optionally
-        the sampled random value to set in case the key does not exist in the arguments.
-
-        This will then set it (if not already present) in args and assign which ever value
-        args ends up with into params.
+    @classmethod
+    def agent_parameters(cls):
+        """Produces an argparse.ArgumentParser for all the parameters of this RL agent
+        algorithm. Specifically, parameters mean to be optimized (e.g. in a parameter search)
+        should be added to the argument group 'optimizable'. The best way to do this is with
+        the functions contained in pyrl/misc/parameter.py. Specifically, parameter_set for
+        creating a new set of parameters, and add_parameter to add parameters (use optimize=False)
+        to indicate that the parameter should not be optimized over.
         """
-        if sample is None:
-            sample = numpy.random.random()
-        self.params[param_key] = args.setdefault(param_key, sample)
-
-    def randomize_parameters(self, **args):
-        """Generate parameters randomly, constrained by given named parameters.
-
-        Args:
-            **args: Named parameters to fix, which will not be randomly generated
-
-        Returns:
-            List of resulting parameters of the class. Will always be in the same order.
-            Empty list if parameter free.
-
-        """
-        return args
-
-    def agent_get_parameters(self):
-        return parameter_set(self.name, description="Parameters required for running an RL agent algorithm.")
-        #add_parameter(parser, name, min=0., max=1.0, **kwargs)
+        return parameter_set(cls.name, description="Parameters required for running an RL agent algorithm.")
 
     def agent_init(self,taskSpec):
         """Initialize the RL agent.
@@ -158,7 +140,15 @@ class skeleton_agent(Agent, object):
 
         return False
 
+def runAgent(agent_class):
+    """Use the agent_parameters function to parse command line arguments
+    and run the RL agent in network mode.
+    """
+    parser = argparse.ArgumentParser(parents=[agent_class.agent_parameters()], add_help=True)
+    params = vars(parser.parse_args())
+    AgentLoader.loadAgent(agent_class(**params))
 
 
 if __name__=="__main__":
-    AgentLoader.loadAgent(skeleton_agent())
+    runAgent(skeleton_agent)
+

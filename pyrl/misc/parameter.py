@@ -21,8 +21,9 @@ class ValueRange(collections.Container):
     def __getitem__(self, key):
         # Takes a key value between 0 and 1 and converts that into a
         # value in the range
-        key = numpy.clip(key, self.min_value, self.max_value)
-        return self.__rescale(key, self.min_value, self.max_value)
+        #key = numpy.clip(key, self.min_value, self.max_value)
+        #return self.__rescale(key, self.min_value, self.max_value)
+        raise IndexError()
 
     def __contains__(self, value):
         return (value >= self.min_value) & (value <= self.max_value)

@@ -26,36 +26,12 @@ class LSTD(sarsa_lambda.sarsa_lambda):
 
     name = "Least Squares Temporal Difference Learning"
 
-    def agent_get_parameters(self):
-        param_set = super(LSTD, self).agent_get_parameters()
+    @classmethod
+    def agent_parameters(cls):
+        param_set = super(LSTD, cls).agent_parameters()
         add_parameter(param_set, "lstd_update_freq", default=100, type=int, min=1, max=5000)
         remove_parameter(param_set, "alpha")
         return param_set
-
-    def randomize_parameters(self, **args):
-        """Generate parameters randomly, constrained by given named parameters.
-
-        If used, this must be called before agent_init in order to have desired effect.
-
-        Parameters that fundamentally change the algorithm are not randomized over. For
-        example, basis and softmax fundamentally change the domain and have very few values
-        to be considered. They are not randomized over.
-
-        Basis parameters, on the other hand, have many possible values and ARE randomized.
-
-        Args:
-            **args: Named parameters to fix, which will not be randomly generated
-
-        Returns:
-            List of resulting parameters of the class. Will always be in the same order.
-            Empty list if parameter free.
-
-        """
-        # LSTD does not use alpha, so we remove it from the list
-        self.randParameter('lstd_update_freq', args, sample=numpy.random.randint(200))
-        parameters = super(LSTD, self).randomize_parameters(**args)
-        parameters.pop("alpha", None) # LSTD does not use alpha, so we remove it
-        return parameters
 
     def init_parameters(self):
         super(LSTD, self).init_parameters()
@@ -106,15 +82,11 @@ class oLSTD(sarsa_lambda.sarsa_lambda):
         self.lstd_gamma = self.gamma
         self.gamma = 1.0
 
-    def agent_get_parameters(self):
-        param_set = super(oLSTD, self).agent_get_parameters()
+    @classmethod
+    def agent_parameters(cls):
+        param_set = super(oLSTD, cls).agent_parameters()
         remove_parameter(param_set, "alpha")
         return param_set
-
-    def randomize_parameters(self, **args):
-        parameters = super(oLSTD, self).randomize_parameters(**args)
-        parameters.pop("alpha", None) # oLSTD does not use alpha, so we remove it
-        return parameters
 
     def init_stepsize(self, weights_shape, params):
         """Initializes the step-size variables, in this case meaning the A matrix and b vector.
@@ -146,33 +118,11 @@ class iLSTD(LSTD):
         super(iLSTD, self).init_parameters()
         self.num_sweeps = int(self.params.setdefault('ilstd_sweeps', 1))
 
-    def agent_get_parameters(self):
-        param_set = super(iLSTD, self).agent_get_parameters()
+    @classmethod
+    def agent_parameters(cls):
+        param_set = super(iLSTD, cls).agent_parameters()
         add_parameter(param_set, "ilstd_sweeps", default=1, type=int, min=1, max=100)
         return param_set
-
-    def randomize_parameters(self, **args):
-        """Generate parameters randomly, constrained by given named parameters.
-
-        If used, this must be called before agent_init in order to have desired effect.
-
-        Parameters that fundamentally change the algorithm are not randomized over. For
-        example, basis and softmax fundamentally change the domain and have very few values
-        to be considered. They are not randomized over.
-
-        Basis parameters, on the other hand, have many possible values and ARE randomized.
-
-        Args:
-            **args: Named parameters to fix, which will not be randomly generated
-
-        Returns:
-            List of resulting parameters of the class. Will always be in the same order.
-            Empty list if parameter free.
-
-        """
-        self.randParameter('ilstd_sweeps', args, sample=numpy.random.randint(99)+1)
-        parameters = super(iLSTD, self).randomize_parameters(**args)
-        return parameters
 
     def update(self, phi_t, phi_tp, reward):
         #iLSTD
@@ -195,33 +145,11 @@ class RLSTD(sarsa_lambda.sarsa_lambda):
         super(RLSTD, self).init_parameters()
         self.delta = self.params.setdefault('rlstd_delta', 1.0)
 
-    def agent_get_parameters(self):
-        param_set = super(RLSTD, self).agent_get_parameters()
+    @classmethod
+    def agent_parameters(cls):
+        param_set = super(RLSTD, cls).agent_parameters()
         add_parameter(param_set, "rlstd_delta", default=1, type=int, min=1, max=1000)
         return param_set
-
-    def randomize_parameters(self, **args):
-        """Generate parameters randomly, constrained by given named parameters.
-
-        If used, this must be called before agent_init in order to have desired effect.
-
-        Parameters that fundamentally change the algorithm are not randomized over. For
-        example, basis and softmax fundamentally change the domain and have very few values
-        to be considered. They are not randomized over.
-
-        Basis parameters, on the other hand, have many possible values and ARE randomized.
-
-        Args:
-            **args: Named parameters to fix, which will not be randomly generated
-
-        Returns:
-            List of resulting parameters of the class. Will always be in the same order.
-            Empty list if parameter free.
-
-        """
-        self.randParameter('rlstd_delta', args, sample=numpy.random.randint(1000)+1)
-        parameters = super(RLSTD, self).randomize_parameters(**args)
-        return parameters
 
     def init_stepsize(self, weights_shape, params):
         self.A = numpy.eye(numpy.prod(weights_shape)) * self.delta
@@ -252,38 +180,13 @@ class LSTDQ(qlearning.qlearning_agent):
 
     name = "LSTD-Q"
 
-    def agent_get_parameters(self):
-        param_set = super(LSTDQ, self).agent_get_parameters()
+    @classmethod
+    def agent_parameters(cls):
+        param_set = super(LSTDQ, cls).agent_parameters()
         add_parameter(param_set, "lstd_num_samples", default=500, type=int, min=1, max=5000)
         add_parameter(param_set, "lstd_precond", default=0.1)
         remove_parameter(param_set, "alpha")
         return param_set
-
-    def randomize_parameters(self, **args):
-        """Generate parameters randomly, constrained by given named parameters.
-
-        If used, this must be called before agent_init in order to have desired effect.
-
-        Parameters that fundamentally change the algorithm are not randomized over. For
-        example, basis and softmax fundamentally change the domain and have very few values
-        to be considered. They are not randomized over.
-
-        Basis parameters, on the other hand, have many possible values and ARE randomized.
-
-        Args:
-            **args: Named parameters to fix, which will not be randomly generated
-
-        Returns:
-            List of resulting parameters of the class. Will always be in the same order.
-            Empty list if parameter free.
-
-        """
-        # LSTD does not use alpha, so we remove it from the list
-        self.randParameter('lstd_num_samples', args, sample=numpy.random.randint(5000))
-        self.randParameter('lstd_precond', args)
-        parameters = super(LSTDQ, self).randomize_parameters(**args)
-        parameters.pop("alpha", None) # LSTDQ does not use alpha, so we remove it
-        return parameters
 
     def init_parameters(self):
         super(LSTDQ, self).init_parameters()
@@ -347,15 +250,11 @@ class LSPI(LSTDQ):
 
     name = "LSPI"
 
-    def agent_get_parameters(self):
-        param_set = super(LSPI, self).agent_get_parameters()
+    @classmethod
+    def agent_parameters(cls):
+        param_set = super(LSPI, cls).agent_parameters()
         add_parameter(param_set, "lspi_threshold", default=0.001)
         return param_set
-
-    def randomize_parameters(self, **args):
-        self.randParameter('lspi_threshold', args)
-        parameters = super(LSPI, self).randomize_parameters(**args)
-        return parameters
 
     def init_parameters(self):
         super(LSPI, self).init_parameters()
@@ -370,59 +269,6 @@ class LSPI(LSTDQ):
 
 
 if __name__=="__main__":
-    import argparse
-    parser = argparse.ArgumentParser(description='Run Least Squares Temporal Difference Learning agent.')
-    parser.add_argument("--epsilon", type=float, default=0.1, help="Probability of exploration with epsilon-greedy.")
-    parser.add_argument("--softmax", type=float,
-                help="Use softmax policies with the argument giving tau, the divisor which scales values used when computing soft-max policies.")
-    parser.add_argument("--stepsize", "--alpha", type=float, default=0.01,
-                help="The step-size parameter which affects how far in the direction of the gradient parameters are updated. Only with iLSTD.")
-    parser.add_argument("--gamma", type=float, default=1.0, help="Discount factor")
-    parser.add_argument("--mu", type=float, default=1., help="Forgetting factor for RLS-TD")
-    parser.add_argument("--beta", type=float, default=0.01, help="Online LSTD initializes A^-1 to I + beta*RandMatrix.")
-    parser.add_argument("--lambda", type=float, default=0.7, help="The eligibility traces decay rate. Set to 0 to disable eligibility traces.", dest='lmbda')
-    parser.add_argument("--num_sweeps", type=int, default=1, help="Number of sweeps to perform per step in iLSTD.")
-    parser.add_argument("--delta", type=float, default=200.,
-                help="Value to initialize diagonal matrix to, for inverse matrix, in RLS-TD.")
-    parser.add_argument("--algorithm", choices=["lstd", "online", "ilstd", "rlstd"],
-                default="lstd", help="Set the LSTD algorithm to use. LSTD, Online LSTD, iLSTD, or Recursive LSTD.")
-    parser.add_argument("--basis", choices=["trivial", "fourier", "tile", "rbf"], default="trivial",
-                help="Set the basis to use for linear function approximation.")
-    parser.add_argument("--fourier_order", type=int, default=3, help="Order for Fourier basis")
-    parser.add_argument("--rbf_num", type=int, default=10, help="Number of radial basis functions to use.")
-    parser.add_argument("--rbf_beta", type=float, default=1.0, help="Beta parameter for radial basis functions.")
-    parser.add_argument("--tiles_num", type=int, default=100, help="Number of tilings to use with Tile Coding.")
-    parser.add_argument("--tiles_size", type=int, default=2048, help="Memory size, number of weights, to use with Tile Coding.")
+    from pyrl.agents.skeleton_agent import runAgent
+    runAgent(LSTD)
 
-    args = parser.parse_args()
-    params = {}
-    params['alpha'] = args.alpha
-    params['gamma'] = args.gamma
-    params['lmbda'] = args.lmbda
-
-    if args.softmax is not None:
-        params['softmax'] = True
-        params['epsilon'] = args.softmax
-    else:
-        params['softmax'] = False
-        params['epsilon'] = args.epsilon
-
-    params['basis'] = args.basis
-    params['fourier_order'] = args.fourier_order
-    params['rbf_number'] = args.rbf_num
-    params['rbf_beta'] = args.rbf_beta
-    params['tile_number'] = args.tiles_num
-    params['tile_weights'] = args.tiles_size
-
-    if args.algorithm == 'rlstd':
-        params['alpha'] = args.mu
-        params['rlstd_delta'] = args.delta
-        AgentLoader.loadAgent(RLSTD(**params))
-    elif args.algorithm == 'online':
-        params['alpha'] = args.beta
-        AgentLoader.loadAgent(oLSTD(**params))
-    elif args.algorithm == 'ilstd':
-        params['ilstd_sweeps'] = args.num_sweeps
-        AgentLoader.loadAgent(iLSTD(**params))
-    else:
-        AgentLoader.loadAgent(LSTD(**params))

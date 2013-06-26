@@ -38,34 +38,11 @@ class md_qlearn(qlearning.qlearning_agent):
         qlearning.qlearning_agent.init_parameters(self)
         self.sparsity = self.params.setdefault('sparsity', 0.01)
 
-    def agent_get_parameters(self):
-        param_set = super(md_qlearn, self).agent_get_parameters()
+    @classmethod
+    def agent_parameters(cls):
+        param_set = super(md_qlearn, cls).agent_parameters()
         add_parameter(param_set, "sparsity", default=0.01)
         return param_set
-
-    def randomize_parameters(self, **args):
-        """Generate parameters randomly, constrained by given named parameters.
-
-        If used, this must be called before agent_init in order to have desired effect.
-
-        Parameters that fundamentally change the algorithm are not randomized over. For
-        example, basis and softmax fundamentally change the domain and have very few values
-        to be considered. They are not randomized over.
-
-        Basis parameters, on the other hand, have many possible values and ARE randomized.
-
-        Args:
-            **args: Named parameters to fix, which will not be randomly generated
-
-        Returns:
-            List of resulting parameters of the class. Will always be in the same order.
-            Empty list if parameter free.
-
-        """
-        # LSTD does not use alpha, so we remove it from the list
-        self.randParameter('sparsity', args)
-        parameters = super(md_qlearn, self).randomize_parameters(**args)
-        return parameters
 
     def agent_start(self,observation):
         returnAction = qlearning.qlearning_agent.agent_start(self, observation)
@@ -112,34 +89,11 @@ class md_sarsa(sarsa_lambda.sarsa_lambda):
         sarsa_lambda.sarsa_lambda.init_parameters(self)
         self.sparsity = self.params.setdefault('sparsity', 0.01)
 
-    def agent_get_parameters(self):
-        param_set = super(md_sarsa, self).agent_get_parameters()
+    @classmethod
+    def agent_parameters(cls):
+        param_set = super(md_sarsa, cls).agent_parameters()
         add_parameter(param_set, "sparsity", default=0.01)
         return param_set
-
-    def randomize_parameters(self, **args):
-        """Generate parameters randomly, constrained by given named parameters.
-
-        If used, this must be called before agent_init in order to have desired effect.
-
-        Parameters that fundamentally change the algorithm are not randomized over. For
-        example, basis and softmax fundamentally change the domain and have very few values
-        to be considered. They are not randomized over.
-
-        Basis parameters, on the other hand, have many possible values and ARE randomized.
-
-        Args:
-            **args: Named parameters to fix, which will not be randomly generated
-
-        Returns:
-            List of resulting parameters of the class. Will always be in the same order.
-            Empty list if parameter free.
-
-        """
-        # LSTD does not use alpha, so we remove it from the list
-        self.randParameter('sparsity', args)
-        parameters = super(md_sarsa, self).randomize_parameters(**args)
-        return parameters
 
     def agent_start(self,observation):
         returnAction = sarsa_lambda.sarsa_lambda.agent_start(self, observation)
@@ -221,36 +175,13 @@ class mdba_qlearn(md_qlearn):
         md_qlearn.init_parameters(self)
         self.beta = self.params.setdefault('nonlinear_lr', 1.e-6)
 
-    def agent_get_parameters(self):
-        param_set = super(mdba_qlearn, self).agent_get_parameters()
+    @classmethod
+    def agent_parameters(cls):
+        param_set = super(mdba_qlearn, cls).agent_parameters()
         add_parameter(param_set, "nonlinear_lr", default=1.e-6)
         add_parameter(param_set, "basis", optimize=False, type=str, choices=['fourier'], default='fourier')
         return param_set
 
-    def randomize_parameters(self, **args):
-        """Generate parameters randomly, constrained by given named parameters.
-
-        If used, this must be called before agent_init in order to have desired effect.
-
-        Parameters that fundamentally change the algorithm are not randomized over. For
-        example, basis and softmax fundamentally change the domain and have very few values
-        to be considered. They are not randomized over.
-
-        Basis parameters, on the other hand, have many possible values and ARE randomized.
-
-        Args:
-            **args: Named parameters to fix, which will not be randomly generated
-
-        Returns:
-            List of resulting parameters of the class. Will always be in the same order.
-            Empty list if parameter free.
-
-        """
-        # LSTD does not use alpha, so we remove it from the list
-        self.randParameter('nonlinear_lr', args)
-        args['basis'] = 'fourier'
-        parameters = super(mdba_qlearn, self).randomize_parameters(**args)
-        return parameters
 
     def agent_init(self, taskSpec):
         md_qlearn.agent_init(self, taskSpec)
@@ -298,6 +229,12 @@ class mdba_qlearn(md_qlearn):
             self.freq_scale = update_fs
         else:
             md_qlearn.update(self, phi_t, state, discState, reward)
+
+
+if __name__=="__main__":
+    from pyrl.agents.skeleton_agent import runAgent
+    runAgent(mdba_qlearn)
+
 
 
 

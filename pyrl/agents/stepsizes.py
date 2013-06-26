@@ -14,7 +14,7 @@
 import numpy, scipy.linalg
 from pyrl.misc import matrix
 from pyrl.rlglue.registry import register_agent
-
+import argparse
 
 def genAdaptiveAgent(stepsize_class, agent_class):
     """Generate an RL agent by combining an existing agent with a step-size algorithm."""
@@ -25,25 +25,9 @@ def genAdaptiveAgent(stepsize_class, agent_class):
         def __init__(self, **args):
             agent_class.__init__(self, **args)
 
-        def randomize_parameters(self, **args):
-            """Generate parameters randomly, constrained by given named parameters.
-
-            Parameters that fundamentally change the algorithm are not randomized over. For
-            example, basis and softmax fundamentally change the domain and have very few values
-            to be considered. They are not randomized over.
-
-            Basis parameters, on the other hand, have many possible values and ARE randomized.
-
-            Args:
-                **args: Named parameters to fix, which will not be randomly generated
-
-            Returns:
-                List of resulting parameters of the class. Will always be in the same order.
-                Empty list if parameter free.
-
-            """
-            args = agent_class.randomize_parameters(self, **args)
-            return stepsize_class.randomize_parameters(self, **args)
+        @classmethod
+        def agent_parameters(cls):
+            return argparse.ArgumentParser(parents=[agent_class.agent_parameters(), stepsize_class.agent_parameters()])
 
     return AdaptiveAgent
 
@@ -56,36 +40,16 @@ class AdaptiveStepSize(object):
     def rescale_update(self, phi_t, phi_tp, delta, reward, descent_direction):
         return self.step_sizes * descent_direction
 
-    def randParameter(self, param_key, args, sample=None):
-        """A utility function for use inside randomize_parameters. Takes a parameter
-        key (name), the named arguments passed to randomize_parameters, and optionally
-        the sampled random value to set in case the key does not exist in the arguments.
-
-        This will then set it (if not already present) in args and assign which ever value
-        args ends up with into params.
+    @classmethod
+    def agent_parameters(cls):
+        """Produces an argparse.ArgumentParser for all the parameters of this RL agent
+        algorithm. Specifically, parameters mean to be optimized (e.g. in a parameter search)
+        should be added to the argument group 'optimizable'. The best way to do this is with
+        the functions contained in pyrl/misc/parameter.py. Specifically, parameter_set for
+        creating a new set of parameters, and add_parameter to add parameters (use optimize=False)
+        to indicate that the parameter should not be optimized over.
         """
-        if sample is None:
-            sample = numpy.random.random()
-        self.params[param_key] = args.setdefault(param_key, sample)
-
-    def randomize_parameters(self, **args):
-        """Generate parameters randomly, constrained by given named parameters.
-
-        Parameters that fundamentally change the algorithm are not randomized over. For
-        example, basis and softmax fundamentally change the domain and have very few values
-        to be considered. They are not randomized over.
-
-        Basis parameters, on the other hand, have many possible values and ARE randomized.
-
-        Args:
-        **args: Named parameters to fix, which will not be randomly generated
-
-        Returns:
-               List of resulting parameters of the class. Will always be in the same order.
-                Empty list if parameter free.
-
-        """
-        return args
+        return parameter_set(cls.name, description="Parameters required for running an RL agent algorithm.")
 
 
 
@@ -107,9 +71,11 @@ class GHS(AdaptiveStepSize):
         self.ghs_counter += 1
         return self.step_sizes * descent_direction
 
-    def randomize_parameters(self, **args):
-        self.randParameter('ghs_a', args, sample=numpy.random.random()*10000.)
-        return args
+    @classmethod
+    def agent_parameters(cls):
+        param_set = super(GHS, cls).agent_parameters()
+        add_parameter(param_set, "ghs_a", default=10., min=1., max=10000.)
+        return param_set
 
 class McClains(AdaptiveStepSize):
     """McClain's formula for scalar step-size
@@ -132,9 +98,11 @@ class McClains(AdaptiveStepSize):
         self.alpha /= (1 + self.alpha - self.mcclain_param)
         return self.step_sizes * descent_direction
 
-    def randomize_parameters(self, **args):
-        self.randParameter('mcclain_a', args, sample=numpy.random.random()*self.params['alpha'])
-        return args
+    @classmethod
+    def agent_parameters(cls):
+        param_set = super(McClains, cls).agent_parameters()
+        add_parameter(param_set, "mcclain_a", default=0.01)
+        return param_set
 
 class STC(AdaptiveStepSize):
     """Search-Then-Converge formula for scalar step-size
@@ -159,10 +127,12 @@ class STC(AdaptiveStepSize):
         self.stc_counter += 1
         return self.step_sizes * descent_direction
 
-    def randomize_parameters(self, **args):
-        self.randParameter('stc_c', args, sample=numpy.random.random()*1.e10)
-        self.randParameter('stc_N', args, sample=numpy.random.random()*1.e6)
-        return args
+    @classmethod
+    def agent_parameters(cls):
+        param_set = super(STC, cls).agent_parameters()
+        add_parameter(param_set, "stc_c", default=1000000.0, min=1., max=1.e10)
+        add_parameter(param_set, "stc_c", default=500000.0, min=1., max=1.e6)
+        return param_set
 
 
 class RProp(AdaptiveStepSize):
@@ -185,10 +155,12 @@ class RProp(AdaptiveStepSize):
         self.step_sizes[sign_changes] = self.eta_low
         return self.step_sizes * descent_direction
 
-    def randomize_parameters(self, **args):
-        self.randParameter('rprop_eta_high', args, sample=numpy.random.random()*2.)
-        self.randParameter('rprop_eta_low', args, sample=numpy.random.random()*self.params['rprop_eta_high'])
-        return args
+    @classmethod
+    def agent_parameters(cls):
+        param_set = super(RProp, cls).agent_parameters()
+        add_parameter(param_set, "rprop_eta_high", default=0.01)
+        add_parameter(param_set, "rprop_eta_low", default=1.2, min=0.5, max=2.)
+        return param_set
 
 
 class Autostep(AdaptiveStepSize):
@@ -224,10 +196,12 @@ class Autostep(AdaptiveStepSize):
         self.h = self.h * plus_note + self.step_sizes.flatten()*delta*x
         return self.step_sizes * descent_direction
 
-    def randomize_parameters(self, **args):
-        self.randParameter('autostep_mu', args)
-        self.randParameter('autostep_tau', args, sample=numpy.random.random()*1.e6)
-        return args
+    @classmethod
+    def agent_parameters(cls):
+        param_set = super(Autostep, cls).agent_parameters()
+        add_parameter(param_set, "autostep_mu", default=1.e-2)
+        add_parameter(param_set, "autostep_tau", default=1.e4, min=1., max=1.e6)
+        return param_set
 
 
 class AlphaBounds(AdaptiveStepSize):
@@ -328,10 +302,12 @@ class AlmeidaAdaptive(AdaptiveStepSize):
 
         return self.step_sizes * descent_direction
 
-    def randomize_parameters(self, **args):
-        self.randParameter('almeida_gamma', args)
-        self.randParameter('almeida_stepsize', args)
-        return args
+    @classmethod
+    def agent_parameters(cls):
+        param_set = super(AlmeidaAdaptive, cls).agent_parameters()
+        add_parameter(param_set, "almeida_gamma", default=0.999)
+        add_parameter(param_set, "almeida_stepsize", default=0.00001)
+        return param_set
 
 
 class vSGD(AdaptiveStepSize):
@@ -351,11 +327,12 @@ class vSGD(AdaptiveStepSize):
         self.t = numpy.ones(weights_shape) * params.setdefault("vsgd_initmeta", 100.)
         self.slow_start = params.setdefault("vsgd_slowstart", 50)
 
-
-    def randomize_parameters(self, **args):
-        self.randParameter('vsgd_slowstart', args, sample=numpy.random.randint(500))
-        self.randParameter('vsgd_initmeta', args, sample=float(numpy.random.randint(1000)+10))
-        return args
+    @classmethod
+    def agent_parameters(cls):
+        param_set = super(vSGD, cls).agent_parameters()
+        add_parameter(param_set, "vsgd_slowstart", default=50, type=int, min=0, max=500)
+        add_parameter(param_set, "vsgd_initmeta", default=100., min=1., max=1000.)
+        return param_set
 
     def rescale_update(self, phi_t, phi_tp, delta, reward, descent_direction):
         # Estimate hessian... somehow..
@@ -399,12 +376,13 @@ class InvMaxEigen(AdaptiveStepSize):
         self.lecun_alpha = params.setdefault('lecun_alpha', 0.01) # Small -> better estimate, but possible numerical instability
         self.stability_threshold = params.setdefault('lecun_threshold', 0.001)
 
-
-    def randomize_parameters(self, **args):
-        self.randParameter('lecun_gamma', args)
-        self.randParameter('lecun_alpha', args)
-        self.randParameter('lecun_threshold', args, sample=numpy.random.random()*0.1)
-        return args
+    @classmethod
+    def agent_parameters(cls):
+        param_set = super(InvMaxEigen, cls).agent_parameters()
+        add_parameter(param_set, "lecun_gamma", default=0.01)
+        add_parameter(param_set, "lecun_alpha", default=0.01)
+        add_parameter(param_set, "lecun_threshold", default=0.001)
+        return param_set
 
     def rescale_update(self, phi_t, phi_tp, delta, reward, descent_direction):
         # Previous Max Eigen Value Estimate

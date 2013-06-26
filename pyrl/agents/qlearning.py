@@ -92,38 +92,13 @@ class qlearning_agent(sarsa_lambda.sarsa_lambda):
         self.update_traces(phi_t, None)
         self.update(phi_t, None, 0, reward)
 
+
+
 if __name__=="__main__":
-    import argparse
-    parser = argparse.ArgumentParser(description='Run Q-Lambda, q-learning with eligibility traces, agent in network mode with linear function approximation.')
-    addLinearTDArgs(parser)
-    args = parser.parse_args()
-    params = {}
-    params['alpha'] = args.alpha
-    params['gamma'] = args.gamma
-    params['lmbda'] = args.lmbda
+    from pyrl.agents.skeleton_agent import runAgent
+    runAgent(qlearning_agent)
 
-    if args.softmax is not None:
-        params['softmax'] = True
-        params['epsilon'] = args.softmax
-    else:
-        params['softmax'] = False
-        params['epsilon'] = args.epsilon
 
-    params['basis'] = args.basis
-    params['fourier_order'] = args.fourier_order
-    params['rbf_number'] = args.rbf_num
-    params['rbf_beta'] = args.rbf_beta
-    params['tile_number'] = args.tiles_num
-    params['tile_weights'] = args.tiles_size
 
-    if args.adaptive_stepsize == "autostep":
-        AutoQ = stepsizes.genAdaptiveAgent(stepsizes.Autostep, qlearning_agent)
-        params['autostep_mu'] = args.autostep_mu
-        params['autostep_tau'] = args.autostep_tau
-        AgentLoader.loadAgent(AutoQ(**params))
-    elif args.adaptive_stepsize == "ass":
-        ABQ = stepsizes.genAdaptiveAgent(stepsizes.AlphaBounds, qlearning_agent)
-        AgentLoader.loadAgent(ABQ(**params))
-    else:
-        AgentLoader.loadAgent(qlearning_agent(**params))
+
 

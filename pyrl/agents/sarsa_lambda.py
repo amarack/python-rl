@@ -33,16 +33,17 @@ class sarsa_lambda(skeleton_agent):
         self.softmax = self.params.setdefault('softmax', False)
         self.basis = None
 
-    def agent_get_parameters(self):
-        param_set = super(sarsa_lambda, self).agent_get_parameters()
-        add_parameter(param_set, "alpha", default=0.01)
-        add_parameter(param_set, "epsilon", default=0.1)
-        add_parameter(param_set, "gamma", default=1.0)
-        add_parameter(param_set, "lmbda", default=0.7)
+    @classmethod
+    def agent_parameters(cls):
+        param_set = super(sarsa_lambda, cls).agent_parameters()
+        add_parameter(param_set, "alpha", default=0.01, help="Step-size parameter")
+        add_parameter(param_set, "epsilon", default=0.1, help="Exploration rate for epsilon-greedy, or rescaling factor for soft-max.")
+        add_parameter(param_set, "gamma", default=1.0, help="Discount factor")
+        add_parameter(param_set, "lmbda", default=0.7, help="Eligibility decay rate")
 
         # Parameters *NOT* used in parameter optimization
-        add_parameter(param_set, "softmax", optimize=False, type=bool, default=False)
-        add_parameter(param_set, "basis", optimize=False, type=str,
+        add_parameter(param_set, "softmax", optimize=False, type=bool, default=False, help="Use soft-max policies")
+        add_parameter(param_set, "basis", optimize=False, type=str, help="Basis to use with linear function approximation",
                     choices=['trivial', 'fourier', 'rbf', 'tile'], default='trivial')
         add_parameter(param_set, "fourier_order", optimize=False, default=3, type=int, min=1, max=15)
         add_parameter(param_set, "rbf_number", optimize=False, default=0, type=int, min=0, max=500)
@@ -50,45 +51,6 @@ class sarsa_lambda(skeleton_agent):
         add_parameter(param_set, "tile_number", optimize=False, default=100, type=int, min=0, max=500)
         add_parameter(param_set, "tile_weights", optimize=False, default=2**11, type=int, min=1, max=2**15)
         return param_set
-
-    def randomize_parameters(self, **args):
-        """Generate parameters randomly, constrained by given named parameters.
-
-        If used, this must be called before agent_init in order to have desired effect.
-
-        Parameters that fundamentally change the algorithm are not randomized over. For
-        example, basis and softmax fundamentally change the domain and have very few values
-        to be considered. They are not randomized over.
-
-        Basis parameters, on the other hand, have many possible values and ARE randomized.
-
-        Args:
-            **args: Named parameters to fix, which will not be randomly generated
-
-        Returns:
-            List of resulting parameters of the class. Will always be in the same order.
-            Empty list if parameter free.
-
-        """
-
-        # Randomize main parameters
-        self.randParameter('epsilon', args)
-        self.randParameter('alpha', args)
-        self.randParameter('gamma', args)
-        self.randParameter('lmbda', args)
-        self.randParameter('softmax', args, sample=self.softmax)
-        self.randParameter('basis', args, sample=self.fa_name)
-
-        # Randomize basis parameters
-        if self.fa_name == 'fourier':
-            self.randParameter('fourier_order', args, sample=numpy.random.randint(1,5)*2 + 1)
-        elif self.fa_name == 'rbf':
-            self.randParameter('rbf_number', args, sample=numpy.random.randint(100))
-            self.randParameter('rbf_beta', args)
-        elif self.fa_name == 'tile':
-            self.randParameter('tile_number', args, sample=numpy.random.randint(200))
-            self.randParameter('tile_weights', args, sample=2**numpy.random.randint(15))
-        return args
 
     def agent_supported(self, parsedSpec):
         if parsedSpec.valid:
@@ -338,16 +300,11 @@ class fixed_policy(sarsa_lambda):
         sarsa_lambda.init_parameters(self)
         self.policy_seed = self.params.setdefault('seed', int(time.time()*10000))
 
-    def agent_get_parameters(self):
-        param_set = super(fixed_policy, self).agent_get_parameters()
+    @classmethod
+    def agent_parameters(cls):
+        param_set = super(fixed_policy, cls).agent_parameters()
         add_parameter(param_set, "seed", type=int, default=int(time.time()*10000), min=1, max=int(1.4e13))
         return param_set
-
-    def randomize_parameters(self, **args):
-        # Randomize main parameters
-        param_list =sarsa_lambda.randomize_parameters(self, **args)
-        self.policy_seed = args.setdefault('seed', int(time.time()*10000))
-        return param_list + [self.policy_seed]
 
     def agent_init(self,taskSpec):
         sarsa_lambda.agent_init(self, taskSpec)
@@ -360,53 +317,7 @@ class fixed_policy(sarsa_lambda):
 
 ABSarsa = stepsizes.genAdaptiveAgent(stepsizes.AlphaBounds, sarsa_lambda)
 
-def addLinearTDArgs(parser):
-    parser.add_argument("--epsilon", type=float, default=0.1, help="Probability of exploration with epsilon-greedy.")
-    parser.add_argument("--softmax", type=float, help="Use softmax policies with the argument giving tau, the divisor which scales values used when computing soft-max policies.")
-    parser.add_argument("--stepsize", "--alpha", type=float, default=0.01, help="The step-size parameter which affects how far in the direction of the gradient parameters are updated.")
-    parser.add_argument("--adaptive_stepsize", choices=["ass", "autostep", "test"], help="Use an adaptive step-size algorithm.")
-    parser.add_argument("--gamma", type=float, default=1.0, help="Discount factor")
-    parser.add_argument("--lambda", type=float, default=0.7, help="The eligibility traces decay rate. Set to 0 to disable eligibility traces.", dest='lmbda')
-    parser.add_argument("--basis", choices=["trivial", "fourier", "tile", "rbf"], default="trivial", help="Set the basis to use for linear function approximation.")
-    parser.add_argument("--autostep_mu", type=float, default=1.0e-2, help="Mu parameter for the Autostep algorithm. This is the meta-stepsize.")
-    parser.add_argument("--autostep_tau", type=float, default=1.0e4, help="Tau parameter for the Autostep algorithm.")
-    parser.add_argument("--fourier_order", type=int, default=3, help="Order for Fourier basis")
-    parser.add_argument("--rbf_num", type=int, default=10, help="Number of radial basis functions to use.")
-    parser.add_argument("--rbf_beta", type=float, default=1.0, help="Beta parameter for radial basis functions.")
-    parser.add_argument("--tiles_num", type=int, default=100, help="Number of tilings to use with Tile Coding.")
-    parser.add_argument("--tiles_size", type=int, default=2048, help="Memory size, number of weights, to use with Tile Coding.")
-
 if __name__=="__main__":
-    import argparse
-    parser = argparse.ArgumentParser(description='Run SarsaLambda agent in network mode with linear function approximation.')
-    addLinearTDArgs(parser)
-    args = parser.parse_args()
-    params = {}
-    params['alpha'] = args.stepsize
-    params['gamma'] = args.gamma
-    params['lmbda'] = args.lmbda
+    runAgent(sarsa_lambda)
 
-    if args.softmax is not None:
-        params['softmax'] = True
-        params['epsilon'] = args.softmax
-    else:
-        params['softmax'] = False
-        params['epsilon'] = args.epsilon
 
-    params['basis'] = args.basis
-    params['fourier_order'] = args.fourier_order
-    params['rbf_number'] = args.rbf_num
-    params['rbf_beta'] = args.rbf_beta
-    params['tile_number'] = args.tiles_num
-    params['tile_weights'] = args.tiles_size
-
-    if args.adaptive_stepsize == "autostep":
-        AutoSarsa = stepsizes.genAdaptiveAgent(stepsizes.Autostep, sarsa_lambda)
-        params['autostep_mu'] = args.autostep_mu
-        params['autostep_tau'] = args.autostep_tau
-        AgentLoader.loadAgent(AutoSarsa(**params))
-    elif args.adaptive_stepsize == "ass":
-        ABSarsa = stepsizes.genAdaptiveAgent(stepsizes.AlphaBounds, sarsa_lambda)
-        AgentLoader.loadAgent(ABSarsa(**params))
-    else:
-        AgentLoader.loadAgent(sarsa_lambda(**params))

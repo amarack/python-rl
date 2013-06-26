@@ -33,17 +33,6 @@ class ModelBasedAgent(skeleton_agent.skeleton_agent):
         self.model = model_class(**(self.params.setdefault('model_params', {})))
         self.planner = planner_class(self.model, **(self.params.setdefault('planner_params', {})))
 
-    def randomize_parameters(self, **args):
-        """Generate parameters randomly, constrained by given named parameters.
-
-        The only parameters are those for the model and planner, so this returns their
-        randomized parameters concatenated.
-
-        """
-        self.params['model_params'] = args['model_params'] = self.model.randomize_parameters(**(args['model_params']))
-        self.params['planner_params'] = args['planner_params'] = self.planner.randomize_parameters(**(args['planner_params']))
-        return args
-
     def agent_supported(self, parsedSpec):
         if parsedSpec.valid:
             # Check observation form, and then set up number of features/states
@@ -214,53 +203,57 @@ class ModelBasedAgent(skeleton_agent.skeleton_agent):
             return name + " does not understand your message."
 
 
+if __name__=="__main__":
+    from pyrl.agents.skeleton_agent import runAgent
+    runAgent(ModelBasedAgent)
+
 # If executed as a standalone script this will default to RLGlue network mode.
 # Some parameters can be passed at the command line to customize behavior.
-if __name__=="__main__":
-    import argparse
-    parser = argparse.ArgumentParser(description='Run ModelBasedAgent in network mode')
-    parser.add_argument("--gamma", type=float, default=0.99, help="Discount factor")
-    parser.add_argument("--model", type=str, default="knn", help="What model class to use", choices=["knn", "randforest", "svm", "gp"])
-    parser.add_argument("--planner", type=str, default="fittedq", help="What planner class to use", choices=["fittedq"])
-    parser.add_argument("--svmde",  action='store_true', help="Use the one class SVM density estimator for known/unknown distinctions.")
-    args = parser.parse_args()
+# if __name__=="__main__":
+#     import argparse
+#     parser = argparse.ArgumentParser(description='Run ModelBasedAgent in network mode')
+#     parser.add_argument("--gamma", type=float, default=0.99, help="Discount factor")
+#     parser.add_argument("--model", type=str, default="knn", help="What model class to use", choices=["knn", "randforest", "svm", "gp"])
+#     parser.add_argument("--planner", type=str, default="fittedq", help="What planner class to use", choices=["fittedq"])
+#     parser.add_argument("--svmde",  action='store_true', help="Use the one class SVM density estimator for known/unknown distinctions.")
+#     args = parser.parse_args()
 
-    model_params = {}
-    planner_params = {}
-    model_class = None
-    planner_class = None
+#     model_params = {}
+#     planner_params = {}
+#     model_class = None
+#     planner_class = None
 
-    if args.model == "knn":
-        model_params = {"update_freq": 20, "known_threshold": 0.95, "max_experiences": 700}
-        if args.svmde:
-            model_class = batch_model.KNNSVM
-        else:
-            model_class = batch_model.KNNBatchModel
-    elif args.model == "randforest":
-        model_params = {"known_threshold": 0.95, "max_experiences": 800, "importance_weight": True}
-        if args.svmde:
-            model_class = model_class = batch_model.RandForestSVM
-        else:
-            model_class = batch_model.RandomForestBatchModel
-    elif args.model == "svm":
-        model_params = {"known_threshold": 0.95, "max_experiences": 500, "importance_weight": True}
-        if args.svmde:
-            model_class = batch_model.SVM2
-        else:
-            model_class = batch_model.SVMBatchModel
-    elif args.model == "gp":
-        model_params = {"max_experiences": 300, "nugget": 1.0e-10, "random_start": 100}
-        if args.svmde:
-            model_class = batch_model.GPSVM
-        else:
-            model_class = batch_model.GaussianProcessBatchModel
+#     if args.model == "knn":
+#         model_params = {"update_freq": 20, "known_threshold": 0.95, "max_experiences": 700}
+#         if args.svmde:
+#             model_class = batch_model.KNNSVM
+#         else:
+#             model_class = batch_model.KNNBatchModel
+#     elif args.model == "randforest":
+#         model_params = {"known_threshold": 0.95, "max_experiences": 800, "importance_weight": True}
+#         if args.svmde:
+#             model_class = model_class = batch_model.RandForestSVM
+#         else:
+#             model_class = batch_model.RandomForestBatchModel
+#     elif args.model == "svm":
+#         model_params = {"known_threshold": 0.95, "max_experiences": 500, "importance_weight": True}
+#         if args.svmde:
+#             model_class = batch_model.SVM2
+#         else:
+#             model_class = batch_model.SVMBatchModel
+#     elif args.model == "gp":
+#         model_params = {"max_experiences": 300, "nugget": 1.0e-10, "random_start": 100}
+#         if args.svmde:
+#             model_class = batch_model.GPSVM
+#         else:
+#             model_class = batch_model.GaussianProcessBatchModel
 
-    if args.planner == "fitqit":
-        planner_params = {"basis": "fourier", "regressor": "ridge", "iterations": 1000, "support_size": 50, "resample": 15}
-        planner_class = fitted_qiteration.FittedQIteration
+#     if args.planner == "fitqit":
+#         planner_params = {"basis": "fourier", "regressor": "ridge", "iterations": 1000, "support_size": 50, "resample": 15}
+#         planner_class = fitted_qiteration.FittedQIteration
 
-    params = {'gamma': args.gamma, 'model_class': model_class, 'model_params': model_params,
-          'planner_class': planner_class, 'planner_params': planner_params}
+#     params = {'gamma': args.gamma, 'model_class': model_class, 'model_params': model_params,
+#           'planner_class': planner_class, 'planner_params': planner_params}
 
-    AgentLoader.loadAgent(ModelBasedAgent(params))
+#     AgentLoader.loadAgent(ModelBasedAgent(params))
 

@@ -35,8 +35,9 @@ class sarsa_lambda_ann(skeleton_agent):
         self.alpha = self.params.setdefault("alpha", 0.001)
         self.num_hidden = self.params.setdefault("num_hidden", 50)
 
-    def agent_get_parameters(self):
-        param_set = super(sarsa_lambda_ann, self).agent_get_parameters()
+    @classmethod
+    def agent_parameters(cls):
+        param_set = super(sarsa_lambda_ann, cls).agent_parameters()
         add_parameter(param_set, "alpha", default=0.01)
         add_parameter(param_set, "epsilon", default=0.1)
         add_parameter(param_set, "gamma", default=1.0)
@@ -46,25 +47,6 @@ class sarsa_lambda_ann(skeleton_agent):
         # Parameters *NOT* used in parameter optimization
         add_parameter(param_set, "softmax", optimize=False, type=bool, default=False)
         return param_set
-
-    def randomize_parameters(self, **args):
-        """Generate parameters randomly, constrained by given named parameters.
-
-        Args:
-            **args: Named parameters to fix, which will not be randomly generated
-
-        Returns:
-            List of resulting parameters of the class. Will always be in the same order.
-            Empty list if parameter free.
-
-        """
-        self.randParameter('epsilon', args)
-        self.randParameter('alpha', args)
-        self.randParameter('gamma', args)
-        self.randParameter('lmbda', args)
-        self.randParameter('softmax', args, sample=self.softmax)
-        self.randParameter('num_hidden', args, sample=numpy.random.randint(200)+2)
-        return args
 
     def agent_init(self,taskSpec):
         self.init_parameters()
@@ -198,21 +180,9 @@ class sarsa_lambda_ann(skeleton_agent):
 
 
 if __name__=="__main__":
-    import argparse
-    parser = argparse.ArgumentParser(description='Run SarsaLambda agent in network mode with linear function approximation.')
-    parser.add_argument("--epsilon", type=float, default=0.1, help="Probability of exploration with epsilon-greedy.")
-    parser.add_argument("--softmax", type=float, help="Use softmax policies with the argument giving tau, the divisor which scales values used when computing soft-max policies.")
-    parser.add_argument("--stepsize", "--alpha", type=float, default=0.01, help="The step-size parameter which affects how far in the direction of the gradient parameters are updated.")
-    parser.add_argument("--gamma", type=float, default=1.0, help="Discount factor")
-    parser.add_argument("--lambda", type=float, default=0.7, help="The eligibility traces decay rate. Set to 0 to disable eligibility traces.", dest='lmbda')
-    parser.add_argument("--num_hidden", type=int, default=10, help="Number of hidden nodes to use in the Neural Network.")
-    args = parser.parse_args()
-    params = {}
-    alpha = args.stepsize
-    epsilon = args.epsilon
-    softmax = False
-    if args.softmax is not None:
-        softmax = True
-        epsilon = args.softmax
+    from pyrl.agents.skeleton_agent import runAgent
+    runAgent(sarsa_lambda_ann)
 
-    AgentLoader.loadAgent(sarsa_lambda_ann(epsilon=epsilon, alpha=alpha, gamma=args.gamma, lmbda=args.lmbda, num_hidden=args.num_hidden, params=params, softmax=softmax))
+
+
+

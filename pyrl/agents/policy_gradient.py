@@ -123,14 +123,11 @@ class REINFORCE(policy_gradient):
         super(REINFORCE, self).init_parameters(self)
         self.num_rollouts = self.params.setdefault('num_rollouts', 5)
 
-    def agent_get_parameters(self):
-        param_set = super(REINFORCE, self).agent_get_parameters()
+    @classmethod
+    def agent_parameters(cls):
+        param_set = super(REINFORCE, cls).agent_parameters()
         add_parameter(param_set, "num_rollouts", default=5, type=int, min=1, max=50)
         return param_set
-
-    def randomize_parameters(self, **args):
-        self.randParameter('num_rollouts', args, sample=numpy.random.randint(30)+1)
-        return super(REINFORCE, self).randomize_parameters(**args)
 
     def agent_start(self,observation):
         if self.ep_count > 0:
@@ -178,14 +175,11 @@ class twotime_ac(policy_gradient):
         policy_gradient.init_parameters(self)
         self.beta = self.params.setdefault("beta", 0.001)
 
-    def agent_get_parameters(self):
-        param_set = super(twotime_ac, self).agent_get_parameters()
+    @classmethod
+    def agent_parameters(cls):
+        param_set = super(twotime_ac, cls).agent_parameters()
         add_parameter(param_set, "beta", default=0.001)
         return param_set
-
-    def randomize_parameters(self, **args):
-        self.randParameter('beta', args)
-        return super(twotime_ac, self).randomize_parameters(**args)
 
     def update(self, phi_t, phi_tp, reward, compatFeatures):
         if self.avg_reward is None:
@@ -240,16 +234,12 @@ class nac_lstd(policy_gradient):
         self.nac_freq = self.params.setdefault("nac_freq", 200)
         self.nac_precond = self.params.setdefault('precond', 0.01)
 
-    def agent_get_parameters(self):
-        param_set = super(nac_lstd, self).agent_get_parameters()
+    @classmethod
+    def agent_parameters(cls):
+        param_set = super(nac_lstd, cls).agent_parameters()
         add_parameter(param_set, "nac_freq", default=200, type=int, min=1, max=1000)
         add_parameter(param_set, "precond", default=0.01)
         return param_set
-
-    def randomize_parameters(self, **args):
-        self.randParameter('nac_freq', args, sample=numpy.random.randint(1000))
-        self.randParameter('precond', args)
-        return super(nac_lstd, self).randomize_parameters(**args)
 
     def agent_init(self,taskSpec):
         sarsa_lambda.sarsa_lambda.agent_init(self, taskSpec)
@@ -303,16 +293,12 @@ class nac_sarsa(policy_gradient):
         self.beta = self.params.setdefault("beta", 0.001)
         self.nac_freq = self.params.setdefault("nac_freq", 200)
 
-    def agent_get_parameters(self):
-        param_set = super(nac_sarsa, self).agent_get_parameters()
+    @classmethod
+    def agent_parameters(cls):
+        param_set = super(nac_sarsa, cls).agent_parameters()
         add_parameter(param_set, "nac_freq", default=200, type=int, min=1, max=1000)
         add_parameter(param_set, "beta", default=0.001)
         return param_set
-
-    def randomize_parameters(self, **args):
-        self.randParameter('nac_freq', args, sample=numpy.random.randint(1000))
-        self.randParameter('beta', args)
-        return super(nac_sarsa, self).randomize_parameters(**args)
 
     def agent_init(self,taskSpec):
         sarsa_lambda.sarsa_lambda.agent_init(self, taskSpec)
@@ -335,5 +321,13 @@ class nac_sarsa(policy_gradient):
         if self.step_count % self.nac_freq == 0:
             # Update the weights with both a scalar and vector stepsize used
             self.weights += self.step_sizes * self.advantage_weights.reshape(self.weights.shape) / numpy.linalg.norm(self.advantage_weights)
+
+
+if __name__=="__main__":
+    from pyrl.agents.skeleton_agent import runAgent
+    runAgent(nac_sarsa)
+
+
+
 
 

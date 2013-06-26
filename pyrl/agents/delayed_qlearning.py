@@ -27,38 +27,13 @@ class delayed_qlearning(qlearning.qlearning_agent):
         super(delayed_qlearning, self).init_parameters()
         self.m = self.params.setdefault('m', 100)
 
-    def agent_get_parameters(self):
-        param_set = parameter_set(self.name, description="Parameters required for running an RL agent algorithm.")
+    @classmethod
+    def agent_parameters(cls):
+        param_set = parameter_set(cls.name, description="Parameters required for running an RL agent algorithm.")
         add_parameter(param_set, "epsilon", default=0.1)
         add_parameter(param_set, "gamma", default=0.99)
         add_parameter(param_set, "m", default=100, type=int, min=1, max=1000)
         return param_set
-
-    def randomize_parameters(self, **args):
-        """Generate parameters randomly, constrained by given named parameters.
-
-        If used, this must be called before agent_init in order to have desired effect.
-
-        Parameters that fundamentally change the algorithm are not randomized over. For
-        example, basis and softmax fundamentally change the domain and have very few values
-        to be considered. They are not randomized over.
-
-        Basis parameters, on the other hand, have many possible values and ARE randomized.
-
-        Args:
-            **args: Named parameters to fix, which will not be randomly generated
-
-        Returns:
-            List of resulting parameters of the class. Will always be in the same order.
-            Empty list if parameter free.
-
-        """
-
-        # Randomize main parameters
-        self.randParameter('epsilon', args)
-        self.randParameter('gamma', args)
-        self.randParameter('m', args, sample=numpy.random.randint(1000))
-        return args
 
     def agent_supported(self, parsedSpec):
         if parsedSpec.valid:
@@ -126,6 +101,10 @@ class delayed_qlearning(qlearning.qlearning_agent):
                 self.visit_count[state_action] = 0
         elif self.update_time[state_action] < self.last_update:
             self.LEARN[state_action] = True
+
+if __name__=="__main__":
+    from pyrl.agents.skeleton_agent import runAgent
+    runAgent(delayed_qlearning)
 
 
 
