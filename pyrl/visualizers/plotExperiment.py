@@ -29,10 +29,12 @@ def processFile(filename, style, verbose=True, method=None, windowsize=1, kmeans
     numRuns = 0
     styles = {"reward": 3, "steps": 1, "time": 2}
     style = styles[style]
-
+    diverged = False
     with open(filename, "r") as f:
         csvread = csv.reader(f)
         for line in csvread:
+            if int(line[styles["steps"]]) < 0: # Indicates divergence
+                diverged = True
             episodes.setdefault(int(line[0]), []).append(float(line[style]))
             maxEp = max(maxEp, int(line[0]))
 
@@ -41,6 +43,9 @@ def processFile(filename, style, verbose=True, method=None, windowsize=1, kmeans
     for k in episodes.keys():
         current = numpy.array(episodes[k])
         data[k,:] = current[:numRuns]
+
+    if diverged:
+        data.fill(data.min())
 
     locs, means, stdevs = None, None, None
     if method == 'sum':

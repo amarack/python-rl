@@ -2,7 +2,7 @@
 # Author: Will Dabney
 # Author: Pierre-Luc Bacon <pierrelucbacon@gmail.com>
 
-import csv
+import csv, os
 from pyrl.misc.timer import Timer
 from pyrl.rlglue import RLGlueLocal as RLGlueLocal
 from pyrl.rlglue.registry import register_experiment
@@ -33,18 +33,16 @@ class Episodic(object):
         # Query the agent whether or not it has diverged
         if self.hasAgentDiverged():
             return 0, -1, 0.0, 0.0 # -1 number of steps, signals that divergence.
-
         if self.timed:
             timer = Timer()
             with timer:
                 terminal = self.rlglue.RL_episode(self.maxsteps)
             runtime = timer.duration_in_seconds()
-
         else:
             terminal = self.rlglue.RL_episode(self.maxsteps)
-
         totalSteps = self.rlglue.RL_num_steps()
         totalReward = self.rlglue.RL_return()
+
         return terminal, totalSteps, totalReward, runtime
 
     def run_trial(self, filename=None):
