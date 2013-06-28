@@ -1,2 +1,2 @@
-__all__ = ["episodic", "randomized", "spearmint"]
+__all__ = ["episodic", "randomized"]
 

@@ -325,34 +325,47 @@ class vSGD(AdaptiveStepSize):
         self.v = numpy.zeros(weights_shape)
         self.h = numpy.zeros(weights_shape)
         self.t = numpy.ones(weights_shape) * params.setdefault("vsgd_initmeta", 100.)
-        self.slow_start = params.setdefault("vsgd_slowstart", 50)
+        self.slow_start = params.setdefault("vsgd_slowstart", 10)
+        self.C = params.setdefault("C", 10.)
+        self.slowcount = 0
 
     @classmethod
     def agent_parameters(cls):
         param_set = super(vSGD, cls).agent_parameters()
-        add_parameter(param_set, "vsgd_slowstart", default=50, type=int, min=0, max=500)
+        add_parameter(param_set, "vsgd_slowstart", default=10, type=int, min=0, max=500)
         add_parameter(param_set, "vsgd_initmeta", default=100., min=1., max=1000.)
+        add_parameter(param_set, "vsgd_C", default=10., min=1., max=1000.)
         return param_set
 
     def rescale_update(self, phi_t, phi_tp, delta, reward, descent_direction):
         # Estimate hessian... somehow..
         est_hessian = (self.gamma * phi_tp - phi_t)**2
-        self.g *= -(1./self.t - 1.)
-        self.g += (1./self.t) * descent_direction
 
-        self.v *= -(1./self.t - 1.)
-        self.v += (1./self.t) * descent_direction**2
-
-        self.h *= -(1./self.t - 1.)
-        self.h += (1./self.t) * est_hessian
-        denom = self.h*self.v
-        denom[denom==0] = 1.0
-        self.step_sizes = ((self.g**2) / denom).clip(max=self.alpha)
-        #print self.step_sizes
         if self.slow_start <= 0:
-            self.t *= (-((self.g**2 / self.v) - 1.)).clip(1.e-15, 1.)
+            self.g *= -(1./self.t - 1.)
+            self.g += (1./self.t) * descent_direction
+
+            self.v *= -(1./self.t - 1.)
+            self.v += (1./self.t) * descent_direction**2
+
+            self.h *= -(1./self.t - 1.)
+            self.h += (1./self.t) * est_hessian
+            non_zeros = numpy.where(self.v != 0.)
+            denom = self.h*self.v*self.C # Overestimate v by a factor of C
+            self.step_sizes[non_zeros] = ((self.g[non_zeros]**2) / denom[non_zeros]).clip(max=self.alpha)
+            self.t[non_zeros] *= (-(self.step_sizes[non_zeros] - 1.))
             self.t += 1.
-        self.slow_start -= 1
+        else:
+            self.step_sizes.fill(0.0)
+            self.slowcount += 1
+            self.slow_start -= 1
+            self.v += descent_direction**2
+            self.g += descent_direction
+            self.h += est_hessian
+            if self.slow_start <= 0:
+                self.v /= self.slowcount
+                self.g /= self.slowcount
+                self.h /= self.slowcount
 
         return self.step_sizes * descent_direction
 
