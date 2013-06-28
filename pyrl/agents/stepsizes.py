@@ -350,12 +350,23 @@ class vSGD(AdaptiveStepSize):
 
             self.h *= -(1./self.t - 1.)
             self.h += (1./self.t) * est_hessian
+
+            # Bounding condition number, to keep te step-sizes from diverging due to
+            # numerical issues...
+            self.h = self.h.clip(min=1.)
+
+            # Lets not divide by zero...
             non_zeros = numpy.where(self.v != 0.)
             denom = self.h*self.v*self.C # Overestimate v by a factor of C
-            self.step_sizes[non_zeros] = ((self.g[non_zeros]**2) / denom[non_zeros]).clip(max=self.alpha)
+
+            # Step-size adaptation update
+            self.step_sizes[non_zeros] = ((self.g[non_zeros]**2) / denom[non_zeros])
             self.t[non_zeros] *= (-(self.step_sizes[non_zeros] - 1.))
             self.t += 1.
         else:
+            # During slow start, compute empirical means and don't change parameters too much
+            # Since the notion of 'too much' is like another parameter, we are just
+            # going to not move parameters at all until the slow start estimates are done.
             self.step_sizes.fill(0.0)
             self.slowcount += 1
             self.slow_start -= 1
