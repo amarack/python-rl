@@ -6,6 +6,6 @@
 			    "epsilon": 0.01,
 			    "gamma": 1.0,
 			    "lmbda": 0.9,
-			    "alpha": 0.0001
+			    "alpha": 0.00001
 		 }, "name": "Sarsa ANN"}
 }
