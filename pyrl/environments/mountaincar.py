@@ -40,6 +40,7 @@ class MountainCarND(Environment,object):
     def __init__(self, **kwargs):#noise=0.0, random_start=False, dim=2):
         dim = int(max(2, kwargs.setdefault('dimension', 3)))
         self.noise = kwargs.setdefault('noise', 0.0)
+        self.reward_noise = kwargs.setdefault('reward_noise', 0.0)
         self.random_start = kwargs.setdefault('random_start', False)
         self.state = numpy.zeros((dim-1,2))
         self.state_range = numpy.array([[[-1.2, 0.6], [-0.07, 0.07]] for i in range(dim-1)])
@@ -105,6 +106,9 @@ class MountainCarND(Environment,object):
         if self.isAtGoal():
             theReward = 0.0
             episodeOver = 1
+
+        if self.reward_noise > 0:
+            theReward += numpy.random.normal(scale=self.reward_noise)
 
         theObs = Observation()
         theObs.doubleArray = self.state.flatten().tolist()

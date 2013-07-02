@@ -37,8 +37,9 @@ class CartPole(Environment):
     """
     name = "Cart Pole"
 
-    def __init__(self, mode='easy', pole_scales=[1.], noise=0.0, random_start=True):
+    def __init__(self, mode='easy', pole_scales=[1.], noise=0.0, reward_noise=0.0, random_start=True):
         self.noise = noise
+        self.reward_noise = reward_noise
         self.random_start = random_start
         self.cart_location = 0.0
         self.cart_velocity = 0.0
@@ -181,6 +182,9 @@ class CartPole(Environment):
 
         theReward = self.takeAction(intAction)
         episodeOver = int(self.terminate())
+
+        if self.reward_noise > 0:
+            theReward += numpy.random.normal(scale=self.reward_noise)
 
         theObs = Observation()
         theObs.doubleArray = [self.cart_location, self.cart_velocity] + self.pole_angle.tolist() + self.pole_velocity.tolist()
