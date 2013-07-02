@@ -28,7 +28,7 @@ class RandomizedTrial(Episodic):
         Episodic.__init__(self, config, **kwargs)
 
     def run_experiment(self, filename=None):
-        param_parser = self.agent.agent_get_parameters()
+        param_parser = self.agent.agent_parameters()
         for trial in range(self.num_trials):
             parameters = copy.deepcopy(self.configuration['agent']['params'])
             # Randomize the parameters, those marked not optimizable get their default
