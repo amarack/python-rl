@@ -421,7 +421,7 @@ class InvMaxEigen(AdaptiveStepSize):
         pert_gradient = -perterbed_delta * (phi_t - self.gamma * phi_tp)
         gradient = -descent_direction
 
-        # Update the eigenvector estimate and test for stability
+         # Update the eigenvector estimate and test for stability
         self.est_eigvector *= (1.0 - self.lecun_gamma)
         self.est_eigvector += (self.lecun_gamma / self.lecun_alpha) * (pert_gradient - gradient)
         update_ratio = numpy.abs(prevEigValue - numpy.linalg.norm(self.est_eigvector.ravel())) / prevEigValue

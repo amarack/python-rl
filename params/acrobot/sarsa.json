@@ -1,0 +1,12 @@
+{
+	"environment": {"params": {}, "name": "Acrobot"}, 
+	"experiment": {"params": {"num_episodes": 50, "num_runs": 30}, "name": "Episodic"}, 
+	"agent": {"params": {
+		 "alpha": 0.003,
+		 "epsilon": 0.01,
+		 "gamma": 0.99,
+		 "lmbda": 0.7,
+		 "basis": "fourier",
+		 "fourier_order": 3
+	}, "name": "Sarsa"}
+}
