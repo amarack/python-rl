@@ -15,6 +15,7 @@ import numpy, scipy.linalg
 from pyrl.misc import matrix
 from pyrl.rlglue.registry import register_agent
 import argparse
+from pyrl.misc.parameter import *
 
 def genAdaptiveAgent(stepsize_class, agent_class):
     """Generate an RL agent by combining an existing agent with a step-size algorithm."""
@@ -322,8 +323,9 @@ class vSGD(AdaptiveStepSize):
     def init_stepsize(self, weights_shape, params):
         self.step_sizes = numpy.ones(weights_shape) * self.alpha
         self.g = numpy.zeros(weights_shape)
-        self.v = numpy.zeros(weights_shape)
+        self.v = numpy.zeros(weights_shape) # For element wise learning rate mode
         self.h = numpy.zeros(weights_shape)
+        self.l = 0.0 # For global learning rate mode
         self.t = numpy.ones(weights_shape) * params.setdefault("vsgd_initmeta", 100.)
         self.slow_start = params.setdefault("vsgd_slowstart", 10)
         self.C = params.setdefault("C", 10.)
@@ -340,13 +342,29 @@ class vSGD(AdaptiveStepSize):
     def rescale_update(self, phi_t, phi_tp, delta, reward, descent_direction):
         # Estimate hessian... somehow..
         est_hessian = (self.gamma * phi_tp - phi_t)**2
+        self.update_estimates(est_hessian, descent_direction)
+        return self.step_sizes * descent_direction
 
+    def update_stepsize(self):
+        # Lets not divide by zero...
+        non_zeros = numpy.where(self.v != 0.)
+        denom = self.h*self.v*self.C # Overestimate v by a factor of C
+
+        # Step-size adaptation update
+        self.step_sizes[non_zeros] = ((self.g[non_zeros]**2) / denom[non_zeros])
+        self.t[non_zeros] *= (-(self.g[non_zeros]**2/self.v[non_zeros] - 1.))
+        self.t += 1.
+
+    def update_estimates(self, est_hessian, gradient):
         if self.slow_start <= 0:
             self.g *= -(1./self.t - 1.)
-            self.g += (1./self.t) * descent_direction
+            self.g += (1./self.t) * gradient
 
             self.v *= -(1./self.t - 1.)
-            self.v += (1./self.t) * descent_direction**2
+            self.v += (1./self.t) * gradient**2
+
+            self.l *= -(1./self.t.max() - 1.)
+            self.l += (1./self.t.max()) * numpy.linalg.norm(gradient.ravel())**2
 
             self.h *= -(1./self.t - 1.)
             self.h += (1./self.t) * est_hessian
@@ -354,15 +372,7 @@ class vSGD(AdaptiveStepSize):
             # Bounding condition number, to keep te step-sizes from diverging due to
             # numerical issues...
             self.h = self.h.clip(min=1.)
-
-            # Lets not divide by zero...
-            non_zeros = numpy.where(self.v != 0.)
-            denom = self.h*self.v*self.C # Overestimate v by a factor of C
-
-            # Step-size adaptation update
-            self.step_sizes[non_zeros] = ((self.g[non_zeros]**2) / denom[non_zeros])
-            self.t[non_zeros] *= (-(self.step_sizes[non_zeros] - 1.))
-            self.t += 1.
+            self.update_stepsize()
         else:
             # During slow start, compute empirical means and don't change parameters too much
             # Since the notion of 'too much' is like another parameter, we are just
@@ -370,16 +380,28 @@ class vSGD(AdaptiveStepSize):
             self.step_sizes.fill(0.0)
             self.slowcount += 1
             self.slow_start -= 1
-            self.v += descent_direction**2
-            self.g += descent_direction
+            self.v += gradient**2
+            self.g += gradient
+            self.l += numpy.linalg.norm(gradient.ravel())**2
             self.h += est_hessian
             if self.slow_start <= 0:
                 self.v /= self.slowcount
                 self.g /= self.slowcount
                 self.h /= self.slowcount
+                self.l /= self.slowcount
 
-        return self.step_sizes * descent_direction
 
+class vSGDGlobal(vSGD):
+    name = "vSGD-g"
+    def update_stepsize(self):
+        # Lets not divide by zero...
+        non_zeros = numpy.where(self.v != 0.)
+        denom = self.h*self.v*self.C # Overestimate v by a factor of C
+
+        # Step-size adaptation update
+        self.step_sizes.fill(numpy.linalg.norm(self.g.ravel())**2 / (self.h.max() * self.l * self.C))
+        self.t *= (-(numpy.linalg.norm(self.g.ravel())**2/self.l - 1.))
+        self.t += 1.
 
 class InvMaxEigen(AdaptiveStepSize):
     """The optimal scalar step-size can be proven, under certain assumptions,
@@ -432,8 +454,8 @@ class InvMaxEigen(AdaptiveStepSize):
             self.step_sizes.fill(self.alpha)
 
             # Reset the estimated eigenvector and star the process again.
-            self.est_eigvector = numpy.random.normal(size=self.est_eigvector.shape)
-            self.est_eigvector /= numpy.linalg.norm(self.est_eigvector.ravel())
+            #self.est_eigvector = numpy.random.normal(size=self.est_eigvector.shape)
+            #self.est_eigvector /= numpy.linalg.norm(self.est_eigvector.ravel())
 
         return self.step_sizes * descent_direction
 
